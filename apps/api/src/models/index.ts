@@ -4,6 +4,7 @@ import { CustomerModel } from './customer.model';
 import { InvoiceModel } from './invoice.model';
 import { QuoteModel } from './quote.model';
 import { ServiceModel } from './service.model';
+import { SessionModel } from './session.model';
 import { UserModel } from './user.model';
 
 export * from './business.model';
@@ -12,6 +13,7 @@ export * from './customer.model';
 export * from './invoice.model';
 export * from './quote.model';
 export * from './service.model';
+export * from './session.model';
 export * from './user.model';
 export { AtomicUpdateGuardError } from './plugins/atomic-update-guard';
 export { TenantGuardError, type TenantOwned } from './plugins/tenant-guard';
@@ -30,6 +32,7 @@ export const TENANT_MODELS = [
   QuoteModel,
   InvoiceModel,
   CounterModel,
+  SessionModel,
 ] as const;
 
 export const ALL_MODELS = [BusinessModel, ...TENANT_MODELS] as const;

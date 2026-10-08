@@ -71,7 +71,8 @@ function jwtSecretSchema(isProduction: boolean) {
 
 const DURATION_UNIT_SECONDS = { s: 1, m: 60, h: 3600, d: 86_400 } as const;
 
-function durationInSeconds(value: string): number {
+/** Converts a duration such as `15m` or `3600s`, already validated by the schema below, to seconds. */
+export function durationInSeconds(value: string): number {
   const unit = value.slice(-1) as keyof typeof DURATION_UNIT_SECONDS;
   return Number(value.slice(0, -1)) * DURATION_UNIT_SECONDS[unit];
 }

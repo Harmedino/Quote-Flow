@@ -8,6 +8,7 @@ import { findMissingIndexes } from './db/indexes';
 // Compiles every model before connecting, so development's autoIndex builds their indexes.
 import { ALL_MODELS } from './models';
 import { type Logger, createLogger, shouldUsePrettyLogs } from './utils/logger';
+import { preparePasswordVerification } from './utils/password';
 
 const SHUTDOWN_TIMEOUT_MS = 10_000;
 
@@ -76,6 +77,7 @@ async function start(env: Env, logger: Logger): Promise<void> {
     logger,
   });
   if (env.NODE_ENV === 'production') await assertIndexesExist(logger);
+  await preparePasswordVerification();
 
   const server = createServer(createApp({ env, logger }));
   server.listen(env.PORT);

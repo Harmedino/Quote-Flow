@@ -13,6 +13,14 @@ function getDummyHash(): Promise<string> {
   return dummyHash;
 }
 
+/**
+ * Computes the dummy hash ahead of time (at startup), so the first sign-in
+ * attempt for an unknown email takes no longer than any other.
+ */
+export async function preparePasswordVerification(): Promise<void> {
+  await getDummyHash();
+}
+
 export async function hashPassword(password: string): Promise<string> {
   // passwordSchema rejects such passwords at the edge; this keeps them from being silently truncated.
   if (Buffer.byteLength(password, 'utf8') > BCRYPT_MAX_BYTES) {

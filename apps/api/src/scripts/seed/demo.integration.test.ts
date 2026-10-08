@@ -5,6 +5,7 @@ import {
   CustomerModel,
   InvoiceModel,
   QuoteModel,
+  SessionModel,
   UserModel,
 } from '../../models';
 import { nextDocumentNumber } from '../../services/numbering.service';
@@ -35,11 +36,20 @@ describe.skipIf(!TEST_DATABASE_URI)('demo seed (database)', () => {
       await nextDocumentNumber(otherBusinessId, 'quote', 'QT');
 
       const first = await replaceDemoBusiness(createSeedClock(), 'placeholder-hash');
+      const firstOwner = first.tenant.users.owner;
+      await SessionModel.create({
+        businessId: firstOwner.businessId,
+        userId: firstOwner._id,
+        tokenHash: 'hash-of-a-demo-refresh-token',
+        lastUsedAt: new Date(),
+        expiresAt: new Date(Date.now() + 60_000),
+      });
       const second = await replaceDemoBusiness(createSeedClock(), 'placeholder-hash');
 
       expect([first.replaced, second.replaced]).toEqual([false, true]);
       expect(await BusinessModel.exists({ _id: first.tenant.business._id })).toBeNull();
       expect(await QuoteModel.countDocuments({ businessId: first.tenant.business._id })).toBe(0);
+      expect(await SessionModel.countDocuments({ businessId: first.tenant.business._id })).toBe(0);
       expect(await BusinessModel.countDocuments({ name: DEMO_BUSINESS.name })).toBe(1);
 
       const businessId = second.tenant.business._id;

@@ -1,5 +1,12 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
-import { type Env, EnvValidationError, type ScriptEnv, loadEnv, loadScriptEnv } from './env';
+import {
+  type Env,
+  EnvValidationError,
+  type ScriptEnv,
+  durationInSeconds,
+  loadEnv,
+  loadScriptEnv,
+} from './env';
 
 const SECRET = 'a-very-long-jwt-secret-for-tests-0123456789';
 const REQUIRED = { MONGODB_URI: 'mongodb://127.0.0.1:27017/quoteflow', JWT_SECRET: SECRET };
@@ -160,6 +167,17 @@ describe('loadEnv', () => {
 
   it.each(['60s', '1m', '15m', '3600s', '1h'])('accepts an ACCESS_TOKEN_TTL of %j', (value) => {
     expect(loadEnv({ ...REQUIRED, ACCESS_TOKEN_TTL: value }).ACCESS_TOKEN_TTL).toBe(value);
+  });
+
+  it.each([
+    ['60s', 60],
+    ['1m', 60],
+    ['15m', 900],
+    ['3600s', 3600],
+    ['1h', 3600],
+    ['2d', 172_800],
+  ])('converts the duration %j to %i seconds', (value, seconds) => {
+    expect(durationInSeconds(value)).toBe(seconds);
   });
 
   describe('MONGODB_URI', () => {
