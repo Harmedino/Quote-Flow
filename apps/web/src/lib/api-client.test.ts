@@ -5,6 +5,7 @@ import {
   getErrorMessage,
   isAuthPath,
   request,
+  requestBlob,
   requestPaginated,
   resolveApiBaseUrl,
   setAuthHandler,
@@ -434,5 +435,67 @@ describe('request with an auth handler', () => {
       status: 403,
     });
     expect(auth.renewSession).not.toHaveBeenCalled();
+  });
+});
+
+describe('requestBlob', () => {
+  it('returns the binary body with the Bearer token and a wildcard Accept header', async () => {
+    setAuthHandler({ getAccessToken: () => 'token', renewSession: () => Promise.resolve(false) });
+    fetchMock.mockResolvedValue(
+      new Response(new Uint8Array([37, 80, 68, 70]), {
+        status: 200,
+        headers: { 'Content-Type': 'application/pdf' },
+      }),
+    );
+
+    const blob = await requestBlob('/quotes/q1/pdf');
+
+    expect(blob.type).toBe('application/pdf');
+    expect(await blob.text()).toBe('%PDF');
+    const { url, init } = lastFetchCall();
+    expect(url).toBe('/api/quotes/q1/pdf');
+    const headers = new Headers(init.headers);
+    expect(headers.get('Accept')).toBe('*/*');
+    expect(headers.get('Authorization')).toBe('Bearer token');
+  });
+
+  it('renews the session once after a 401', async () => {
+    let token = 'old';
+    setAuthHandler({
+      getAccessToken: () => token,
+      renewSession: () => {
+        token = 'new';
+        return Promise.resolve(true);
+      },
+    });
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ error: { code: 'UNAUTHORIZED', message: 'x' } }, 401))
+      .mockResolvedValueOnce(new Response('file', { status: 200 }));
+
+    await expect(requestBlob('/invoices/i1/pdf').then((blob) => blob.text())).resolves.toBe('file');
+    expect(new Headers(fetchMock.mock.calls[1]?.[1]?.headers).get('Authorization')).toBe(
+      'Bearer new',
+    );
+  });
+
+  it('throws an ApiError from the JSON error envelope', async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({ error: { code: 'NOT_FOUND', message: 'Quote not found' } }, 404),
+    );
+
+    await expect(requestBlob('/quotes/missing/pdf')).rejects.toMatchObject({
+      status: 404,
+      code: 'NOT_FOUND',
+      message: 'Quote not found',
+    });
+  });
+
+  it('maps a non-JSON failure to INVALID_RESPONSE', async () => {
+    fetchMock.mockResolvedValue(new Response('<html>Bad gateway</html>', { status: 502 }));
+
+    await expect(requestBlob('/quotes/q1/pdf')).rejects.toMatchObject({
+      status: 502,
+      code: 'INVALID_RESPONSE',
+    });
   });
 });

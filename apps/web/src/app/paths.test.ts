@@ -19,13 +19,16 @@ describe('paths', () => {
     expect(paths.quote('q1')).toBe('/quotes/q1');
     expect(paths.editQuote('q1')).toBe('/quotes/q1/edit');
     expect(paths.invoice('i1')).toBe('/invoices/i1');
+    expect(paths.editInvoice('i1')).toBe('/invoices/i1/edit');
     expect(paths.publicQuote('tok_123')).toBe('/quote/tok_123');
+    expect(paths.publicInvoice('tok_123')).toBe('/invoice/tok_123');
   });
 
   it('encodes parameters so they stay within one path segment', () => {
     expect(paths.quote('a/b')).toBe('/quotes/a%2Fb');
     expect(paths.editQuote('a b?c')).toBe('/quotes/a%20b%3Fc/edit');
     expect(paths.publicQuote('x#y&z')).toBe('/quote/x%23y%26z');
+    expect(paths.publicInvoice('x#y&z')).toBe('/invoice/x%23y%26z');
   });
 
   it.each([
@@ -39,6 +42,7 @@ describe('paths', () => {
     [paths.quotes, '/quotes'],
     [paths.newQuote, '/quotes/new'],
     [paths.invoices, '/invoices'],
+    [paths.newInvoice, '/invoices/new'],
     [paths.businessSettings, '/settings/business'],
     [paths.accountSettings, '/settings/account'],
   ])('%s resolves to its own route', (url, pattern) => {
@@ -62,8 +66,16 @@ describe('paths', () => {
       pattern: '/invoices/:invoiceId',
       params: { invoiceId: 'i1' },
     });
+    expect(resolve(paths.editInvoice('i1'))).toEqual({
+      pattern: '/invoices/:invoiceId/edit',
+      params: { invoiceId: 'i1' },
+    });
     expect(resolve(paths.publicQuote('tok'))).toEqual({
       pattern: '/quote/:token',
+      params: { token: 'tok' },
+    });
+    expect(resolve(paths.publicInvoice('tok'))).toEqual({
+      pattern: '/invoice/:token',
       params: { token: 'tok' },
     });
   });
@@ -88,7 +100,9 @@ describe('paths', () => {
       paths.quote('q1'),
       paths.editQuote('q1'),
       paths.invoices,
+      paths.newInvoice,
       paths.invoice('i1'),
+      paths.editInvoice('i1'),
       paths.settings,
       paths.businessSettings,
       paths.accountSettings,
@@ -97,7 +111,13 @@ describe('paths', () => {
     }
     expect(middlewareFor(paths.login)).toEqual([redirectSignedIn]);
     expect(middlewareFor(paths.register)).toEqual([redirectSignedIn]);
-    for (const url of [paths.home, paths.forgotPassword, paths.publicQuote('tok'), '/nope']) {
+    for (const url of [
+      paths.home,
+      paths.forgotPassword,
+      paths.publicQuote('tok'),
+      paths.publicInvoice('tok'),
+      '/nope',
+    ]) {
       expect(middlewareFor(url), url).toEqual([]);
     }
   });

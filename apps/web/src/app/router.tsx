@@ -99,8 +99,16 @@ export const routes: RouteObject[] = [
               lazy: lazyComponent(() => import('@/pages/invoices/InvoicesPage')),
             },
             {
+              path: paths.newInvoice,
+              lazy: lazyComponent(() => import('@/pages/invoices/NewInvoicePage')),
+            },
+            {
               path: '/invoices/:invoiceId',
               lazy: lazyComponent(() => import('@/pages/invoices/InvoiceDetailPage')),
+            },
+            {
+              path: '/invoices/:invoiceId/edit',
+              lazy: lazyComponent(() => import('@/pages/invoices/EditInvoicePage')),
             },
             {
               path: paths.settings,
@@ -127,6 +135,10 @@ export const routes: RouteObject[] = [
             {
               path: '/quote/:token',
               lazy: lazyComponent(() => import('@/pages/public/PublicQuotePage')),
+            },
+            {
+              path: '/invoice/:token',
+              lazy: lazyComponent(() => import('@/pages/public/PublicInvoicePage')),
             },
           ]),
         ],

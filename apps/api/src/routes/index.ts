@@ -13,7 +13,15 @@ import { createRefreshCookie } from '../utils/refresh-cookie';
 import { createAccountRouter } from './account.routes';
 import { createAuthRouter } from './auth.routes';
 import { createBusinessRouter } from './business.routes';
+import { createDashboardRouter } from './dashboard.routes';
+import { createCustomersRouter } from './customers.routes';
+import { createServicesRouter } from './services.routes';
 import { createHealthRouter } from './health.routes';
+import { createPdfRouter } from './pdf.routes';
+import { createInvoiceRouter } from './invoice.routes';
+import { createPublicRouter } from './public.routes';
+import { createQuoteConversionRouter } from './quote-conversion.routes';
+import { createQuoteRouter } from './quote.routes';
 
 export interface ApiRouterOptions {
   env: Env;
@@ -50,5 +58,13 @@ export function createApiRouter({ env, logger, clock, authRateLimits }: ApiRoute
     createAccountRouter({ accounts: createAccountService({ sessions }), requireAuth, limiters }),
   );
   router.use('/business', createBusinessRouter({ requireAuth }));
+  router.use(createPdfRouter({ requireAuth, logger, clock }));
+  router.use('/dashboard', createDashboardRouter({ requireAuth, clock }));
+  router.use('/quotes', createQuoteRouter({ requireAuth }));
+  router.use('/customers', createCustomersRouter({ requireAuth }));
+  router.use('/services', createServicesRouter({ requireAuth }));
+  router.use('/invoices', createInvoiceRouter({ requireAuth }));
+  router.use('/public', createPublicRouter({ logger, clock }));
+  router.use('/quotes', createQuoteConversionRouter({ requireAuth }));
   return router;
 }

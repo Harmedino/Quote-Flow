@@ -319,3 +319,25 @@ export async function requestPaginated<T>(
   }
   return { data: envelope.data as T[], meta: envelope.meta };
 }
+
+/**
+ * Like {@link request}, for endpoints that return a file (e.g. a PDF). Shares
+ * the base URL, Bearer token and 401 renewal; failures still arrive as JSON
+ * error envelopes and are thrown as {@link ApiError}s.
+ */
+export async function requestBlob(path: string, options: RequestOptions = {}): Promise<Blob> {
+  const headers = new Headers(options.headers);
+  if (!headers.has('Accept')) {
+    headers.set('Accept', '*/*');
+  }
+  const response = await send(path, { ...options, headers });
+  if (!response.ok) {
+    await readEnvelope(response, options.signal);
+    throw invalidResponse(response);
+  }
+  try {
+    return await response.blob();
+  } catch (error) {
+    throw toTransportError(error, options.signal);
+  }
+}

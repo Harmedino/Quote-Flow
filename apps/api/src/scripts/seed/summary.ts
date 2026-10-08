@@ -59,7 +59,10 @@ export async function describeSeededTenant(
     ]);
 
   const sum = (rows: readonly StatusCount[]) => rows.reduce((total, row) => total + row.count, 0);
-  const billable = invoices.filter((invoice) => invoice.status !== 'cancelled');
+  // Same definition as the dashboard: drafts and cancelled invoices were never billed.
+  const billable = invoices.filter(
+    (invoice) => invoice.status !== 'cancelled' && invoice.status !== 'draft',
+  );
   const invoiced = sumOf(billable, (invoice) => invoice.totals.total);
   const collected = sumOf(billable, (invoice) => invoice.amountPaid);
   const currency = business.currency;

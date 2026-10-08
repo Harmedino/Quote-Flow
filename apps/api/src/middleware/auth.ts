@@ -33,7 +33,7 @@ export function createRequireAuth(tokens: Pick<AccessTokenService, 'verify'>): R
 }
 
 /** The authenticated identity. Only for handlers behind `requireAuth`. */
-export function authOf(req: Request): AuthContext {
+export function authOf(req: Pick<Request, 'auth'>): AuthContext {
   if (!req.auth) throw new Error('requireAuth must run before this handler');
   return req.auth;
 }

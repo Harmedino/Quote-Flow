@@ -40,4 +40,9 @@ describe('formatMoney', () => {
     expect(formatMoney(1500, 'JPY', 'en-US')).toBe('¥1,500');
     expect(formatMoney(1234, 'KWD', 'en-US')).toMatch(/^KWD\s1\.234$/);
   });
+
+  it('uses local symbols rather than currency codes where one exists', () => {
+    expect(formatMoney(123450, 'NGN', 'en-US')).toBe('₦1,234.50');
+    expect(formatMoney(123450, 'GHS', 'en-US')).toBe('GH₵1,234.50');
+  });
 });
