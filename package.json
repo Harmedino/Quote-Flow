@@ -1,0 +1,36 @@
+{
+  "name": "quoteflow",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Quote and invoice management SaaS for service businesses.",
+  "type": "module",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22.22.0",
+    "pnpm": ">=10"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter @quoteflow/api --filter @quoteflow/web dev",
+    "dev:api": "pnpm --filter @quoteflow/api dev",
+    "dev:web": "pnpm --filter @quoteflow/web dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "eslint .",
+    "test": "pnpm -r test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "pnpm typecheck && pnpm lint && pnpm test && pnpm build",
+    "seed": "pnpm --filter @quoteflow/api seed",
+    "db:indexes": "pnpm --filter @quoteflow/api db:indexes"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.12.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.7",
+    "globals": "^17.13.0",
+    "prettier": "^3.9.9",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.71.1"
+  }
+}
