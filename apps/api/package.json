@@ -4,6 +4,9 @@
   "private": true,
   "description": "QuoteFlow REST API (Express + MongoDB).",
   "type": "module",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "dev": "tsx watch --env-file-if-exists=../../.env src/server.ts",
     "build": "node scripts/build.mjs",
@@ -11,11 +14,11 @@
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
     "seed": "tsx --env-file-if-exists=../../.env src/scripts/seed.ts",
-    "db:indexes": "tsx --env-file-if-exists=../../.env src/scripts/sync-indexes.ts"
+    "db:indexes": "tsx --env-file-if-exists=../../.env src/scripts/sync-indexes.ts",
+    "db:indexes:prod": "node --enable-source-maps dist/scripts/sync-indexes.js"
   },
   "dependencies": {
-    "@quoteflow/shared": "workspace:*",
-    "bcryptjs": "^3.0.3",
+    "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "express-rate-limit": "^8.7.1",
@@ -26,6 +29,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@quoteflow/shared": "workspace:*",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^22.20.5",

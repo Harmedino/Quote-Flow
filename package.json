@@ -15,11 +15,11 @@
     "dev:web": "pnpm --filter @quoteflow/web dev",
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings=0",
     "test": "pnpm -r test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "pnpm typecheck && pnpm lint && pnpm test && pnpm build",
+    "check": "pnpm format:check && pnpm typecheck && pnpm lint && pnpm test && pnpm build",
     "seed": "pnpm --filter @quoteflow/api seed",
     "db:indexes": "pnpm --filter @quoteflow/api db:indexes"
   },

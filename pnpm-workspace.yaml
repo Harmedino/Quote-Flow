@@ -2,5 +2,9 @@ packages:
   - apps/*
   - packages/*
 
+# Fail installs on a Node or pnpm version outside the `engines` ranges instead of only warning.
+engineStrict: true
+
 onlyBuiltDependencies:
+  - bcrypt
   - esbuild

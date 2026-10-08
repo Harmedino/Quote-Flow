@@ -54,8 +54,12 @@ export interface ApiPaginatedResponse<T> {
   meta: PaginationMeta;
 }
 
+/**
+ * Body of a ready `GET /api/health` (200). When the API is not ready it
+ * responds 503 with the standard error envelope (code SERVICE_UNAVAILABLE).
+ */
 export interface HealthStatus {
-  status: 'ok' | 'unavailable';
-  database: 'connected' | 'disconnected';
+  status: 'ok';
+  database: 'connected';
   uptimeSeconds: number;
 }

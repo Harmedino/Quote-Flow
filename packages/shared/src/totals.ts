@@ -1,4 +1,9 @@
-import { type DiscountType, PERCENTAGE_DECIMALS, QUANTITY_DECIMALS } from './constants/documents';
+import {
+  type DiscountType,
+  MAX_MONEY_AMOUNT,
+  PERCENTAGE_DECIMALS,
+  QUANTITY_DECIMALS,
+} from './constants/documents';
 
 export interface LineItemPricing {
   quantity: number;
@@ -30,6 +35,7 @@ export interface DocumentTotals {
 const QUANTITY_SCALE = 10n ** BigInt(QUANTITY_DECIMALS);
 const PERCENT_SCALE = 10n ** BigInt(PERCENTAGE_DECIMALS);
 const HUNDRED_PERCENT = 100n * PERCENT_SCALE;
+const MAX_AMOUNT = BigInt(MAX_MONEY_AMOUNT);
 
 /** Integer division rounding half away from zero, for non-negative operands. */
 function divideRoundHalfUp(numerator: bigint, denominator: bigint): bigint {
@@ -55,6 +61,7 @@ export function calculateLineAmount(quantity: number, unitPrice: number): number
     toScaledInteger(quantity, QUANTITY_SCALE) * BigInt(unitPrice),
     QUANTITY_SCALE,
   );
+  if (amount > MAX_AMOUNT) throw new RangeError('Line amount is too large');
   return Number(amount);
 }
 
@@ -68,22 +75,29 @@ export function calculatePercentageOf(amount: number, percentage: number): numbe
   );
 }
 
+function assertWithinDocumentLimit(amount: number): void {
+  if (amount > MAX_MONEY_AMOUNT) throw new RangeError('Document total is too large');
+}
+
 /**
  * Calculates document totals. The API always recomputes totals with this
  * function and never trusts totals submitted by a client; the web app uses
  * the same function for live previews so both always agree.
  *
  * Order of operations: subtotal → discount → tax on the discounted amount.
+ * Throws a RangeError when the subtotal or total would exceed MAX_MONEY_AMOUNT.
  */
 export function calculateDocumentTotals({
   items,
   discount,
   taxRate,
 }: DocumentTotalsInput): DocumentTotals {
-  const subtotal = items.reduce(
-    (sum, item) => sum + calculateLineAmount(item.quantity, item.unitPrice),
-    0,
-  );
+  // Checked after every line, so no intermediate sum gets anywhere near the safe integer limit.
+  let subtotal = 0;
+  for (const item of items) {
+    subtotal += calculateLineAmount(item.quantity, item.unitPrice);
+    assertWithinDocumentLimit(subtotal);
+  }
 
   let discountAmount = 0;
   if (discount && discount.value > 0) {
@@ -97,11 +111,8 @@ export function calculateDocumentTotals({
 
   const taxableAmount = subtotal - discountAmount;
   const tax = taxRate ? calculatePercentageOf(taxableAmount, taxRate) : 0;
+  const total = taxableAmount + tax;
+  assertWithinDocumentLimit(total);
 
-  return {
-    subtotal,
-    discount: discountAmount,
-    tax,
-    total: taxableAmount + tax,
-  };
+  return { subtotal, discount: discountAmount, tax, total };
 }

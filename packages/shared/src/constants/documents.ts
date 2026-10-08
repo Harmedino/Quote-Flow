@@ -12,8 +12,14 @@ export const MAX_LINE_ITEMS = 100;
 /** Quantities support up to three decimal places (e.g. 2.5 hours, 12.125 m²). */
 export const MAX_QUANTITY = 100_000;
 export const QUANTITY_DECIMALS = 3;
-/** Upper bound for any single monetary value, in minor units. */
-export const MAX_MONEY_AMOUNT = 10_000_000_000;
+/**
+ * Upper bound for every monetary value, in minor units: unit prices, line
+ * amounts, fixed discounts, payments, and document subtotals and totals. It
+ * allows 1 trillion major units in 2-decimal currencies (enough for IDR or
+ * COP), keeps all arithmetic, even with 100% tax, far below
+ * Number.MAX_SAFE_INTEGER, and lets a single payment settle any valid invoice.
+ */
+export const MAX_MONEY_AMOUNT = 100_000_000_000_000;
 export const PERCENTAGE_DECIMALS = 2;
 
 export const DOCUMENT_NUMBER_PAD_LENGTH = 4;

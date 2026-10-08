@@ -8,6 +8,7 @@ import {
   PERCENTAGE_DECIMALS,
   QUANTITY_DECIMALS,
 } from './constants/documents';
+import { TEXT_LIMITS } from './constants/limits';
 
 /**
  * Reusable validation primitives. Request schemas for individual endpoints
@@ -44,7 +45,7 @@ export const emailSchema = z
   .string()
   .trim()
   .toLowerCase()
-  .max(254, 'Email address is too long')
+  .max(TEXT_LIMITS.email, 'Email address is too long')
   .pipe(z.email('Enter a valid email address'));
 
 export const optionalEmailSchema = z.union([z.literal(''), emailSchema]).optional();
@@ -64,7 +65,25 @@ export const personNameSchema = z
   .string()
   .trim()
   .min(1, 'Name is required')
-  .max(120, 'Name is too long');
+  .max(TEXT_LIMITS.personName, 'Name is too long');
+
+export const businessNameSchema = z
+  .string()
+  .trim()
+  .min(1, 'Business name is required')
+  .max(TEXT_LIMITS.businessName, 'Business name is too long');
+
+/** http(s) URL with a dotted host name, optional port, and optional path, query or fragment. */
+const HTTP_URL_PATTERN =
+  /^https?:\/\/(?:[a-z0-9-]+\.)+[a-z][a-z0-9-]*[a-z0-9](?::\d{1,5})?(?:[/?#]\S*)?$/i;
+
+/** A website address. A missing scheme is assumed to be https (people type "example.com"). */
+export const websiteSchema = z
+  .string()
+  .trim()
+  .max(TEXT_LIMITS.url, 'Web address is too long')
+  .transform((value) => (/^https?:\/\//i.test(value) ? value : `https://${value}`))
+  .pipe(z.string().regex(HTTP_URL_PATTERN, 'Enter a web address such as https://example.com'));
 
 export const hexColorSchema = z
   .string()
@@ -87,7 +106,10 @@ export const documentPrefixSchema = z
     /^[A-Z0-9]+(?:-[A-Z0-9]+)*$/,
     'Use letters and numbers, optionally separated by single hyphens',
   )
-  .max(12, 'Prefix must be at most 12 characters');
+  .max(
+    TEXT_LIMITS.documentPrefix,
+    `Prefix must be at most ${TEXT_LIMITS.documentPrefix} characters`,
+  );
 
 /** A monetary amount in minor units (e.g. cents). */
 export const moneySchema = z
@@ -114,23 +136,28 @@ export const percentageSchema = z
     `Percentage can have at most ${PERCENTAGE_DECIMALS} decimal places`,
   );
 
-const optionalText = (max: number) => z.string().trim().max(max).optional();
+const optionalText = (max: number) =>
+  z.string().trim().max(max, `Must be at most ${max} characters`).optional();
 
 export const addressSchema = z.object({
-  line1: optionalText(200),
-  line2: optionalText(200),
-  city: optionalText(100),
-  state: optionalText(100),
-  postalCode: optionalText(20),
-  country: optionalText(100),
+  line1: optionalText(TEXT_LIMITS.addressLine),
+  line2: optionalText(TEXT_LIMITS.addressLine),
+  city: optionalText(TEXT_LIMITS.city),
+  state: optionalText(TEXT_LIMITS.state),
+  postalCode: optionalText(TEXT_LIMITS.postalCode),
+  country: optionalText(TEXT_LIMITS.country),
 });
 
 export const lineItemInputSchema = z.object({
   serviceId: objectIdSchema.optional(),
-  name: z.string().trim().min(1, 'Item name is required').max(200, 'Item name is too long'),
-  description: optionalText(2000),
+  name: z
+    .string()
+    .trim()
+    .min(1, 'Item name is required')
+    .max(TEXT_LIMITS.itemName, 'Item name is too long'),
+  description: optionalText(TEXT_LIMITS.itemDescription),
   quantity: quantitySchema,
-  unit: optionalText(30),
+  unit: optionalText(TEXT_LIMITS.itemUnit),
   unitPrice: moneySchema,
 });
 
@@ -148,8 +175,17 @@ export const DEFAULT_PAGE_SIZE = 20;
 export const MAX_PAGE_SIZE = 100;
 
 export const paginationQuerySchema = z.object({
-  page: z.coerce.number().int().min(1).default(1),
-  pageSize: z.coerce.number().int().min(1).max(MAX_PAGE_SIZE).default(DEFAULT_PAGE_SIZE),
+  page: z.coerce
+    .number({ error: 'Page must be a number' })
+    .int('Page must be a whole number')
+    .min(1, 'Page must be 1 or more')
+    .default(1),
+  pageSize: z.coerce
+    .number({ error: 'Page size must be a number' })
+    .int('Page size must be a whole number')
+    .min(1, 'Page size must be 1 or more')
+    .max(MAX_PAGE_SIZE, `Page size cannot exceed ${MAX_PAGE_SIZE}`)
+    .default(DEFAULT_PAGE_SIZE),
 });
 
 export type AddressInput = z.infer<typeof addressSchema>;

@@ -6,6 +6,8 @@ node_modules/
 dist/
 build/
 coverage/
+# Lean API deployment artefact (`pnpm --filter @quoteflow/api deploy --prod --legacy ./deploy/api`)
+/deploy/
 *.tsbuildinfo
 
 # Environment and secrets — never commit real values
