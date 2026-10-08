@@ -48,9 +48,10 @@ Lead / customer → Create quote → Send quote → Customer views public link
 models/ routes/ services/ utils/ scripts/`.
 - Environment configuration validated with Zod at startup. The process exits with a clear list of
   every missing or invalid variable (names only — values are never printed). Production
-  additionally requires `CORS_ORIGIN` and an `https` `APP_URL`.
+  additionally requires `https` `CORS_ORIGIN` and `APP_URL` values, an explicit `TRUST_PROXY` and a
+  random `JWT_SECRET`.
 - Security middleware: Helmet (strict JSON-API CSP), allow-list CORS with credentials, per-IP rate
-  limiting, a 100 KB JSON body limit, and request ids (`X-Request-Id`).
+  limiting, a 1 MB JSON body limit, and request ids (`X-Request-Id`).
 - Centralised error handling with one consistent response envelope. Validation, Mongoose, MongoDB
   and body-parser errors are mapped to safe, human-readable messages; stack traces and internals
   are never returned.
@@ -102,16 +103,16 @@ models/ routes/ services/ utils/ scripts/`.
 
 ## Tech stack
 
-| Layer      | Technology                                                                         |
-| ---------- | ---------------------------------------------------------------------------------- |
-| Frontend   | React 19, TypeScript, Vite 8, React Router 8, TanStack Query 5, Tailwind CSS 4     |
-| Backend    | Node.js 22, Express 5, TypeScript                                                  |
-| Database   | MongoDB 7+ (MongoDB 8 recommended) with Mongoose 9                                 |
-| Validation | Zod 4 (shared between API and web)                                                 |
-| Auth       | JWT access tokens + rotating refresh sessions, bcryptjs password hashing (stage 2) |
-| Logging    | pino                                                                               |
-| Tooling    | pnpm workspaces, ESLint (type-aware), Prettier, Vitest, Supertest, esbuild, tsx    |
-| CI         | GitHub Actions with a MongoDB 8 service container                                  |
+| Layer      | Technology                                                                       |
+| ---------- | -------------------------------------------------------------------------------- |
+| Frontend   | React 19, TypeScript, Vite 8, React Router 8, TanStack Query 5, Tailwind CSS 4   |
+| Backend    | Node.js 22, Express 5, TypeScript                                                |
+| Database   | MongoDB 7+ (MongoDB 8 recommended) with Mongoose 9                               |
+| Validation | Zod 4 (shared between API and web)                                               |
+| Auth       | JWT access tokens + rotating refresh sessions, bcrypt password hashing (stage 2) |
+| Logging    | pino                                                                             |
+| Tooling    | pnpm workspaces, ESLint (type-aware), Prettier, Vitest, Supertest, esbuild, tsx  |
+| CI         | GitHub Actions with a MongoDB 8 service container                                |
 
 ## Project structure
 
@@ -256,13 +257,13 @@ your hosting platform. `.env` files are git-ignored — never commit them.
 | ------------------------ | --------------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | `NODE_ENV`               | **Yes in production** | `development`           | `development`, `test` or `production`. Set it on the host, not in `.env` (see below).                             |
 | `PORT`                   | No                    | `4000`                  | Port the API listens on. The Vite dev proxy follows it.                                                           |
-| `MONGODB_URI`            | **Yes**               | —                       | MongoDB connection string including the database name.                                                            |
-| `JWT_SECRET`             | **Yes**               | —                       | Access-token signing secret, at least 32 characters.                                                              |
-| `ACCESS_TOKEN_TTL`       | No                    | `15m`                   | Access-token lifetime (`30s`, `15m`, `1h`, `1d`).                                                                 |
+| `MONGODB_URI`            | **Yes**               | —                       | MongoDB connection string. Must include the database name.                                                        |
+| `JWT_SECRET`             | **Yes**               | —                       | Access-token signing secret, at least 32 characters. Must be a random value in production.                        |
+| `ACCESS_TOKEN_TTL`       | No                    | `15m`                   | Access-token lifetime between `1m` and `1h` (e.g. `60s`, `15m`, `1h`).                                            |
 | `REFRESH_TOKEN_TTL_DAYS` | No                    | `30`                    | Refresh-session lifetime in days (1–365).                                                                         |
-| `CORS_ORIGIN`            | **Yes in production** | `http://localhost:5173` | Comma-separated browser origins allowed to call the API.                                                          |
+| `CORS_ORIGIN`            | **Yes in production** | `http://localhost:5173` | Comma-separated browser origins allowed to call the API. Must be `https` in production.                           |
 | `APP_URL`                | **Yes in production** | `http://localhost:5173` | Public URL of the web app, used for customer-facing links. Must be `https` in production.                         |
-| `TRUST_PROXY`            | No                    | `0`                     | Reverse-proxy hops to trust for client IPs (`1` behind a single load balancer or PaaS router).                    |
+| `TRUST_PROXY`            | **Yes in production** | `0` (not in production) | Proxy hops to trust for client IPs: `0` when exposed directly, `1` behind one load balancer or PaaS router.       |
 | `LOG_LEVEL`              | No                    | `info`                  | `fatal`, `error`, `warn`, `info`, `debug`, `trace` or `silent`.                                                   |
 | `VITE_API_URL`           | No                    | `/api`                  | Web app only: API base URL **including** `/api`. Leave empty when the API is served on `/api` of the same origin. |
 | `SEED_DEMO_PASSWORD`     | No (development only) | random                  | Fixed password for the seeded demo users, handy for repeat demos.                                                 |
@@ -284,6 +285,7 @@ Pick one:
 
 Indexes are created automatically on startup in development. In production `autoIndex` is disabled
 — run the index script on each deploy instead (see [Building for production](#building-for-production)).
+The API refuses to start in production while any declared index is missing.
 
 ## Seeding demo data
 
@@ -301,9 +303,10 @@ painting, handyman work) in USD, with:
 - 9 invoices across every status, most converted from accepted quotes, some partially or fully paid
   and one overdue
 
-The demo password is printed when the seed finishes. It is random on every run unless you set
-`SEED_DEMO_PASSWORD`. The seed is safe to re-run: it finds the demo business by its owner's email,
-deletes only that business's data and recreates it. It refuses to run when `NODE_ENV=production`.
+The demo password is random on every run and printed when the seed finishes, unless you set
+`SEED_DEMO_PASSWORD` (at least 8 characters, never printed back) in `.env` for stable demos. The
+seed is safe to re-run: it finds the demo business by its owner's email, deletes only that
+business's data and recreates it. It refuses to run when `NODE_ENV=production`.
 
 ## Scripts
 
@@ -350,29 +353,36 @@ pnpm build
   third-party dependencies stay external). Start it with `pnpm --filter @quoteflow/api start`, or
   `node --enable-source-maps dist/server.js` from `apps/api`.
 - **Indexes** → run `pnpm --filter @quoteflow/api db:indexes:prod` against the production database
-  on each deploy, before starting the new version. It never drops indexes; it reports drift and
-  exits non-zero on failure.
+  on each deploy, before starting the new version. It needs only `NODE_ENV` and `MONGODB_URI`
+  (`LOG_LEVEL` is optional), never drops indexes, reports drift and exits non-zero on failure. The
+  API refuses to start in production when a declared index is missing.
 - **Web** → `apps/web/dist/`, a static SPA to serve from any static host or CDN.
 
-For a lean API deployment artefact containing only production dependencies:
+For a lean API deployment artefact — `package.json`, `dist/` and production dependencies only — run
+this after `pnpm build`:
 
 ```bash
-pnpm --filter @quoteflow/api deploy --prod ./deploy/api
-# then copy apps/api/dist into ./deploy/api/dist
+pnpm --filter @quoteflow/api deploy --prod --legacy ./deploy/api
 ```
 
 ## Deployment considerations
 
 - **Set `NODE_ENV=production`** on the API host. It disables development defaults, switches off
-  automatic index builds and enforces the production-only requirements.
+  automatic index builds (the API then refuses to start until `db:indexes:prod` has built every
+  declared index) and enforces the production-only requirements.
 - **HTTPS everywhere.** `APP_URL` must be `https` in production; the refresh cookie will be `Secure`.
 - **SPA fallback.** Configure the static host to serve `index.html` for unknown paths so deep links
   such as `/quotes/123` and `/quote/<token>` work.
 - **Same site, separate origins.** Serving the web app and API from subdomains of one domain (e.g.
   `app.example.com` and `api.example.com`) keeps cookies first-party. Set `CORS_ORIGIN` to the web
-  origin and `VITE_API_URL` to the API URL including `/api` at build time.
-- **Reverse proxies.** Behind a load balancer or PaaS router, set `TRUST_PROXY` (usually `1`) so rate
-  limiting and logs see real client IPs.
+  origin and `VITE_API_URL` to the API URL including `/api` at build time. The refresh cookie is
+  only sent when the two are same-site, and default PaaS hostnames (`*.vercel.app`,
+  `*.netlify.app`, `*.onrender.com`, `*.herokuapp.com`, `*.fly.dev`, `*.pages.dev`,
+  `*.up.railway.app`) are public suffixes, so two apps on them are cross-site. Use a custom domain
+  for both, or proxy `/api` through the web host and leave `VITE_API_URL` empty.
+- **Reverse proxies.** `TRUST_PROXY` is required in production: `0` when the API is exposed
+  directly, usually `1` behind a load balancer or PaaS router, so rate limiting and logs see real
+  client IPs.
 - **Health checks.** Use `/api/health/live` for liveness and `/api/health` for readiness (returns
   503 while the database is unavailable).
 - **Multiple API instances.** Rate-limit counters are in memory per instance. Before scaling out,

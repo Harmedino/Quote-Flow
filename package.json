@@ -15,7 +15,7 @@
     "dev:web": "pnpm --filter @quoteflow/web dev",
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings=0",
     "test": "pnpm -r test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
