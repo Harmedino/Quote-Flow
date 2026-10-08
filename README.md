@@ -44,8 +44,8 @@ Lead / customer → Create quote → Send quote → Customer views public link
 
 **API foundation (`apps/api`)**
 
-- Express 5 + TypeScript REST API under `/api`, organised as `config/ controllers/ db/ middleware/
-models/ routes/ services/ utils/ scripts/`.
+- Express 5 + TypeScript REST API under `/api`, organised into `config`, `controllers`, `db`,
+  `middleware`, `models`, `routes`, `services`, `utils` and `scripts`.
 - Environment configuration validated with Zod at startup. The process exits with a clear list of
   every missing or invalid variable (names only — values are never printed). Production
   additionally requires `https` `CORS_ORIGIN` and `APP_URL` values, an explicit `TRUST_PROXY` and a
@@ -98,7 +98,8 @@ models/ routes/ services/ utils/ scripts/`.
 - Domain constants: roles, quote and invoice statuses, payment methods, document defaults and
   limits, and 48 supported currencies with their ISO 4217 minor units.
 - Money helpers and exact document-total calculations (subtotal → discount → tax).
-- Zod validation primitives used by both the API and the web forms.
+- Zod validation primitives used by the API's models and request validation, ready to be shared
+  with the web forms as they are built.
 - The API response envelope and error-code types.
 
 ## Tech stack
@@ -131,6 +132,8 @@ quoteflow/
 │   │       ├── services/         business logic (document numbering, …)
 │   │       ├── utils/            logger, errors, tokens, password hashing
 │   │       ├── scripts/          seed and db:indexes (development/ops only)
+│   │       ├── test/             shared test helpers (database, fixtures)
+│   │       ├── types/            ambient type declarations
 │   │       ├── app.ts            Express app factory
 │   │       └── server.ts         process entry point
 │   └── web/                      @quoteflow/web — React SPA
@@ -184,14 +187,20 @@ enforced in layers:
 1. **Identity, not input.** `businessId` always comes from the authenticated user's session, never
    from a request body or query.
 2. **Tenant guard plugin.** On `User`, `Customer`, `Service`, `Quote`, `Invoice` and `Counter`, any
-   `find`, `findOne`, `update*`, `delete*`, `replaceOne`, `countDocuments`, `distinct`, `aggregate`
-   or `bulkWrite` without a `businessId` filter throws before reaching the database. Only an exact
-   id (or `$eq`/`$in` of ids) counts as scoped. `findById` is rejected on purpose — services use
-   `findOne({ _id, businessId })`. Documents loaded and saved by the application also include their
-   own `businessId` in the write filter.
+   `find`, `findOne`, `findOneAnd*`, `update*`, `delete*`, `replaceOne`, `countDocuments`,
+   `distinct` or `bulkWrite` without a `businessId` filter throws before reaching the database, and
+   `estimatedDocumentCount` is always rejected. Only a top-level `businessId` condition that is an
+   exact id (or `$eq`/`$in` of ids) counts as scoped; conditions inside `$and`/`$or` do not.
+   Aggregations must start with a scoped `$match`, may not write with `$out`/`$merge`, and may only
+   join other collections through sub-pipelines that are themselves scoped. `findById` is rejected
+   on purpose — services use `findOne({ _id, businessId })`. Documents loaded and saved by the
+   application also include their own `businessId` in the write filter. Raw `Model.collection`
+   calls bypass Mongoose middleware and must not be used for tenant data.
 3. **Immutable ownership.** `businessId` cannot be changed or removed by any update.
-4. **Explicit, greppable exceptions.** The two legitimate cross-tenant lookups — signing in by email
-   and opening a public quote by token — must opt out with `skipTenantGuard: true`.
+4. **Explicit, greppable exceptions.** Deliberate cross-tenant lookups must opt out with
+   `skipTenantGuard: true`. Today the only one is the development seed finding the demo owner by
+   email; signing in by email (stage 2) and opening a public quote by token (stage 5) will be the
+   others.
 5. **Strict queries.** Mongoose runs with `strictQuery: 'throw'`, so a misspelt filter key (e.g.
    `buisnessId`) fails loudly instead of silently matching every tenant.
 
@@ -199,9 +208,9 @@ enforced in layers:
 
 All monetary values are **integers in the currency's minor unit** (cents, kobo, fils…), using a
 static ISO 4217 table so the browser and the API always agree. Totals are calculated with exact
-integer arithmetic in `@quoteflow/shared` — the web app uses the same function for live previews,
-and the API recomputes totals itself on every save instead of trusting the client. Each quote and
-invoice stores the currency it was issued in.
+integer arithmetic in `@quoteflow/shared`. The API recomputes totals itself on every save instead
+of trusting the client, and the quote builder (stage 4) will use the same function for live
+previews so the two always agree. Each quote and invoice stores the currency it was issued in.
 
 ### Authentication (designed; implemented in stage 2)
 
@@ -216,7 +225,8 @@ invoice stores the currency it was issued in.
 ## Requirements
 
 - **Node.js 22.22 or newer** (`.nvmrc` pins Node 22; Node 24 LTS also works)
-- **pnpm 10** — `corepack enable` picks up the version pinned in `package.json`
+- **pnpm 10** — `corepack enable` picks up the version pinned in `package.json` (or install it
+  directly with `npm install -g pnpm@10`)
 - **MongoDB 7 or newer** — local install, Docker, or MongoDB Atlas
 - Git
 
@@ -224,7 +234,7 @@ invoice stores the currency it was issued in.
 
 ```bash
 # 1. Install dependencies
-corepack enable
+corepack enable    # Node 22/24 ship Corepack; on Node 25+ run `npm install -g corepack` first
 pnpm install
 
 # 2. Configure the environment
@@ -243,7 +253,8 @@ pnpm dev
 ```
 
 - Web app: http://localhost:5173
-- API: http://localhost:4000/api (health check: http://localhost:4000/api/health)
+- API: http://localhost:4000/api is the base path of the REST API (try the health check at
+  http://localhost:4000/api/health)
 
 In development the Vite dev server proxies `/api` to the API, so the browser talks to a single
 origin. Run one side only with `pnpm dev:api` or `pnpm dev:web`.
@@ -300,8 +311,11 @@ painting, handyman work) in USD, with:
 - 12 customers (one archived) and 11 services (one inactive)
 - 17 quotes across every status — draft, sent, viewed, accepted, rejected and expired — spread over
   the last two months
-- 9 invoices across every status, most converted from accepted quotes, some partially or fully paid
-  and one overdue
+- 9 invoices across every status — six converted from accepted quotes and three standalone — with
+  some partially or fully paid and two overdue
+
+Documents are numbered with the demo business's own prefixes (`EHS-Q-0001`, `EHS-INV-0001`).
+Sign-in arrives in stage 2; until then the demo data is visible through the database.
 
 The demo password is random on every run and printed when the seed finishes, unless you set
 `SEED_DEMO_PASSWORD` (at least 8 characters, never printed back) in `.env` for stable demos. The
@@ -312,19 +326,19 @@ business's data and recreates it. It refuses to run when `NODE_ENV=production`.
 
 Run from the repository root:
 
-| Command           | What it does                                                       |
-| ----------------- | ------------------------------------------------------------------ |
-| `pnpm dev`        | API (watch mode) and web app together                              |
-| `pnpm dev:api`    | API only                                                           |
-| `pnpm dev:web`    | Web app only                                                       |
-| `pnpm build`      | Production builds of the API and the web app                       |
-| `pnpm typecheck`  | TypeScript across all packages                                     |
-| `pnpm lint`       | ESLint across the repository                                       |
-| `pnpm test`       | All unit tests (database tests run when `MONGODB_TEST_URI` is set) |
-| `pnpm format`     | Format with Prettier (`pnpm format:check` to verify)               |
-| `pnpm check`      | Everything CI runs: format check, typecheck, lint, tests and build |
-| `pnpm seed`       | Load the demo business (development only)                          |
-| `pnpm db:indexes` | Create any missing MongoDB indexes and report drift (never drops)  |
+| Command           | What it does                                                                                                                          |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm dev`        | API (watch mode) and web app together                                                                                                 |
+| `pnpm dev:api`    | API only                                                                                                                              |
+| `pnpm dev:web`    | Web app only                                                                                                                          |
+| `pnpm build`      | Production builds of the API and the web app                                                                                          |
+| `pnpm typecheck`  | TypeScript across all packages                                                                                                        |
+| `pnpm lint`       | ESLint across the repository                                                                                                          |
+| `pnpm test`       | All unit tests (database tests run when `MONGODB_TEST_URI` is set)                                                                    |
+| `pnpm format`     | Format with Prettier (`pnpm format:check` to verify)                                                                                  |
+| `pnpm check`      | Everything CI runs: format check, typecheck, lint, tests and build (set `MONGODB_TEST_URI` to include the database tests, as CI does) |
+| `pnpm seed`       | Load the demo business (development only)                                                                                             |
+| `pnpm db:indexes` | Create any missing MongoDB indexes and report drift (never drops)                                                                     |
 
 ## Testing
 
@@ -349,21 +363,32 @@ pnpm install --frozen-lockfile
 pnpm build
 ```
 
-- **API** → `apps/api/dist/server.js`, a single ESM bundle (the shared package is bundled in;
-  third-party dependencies stay external). Start it with `pnpm --filter @quoteflow/api start`, or
-  `node --enable-source-maps dist/server.js` from `apps/api`.
-- **Indexes** → run `pnpm --filter @quoteflow/api db:indexes:prod` against the production database
-  on each deploy, before starting the new version. It needs only `NODE_ENV` and `MONGODB_URI`
-  (`LOG_LEVEL` is optional), never drops indexes, reports drift and exits non-zero on failure. The
-  API refuses to start in production when a declared index is missing.
-- **Web** → `apps/web/dist/`, a static SPA to serve from any static host or CDN.
+This produces `apps/api/dist/` (the API) and `apps/web/dist/` (a static SPA to serve from any
+static host or CDN). The built API is a single ESM bundle: the shared package is bundled in and
+third-party dependencies stay external.
+
+The production commands read **real environment variables only — not `.env`**. Set
+`NODE_ENV=production`, `MONGODB_URI`, `JWT_SECRET`, `CORS_ORIGIN`, `APP_URL` and `TRUST_PROXY` (see
+[Environment variables](#environment-variables)). On each deploy, in this order:
+
+1. **Indexes** — `pnpm --filter @quoteflow/api db:indexes:prod` against the production database. It
+   needs only `MONGODB_URI`, never drops indexes, reports drift and exits non-zero on failure. The
+   API refuses to start in production while a declared index is missing.
+2. **API** — `pnpm --filter @quoteflow/api start`, or `node --enable-source-maps dist/server.js` from
+   `apps/api`.
+3. **Web** — publish `apps/web/dist/`.
 
 For a lean API deployment artefact — `package.json`, `dist/` and production dependencies only — run
-this after `pnpm build`:
+this after `pnpm build` (the target directory must be empty):
 
 ```bash
+rm -rf deploy/api
 pnpm --filter @quoteflow/api deploy --prod --legacy ./deploy/api
 ```
+
+Copy `deploy/api` to the server and, from that directory, run
+`node --enable-source-maps dist/scripts/sync-indexes.js` (or `npm run db:indexes:prod`), then
+`node --enable-source-maps dist/server.js` (or `npm start`).
 
 ## Deployment considerations
 
@@ -390,7 +415,8 @@ pnpm --filter @quoteflow/api deploy --prod --legacy ./deploy/api
 - **MongoDB.** Use a replica set or Atlas cluster with backups enabled and a database user limited to
   the QuoteFlow database.
 - **Secrets.** Generate a unique `JWT_SECRET` per environment and keep it in your platform's secret
-  manager. Rotating it signs every user out.
+  manager. Rotating it invalidates outstanding access tokens; sessions then refresh with the new
+  secret.
 - **Logs** are structured JSON on stdout, ready for any log aggregator.
 
 ## Roadmap
