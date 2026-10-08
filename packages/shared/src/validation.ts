@@ -67,6 +67,24 @@ export const personNameSchema = z
   .min(1, 'Name is required')
   .max(TEXT_LIMITS.personName, 'Name is too long');
 
+export const businessNameSchema = z
+  .string()
+  .trim()
+  .min(1, 'Business name is required')
+  .max(TEXT_LIMITS.businessName, 'Business name is too long');
+
+/** http(s) URL with a dotted host name, optional port, and optional path, query or fragment. */
+const HTTP_URL_PATTERN =
+  /^https?:\/\/(?:[a-z0-9-]+\.)+[a-z][a-z0-9-]*[a-z0-9](?::\d{1,5})?(?:[/?#]\S*)?$/i;
+
+/** A website address. A missing scheme is assumed to be https (people type "example.com"). */
+export const websiteSchema = z
+  .string()
+  .trim()
+  .max(TEXT_LIMITS.url, 'Web address is too long')
+  .transform((value) => (/^https?:\/\//i.test(value) ? value : `https://${value}`))
+  .pipe(z.string().regex(HTTP_URL_PATTERN, 'Enter a web address such as https://example.com'));
+
 export const hexColorSchema = z
   .string()
   .trim()
