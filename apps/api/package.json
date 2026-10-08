@@ -11,7 +11,8 @@
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
     "seed": "tsx --env-file-if-exists=../../.env src/scripts/seed.ts",
-    "db:indexes": "tsx --env-file-if-exists=../../.env src/scripts/sync-indexes.ts"
+    "db:indexes": "tsx --env-file-if-exists=../../.env src/scripts/sync-indexes.ts",
+    "db:indexes:prod": "node --enable-source-maps dist/scripts/sync-indexes.js"
   },
   "dependencies": {
     "@quoteflow/shared": "workspace:*",
