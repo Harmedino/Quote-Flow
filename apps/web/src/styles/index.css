@@ -1,0 +1,54 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans:
+    'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif,
+    'Apple Color Emoji', 'Segoe UI Emoji';
+  --font-sans--font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+
+  /* Brand teal, anchored at 600 on DEFAULT_BRAND_COLOR (#0f766e). */
+  --color-brand-50: #ecfdfa;
+  --color-brand-100: #d0faf2;
+  --color-brand-200: #a2f2e5;
+  --color-brand-300: #69e0d1;
+  --color-brand-400: #25c6b7;
+  --color-brand-500: #0c9e92;
+  --color-brand-600: #0f766e;
+  --color-brand-700: #07635d;
+  --color-brand-800: #06514c;
+  --color-brand-900: #07403d;
+  --color-brand-950: #022827;
+
+  --animate-fade-in: fade-in 200ms ease-out both;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-white text-zinc-900 antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background-color: var(--color-brand-100);
+    color: var(--color-brand-950);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-brand-600);
+    outline-offset: 2px;
+  }
+}
