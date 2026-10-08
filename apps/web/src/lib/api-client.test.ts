@@ -2,10 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   ApiError,
   buildQueryString,
+  getErrorMessage,
   request,
   requestPaginated,
   resolveApiBaseUrl,
 } from './api-client';
+import { shouldRetryQuery } from './query-client';
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -120,6 +122,18 @@ describe('request', () => {
     expect(headers.get('Idempotency-Key')).toBe('abc');
   });
 
+  it('sends FormData untouched so fetch can set the multipart Content-Type', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ data: { id: 'f1' } }, 201));
+    const form = new FormData();
+    form.append('logo', new Blob(['<svg/>'], { type: 'image/svg+xml' }), 'logo.svg');
+
+    await request('/business/logo', { method: 'POST', body: form });
+
+    const { init } = lastFetchCall();
+    expect(init.body).toBe(form);
+    expect(new Headers(init.headers).has('Content-Type')).toBe(false);
+  });
+
   it('resolves undefined for 204 No Content', async () => {
     fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
 
@@ -201,6 +215,25 @@ describe('request', () => {
     await expect(request('/quotes', { signal: controller.signal })).rejects.toBe(abortError);
   });
 
+  it('maps an AbortSignal.timeout expiry to a retryable NETWORK_ERROR', async () => {
+    const signal = AbortSignal.timeout(1);
+    // Like fetch, reject with the signal's reason once it aborts.
+    fetchMock.mockImplementation(
+      () =>
+        new Promise((_resolve, reject) => {
+          signal.addEventListener('abort', () => reject(signal.reason as Error));
+        }),
+    );
+
+    const error = await captureError(request('/quotes', { signal }));
+    const reason: unknown = signal.reason;
+
+    expect(reason).toMatchObject({ name: 'TimeoutError' });
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error).toMatchObject({ status: 0, code: 'NETWORK_ERROR', cause: reason });
+    expect(shouldRetryQuery(0, error)).toBe(true);
+  });
+
   it('maps a non-JSON error body to INVALID_RESPONSE with the HTTP status', async () => {
     fetchMock.mockResolvedValue(
       new Response('<html>Bad gateway</html>', {
@@ -222,8 +255,57 @@ describe('request', () => {
       code: 'INVALID_RESPONSE',
     });
 
-    fetchMock.mockResolvedValue(jsonResponse({ error: { code: 'TEAPOT', message: 'No' } }, 418));
+    fetchMock.mockResolvedValue(jsonResponse({ error: { code: '', message: 'No' } }, 418));
     await expect(request('/quotes')).rejects.toMatchObject({ code: 'INVALID_RESPONSE' });
+  });
+
+  it('maps unknown error codes by HTTP status and keeps the message and requestId', async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(
+        {
+          error: {
+            code: 'QUOTE_ALREADY_CONVERTED',
+            message: 'This quote already has an invoice.',
+            requestId: 'req-123',
+          },
+        },
+        409,
+      ),
+    );
+
+    const error = await captureError(request('/quotes/q1/convert', { method: 'POST' }));
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error).toMatchObject({
+      status: 409,
+      code: 'CONFLICT',
+      message: 'This quote already has an invoice.',
+      requestId: 'req-123',
+    });
+    expect(getErrorMessage(error)).toBe('This quote already has an invoice.');
+  });
+
+  it.each([
+    [422, 'BAD_REQUEST'],
+    [502, 'INTERNAL_ERROR'],
+    [503, 'SERVICE_UNAVAILABLE'],
+  ])('maps an unknown error code with HTTP %i to %s', async (status, code) => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({ error: { code: 'NEW_CODE', message: 'x' } }, status),
+    );
+
+    await expect(request('/quotes')).rejects.toMatchObject({ status, code });
+  });
+
+  it('falls back to the X-Request-Id header when the error body has no requestId', async () => {
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ error: { code: 'NOT_FOUND', message: 'Quote not found' } }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json', 'X-Request-Id': 'req-hdr' },
+      }),
+    );
+
+    await expect(request('/quotes/missing')).rejects.toMatchObject({ requestId: 'req-hdr' });
   });
 
   it('maps successful responses without a data envelope to INVALID_RESPONSE', async () => {

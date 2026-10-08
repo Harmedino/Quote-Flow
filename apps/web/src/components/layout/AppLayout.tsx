@@ -25,12 +25,12 @@ export default function AppLayout() {
 
       <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-zinc-200 bg-white/95 px-4 backdrop-blur-sm sm:px-6 lg:hidden">
         <MobileNav />
-        <Link to={paths.dashboard} className="flex rounded-lg">
+        <Link to={paths.dashboard} className="flex min-w-0 overflow-hidden rounded-lg">
           <Logo />
         </Link>
         <ButtonLink to={paths.newQuote} size="sm" className="ml-auto">
           <Plus aria-hidden="true" />
-          New quote
+          <span className="max-sm:sr-only">New quote</span>
         </ButtonLink>
       </header>
 

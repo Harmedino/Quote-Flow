@@ -1,6 +1,7 @@
 import {
   API_ERROR_CODES,
   type ApiErrorBody,
+  type ApiErrorCode,
   type ApiFieldError,
   type ApiPaginatedResponse,
   type PaginationMeta,
@@ -23,7 +24,10 @@ export type QueryParams = Readonly<Record<string, QueryValue>>;
 
 export interface RequestOptions {
   method?: HttpMethod;
-  /** Serialized as JSON. */
+  /**
+   * Serialized as JSON, except FormData, Blob, URLSearchParams and binary
+   * bodies, which are sent as-is with the Content-Type fetch derives for them.
+   */
   body?: unknown;
   /** Appended to the URL; `null` and `undefined` values are skipped. */
   query?: QueryParams;
@@ -65,27 +69,49 @@ function buildUrl(path: string, query: QueryParams | undefined): string {
   return `${API_BASE_URL}${normalizedPath}${separator}${queryString}`;
 }
 
+/** Bodies fetch sends natively; a multipart FormData body needs fetch to set its boundary. */
+function isRawBody(body: unknown): body is BodyInit {
+  return (
+    body instanceof FormData ||
+    body instanceof Blob ||
+    body instanceof URLSearchParams ||
+    body instanceof ArrayBuffer ||
+    ArrayBuffer.isView(body)
+  );
+}
+
+function serializeBody(body: unknown): BodyInit | undefined {
+  return body === undefined || isRawBody(body) ? body : JSON.stringify(body);
+}
+
 /** The single place where request headers are assembled. */
 function buildHeaders({ body, headers }: RequestOptions): Headers {
   const result = new Headers(headers);
   if (!result.has('Accept')) {
     result.set('Accept', 'application/json');
   }
-  if (body !== undefined && !result.has('Content-Type')) {
+  if (body !== undefined && !isRawBody(body) && !result.has('Content-Type')) {
     result.set('Content-Type', 'application/json');
   }
   return result;
 }
 
-/** Aborts pass through untouched; any other transport failure becomes NETWORK_ERROR. */
+function isTimeout(reason: unknown): boolean {
+  return reason instanceof DOMException && reason.name === 'TimeoutError';
+}
+
+/**
+ * A caller's abort passes through untouched; a timeout (`AbortSignal.timeout`)
+ * or any other transport failure becomes NETWORK_ERROR.
+ */
 function toTransportError(error: unknown, signal: AbortSignal | undefined): unknown {
-  if (signal?.aborted) {
+  if (signal?.aborted && !isTimeout(signal.reason)) {
     return error;
   }
   return new ApiError({
     status: 0,
     code: 'NETWORK_ERROR',
-    message: 'Network request failed',
+    message: signal?.aborted ? 'Network request timed out' : 'Network request failed',
     cause: error,
   });
 }
@@ -95,7 +121,7 @@ async function send(path: string, options: RequestOptions): Promise<Response> {
     return await fetch(buildUrl(path, options.query), {
       method: options.method ?? 'GET',
       headers: buildHeaders(options),
-      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      body: serializeBody(options.body),
       credentials: 'include',
       signal: options.signal,
     });
@@ -114,16 +140,35 @@ function isFieldError(value: unknown): value is ApiFieldError {
   return isRecord(value) && typeof value.path === 'string' && typeof value.message === 'string';
 }
 
-function parseErrorBody(payload: unknown): ApiErrorBody | null {
+/** Fallbacks for server codes this client does not know, e.g. ones added by a newer API. */
+const STATUS_ERROR_CODES: Readonly<Partial<Record<number, ApiErrorCode>>> = {
+  400: 'BAD_REQUEST',
+  401: 'UNAUTHORIZED',
+  403: 'FORBIDDEN',
+  404: 'NOT_FOUND',
+  409: 'CONFLICT',
+  413: 'PAYLOAD_TOO_LARGE',
+  429: 'RATE_LIMITED',
+  503: 'SERVICE_UNAVAILABLE',
+};
+
+function toKnownErrorCode(code: string, status: number): ApiErrorCode {
+  if (knownErrorCodes.has(code)) {
+    return code as ApiErrorCode;
+  }
+  return STATUS_ERROR_CODES[status] ?? (status >= 500 ? 'INTERNAL_ERROR' : 'BAD_REQUEST');
+}
+
+function parseErrorBody(payload: unknown, status: number): ApiErrorBody | null {
   if (!isRecord(payload) || !isRecord(payload.error)) {
     return null;
   }
   const { code, message, details, requestId } = payload.error;
-  if (typeof code !== 'string' || !knownErrorCodes.has(code) || typeof message !== 'string') {
+  if (typeof code !== 'string' || !code || typeof message !== 'string') {
     return null;
   }
   return {
-    code: code as ApiErrorBody['code'],
+    code: toKnownErrorCode(code, status),
     message,
     details: Array.isArray(details) ? details.filter(isFieldError) : undefined,
     requestId: typeof requestId === 'string' ? requestId : undefined,
@@ -149,11 +194,17 @@ async function readBody(response: Response, signal: AbortSignal | undefined): Pr
   }
 }
 
+/** CORS exposes this header, so it is readable for cross-origin API calls too. */
+function headerRequestId(response: Response): string | undefined {
+  return response.headers.get('X-Request-Id') ?? undefined;
+}
+
 function invalidResponse(response: Response): ApiError {
   return new ApiError({
     status: response.status,
     code: 'INVALID_RESPONSE',
     message: `Unexpected response from the server (HTTP ${response.status})`,
+    requestId: headerRequestId(response),
   });
 }
 
@@ -171,11 +222,15 @@ async function readEnvelope(
   const payload = await readBody(response, signal);
 
   if (!response.ok) {
-    const body = payload.ok ? parseErrorBody(payload.value) : null;
+    const body = payload.ok ? parseErrorBody(payload.value, response.status) : null;
     if (!body) {
       throw invalidResponse(response);
     }
-    throw new ApiError({ status: response.status, ...body });
+    throw new ApiError({
+      status: response.status,
+      ...body,
+      requestId: body.requestId ?? headerRequestId(response),
+    });
   }
 
   if (!payload.ok || !isRecord(payload.value) || !('data' in payload.value)) {
@@ -197,8 +252,8 @@ function isPaginationMeta(value: unknown): value is PaginationMeta {
 /**
  * Calls the QuoteFlow API and returns the unwrapped `data` of the response
  * envelope (`undefined` for 204 No Content). Every failure is thrown as an
- * {@link ApiError}, except aborts, which are rethrown untouched so callers can
- * tell cancellation apart from errors.
+ * {@link ApiError}, except aborts by the caller's signal (not timeouts), which
+ * are rethrown untouched so callers can tell cancellation apart from errors.
  */
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const response = await send(path, options);

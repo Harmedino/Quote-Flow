@@ -20,6 +20,8 @@
   --color-brand-950: #022827;
 
   --animate-fade-in: fade-in 200ms ease-out both;
+  /* Delayed so navigations that finish quickly never flash the pending bar. */
+  --animate-route-pending: fade-in 200ms ease-out 150ms both;
 
   @keyframes fade-in {
     from {

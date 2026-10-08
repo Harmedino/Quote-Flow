@@ -19,7 +19,7 @@ export default function PublicDocumentLayout() {
       <footer className="flex justify-center px-4 pb-10">
         <Link
           to={paths.home}
-          className="inline-flex items-center gap-2 rounded-lg text-xs font-medium text-zinc-500 transition-colors hover:text-zinc-800"
+          className="inline-flex items-center gap-2 rounded-lg text-xs font-medium text-zinc-600 transition-colors hover:text-zinc-800"
         >
           Powered by
           <Logo size="sm" />

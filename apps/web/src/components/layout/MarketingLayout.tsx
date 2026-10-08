@@ -15,10 +15,12 @@ export default function MarketingLayout() {
             <Logo />
           </Link>
           <nav aria-label="Account" className="flex items-center gap-1 sm:gap-2">
-            <ButtonLink to={paths.login} variant="ghost">
+            <ButtonLink to={paths.login} variant="ghost" size="sm">
               Sign in
             </ButtonLink>
-            <ButtonLink to={paths.register}>Start free</ButtonLink>
+            <ButtonLink to={paths.register} size="sm">
+              Start free
+            </ButtonLink>
           </nav>
         </div>
       </header>

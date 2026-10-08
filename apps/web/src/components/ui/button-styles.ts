@@ -9,7 +9,7 @@ export interface ButtonStyleProps {
 }
 
 const BASE =
-  'inline-flex shrink-0 items-center justify-center gap-2 rounded-lg font-medium whitespace-nowrap select-none transition-colors duration-150 disabled:pointer-events-none disabled:opacity-50 [&_svg]:shrink-0';
+  'inline-flex shrink-0 items-center justify-center gap-2 rounded-lg font-medium whitespace-nowrap select-none transition-colors duration-150 disabled:pointer-events-none disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 [&_svg]:shrink-0';
 
 const VARIANTS: Record<ButtonVariant, string> = {
   primary: 'bg-brand-600 text-white shadow-xs hover:bg-brand-700 active:bg-brand-800',

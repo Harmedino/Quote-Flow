@@ -1,9 +1,10 @@
 import { Menu, X } from 'lucide-react';
 import { type MouseEvent, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useLocation } from 'react-router';
 import { paths } from '@/app/paths';
 import { Logo } from '@/components/ui/Logo';
 import { AppNavigation } from './AppNavigation';
+import { MAIN_CONTENT_ID } from './SkipLink';
 
 const DRAWER_ID = 'mobile-navigation';
 /** Matches Tailwind's `lg` breakpoint, where the permanent sidebar takes over. */
@@ -15,7 +16,10 @@ const DESKTOP_QUERY = '(min-width: 64rem)';
  * Escape natively.
  */
 export function MobileNav() {
-  const [open, setOpen] = useState(false);
+  // Tied to the location it was opened at, so any navigation (including back/forward) closes it.
+  const { key } = useLocation();
+  const [openedAt, setOpenedAt] = useState<string | null>(null);
+  const open = openedAt === key;
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -44,7 +48,7 @@ export function MobileNav() {
     const desktop = window.matchMedia(DESKTOP_QUERY);
     const closeOnDesktop = (event: MediaQueryListEvent) => {
       if (event.matches) {
-        setOpen(false);
+        setOpenedAt(null);
       }
     };
     desktop.addEventListener('change', closeOnDesktop);
@@ -56,12 +60,18 @@ export function MobileNav() {
   }, [open]);
 
   function close() {
-    setOpen(false);
+    setOpenedAt(null);
   }
 
   function handleDialogClose() {
-    setOpen(false);
-    triggerRef.current?.focus();
+    setOpenedAt(null);
+    // The trigger is hidden at desktop width (e.g. after a resize closed the drawer).
+    const trigger = triggerRef.current;
+    if (trigger && trigger.offsetParent !== null) {
+      trigger.focus();
+    } else {
+      document.getElementById(MAIN_CONTENT_ID)?.focus();
+    }
   }
 
   function handleBackdropClick(event: MouseEvent<HTMLDialogElement>) {
@@ -76,7 +86,7 @@ export function MobileNav() {
       <button
         ref={triggerRef}
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => setOpenedAt(key)}
         aria-expanded={open}
         aria-controls={DRAWER_ID}
         aria-haspopup="dialog"

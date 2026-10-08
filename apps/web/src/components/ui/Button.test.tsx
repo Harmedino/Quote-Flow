@@ -8,12 +8,18 @@ describe('Button', () => {
     expect(renderToStaticMarkup(<Button type="submit">Save</Button>)).toContain('type="submit"');
   });
 
-  it('marks itself busy and disabled while loading', () => {
+  it('marks itself busy and aria-disabled while loading, without native disabled', () => {
     const html = renderToStaticMarkup(<Button loading>Save</Button>);
 
     expect(html).toContain('aria-busy="true"');
-    expect(html).toContain('disabled=""');
+    expect(html).toContain('aria-disabled="true"');
+    // Native disabled would drop keyboard focus to <body>.
+    expect(html).not.toContain('disabled=""');
     expect(html).toContain('<svg');
+  });
+
+  it('still honours an explicit disabled prop', () => {
+    expect(renderToStaticMarkup(<Button disabled>Save</Button>)).toContain('disabled=""');
   });
 
   it('is neither busy nor disabled by default', () => {
