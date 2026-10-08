@@ -23,3 +23,14 @@ export const paths = {
 
   publicQuote: (token: string) => `/quote/${segment(token)}`,
 } as const;
+
+/** Query parameter carrying the in-app path to return to after signing in. */
+export const REDIRECT_TO_PARAM = 'redirectTo';
+
+/** Adds the path to return to after signing in, e.g. `/login?redirectTo=%2Fquotes`. */
+export function withRedirectTo(path: string, redirectTo: string | null | undefined): string {
+  if (!redirectTo) {
+    return path;
+  }
+  return `${path}?${new URLSearchParams({ [REDIRECT_TO_PARAM]: redirectTo }).toString()}`;
+}

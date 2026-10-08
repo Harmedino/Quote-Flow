@@ -1,4 +1,4 @@
-import { Link } from 'react-router';
+import { TextLink } from '@/components/ui/TextLink';
 
 export interface AuthFooterLinkProps {
   prompt: string;
@@ -10,13 +10,7 @@ export interface AuthFooterLinkProps {
 export function AuthFooterLink({ prompt, to, label }: AuthFooterLinkProps) {
   return (
     <p className="mt-8 text-center text-sm text-zinc-600">
-      {prompt}{' '}
-      <Link
-        to={to}
-        className="rounded font-medium text-brand-700 hover:text-brand-800 hover:underline"
-      >
-        {label}
-      </Link>
+      {prompt} <TextLink to={to}>{label}</TextLink>
     </p>
   );
 }

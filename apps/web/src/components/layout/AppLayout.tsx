@@ -1,13 +1,38 @@
 import { Plus } from 'lucide-react';
-import { Link, Outlet } from 'react-router';
+import { Link, Navigate, Outlet, useLocation } from 'react-router';
 import { paths } from '@/app/paths';
+import { PageLoader } from '@/components/PageLoader';
 import { ButtonLink } from '@/components/ui/ButtonLink';
 import { Logo } from '@/components/ui/Logo';
+import { SESSION_EXPIRED_STATE, signInPathFor } from '@/features/auth/redirect';
+import { useSession } from '@/features/auth/use-session';
+import { AccountMenu } from './AccountMenu';
 import { AppNavigation } from './AppNavigation';
 import { MobileNav } from './MobileNav';
 import { MAIN_CONTENT_ID, SkipLink } from './SkipLink';
 
 export default function AppLayout() {
+  const session = useSession();
+  const location = useLocation();
+
+  // Route middleware admits only signed-in users; this handles a session that ends while
+  // the app is open (sign-out, here or in another tab, or a refresh that was refused).
+  if (session.status !== 'authenticated') {
+    if (session.status === 'anonymous' && session.endReason === 'signed-out') {
+      return <Navigate to={paths.login} replace />;
+    }
+    return (
+      <>
+        <Navigate
+          to={signInPathFor(`${location.pathname}${location.search}`)}
+          replace
+          state={SESSION_EXPIRED_STATE}
+        />
+        <PageLoader />
+      </>
+    );
+  }
+
   return (
     <div className="min-h-dvh bg-zinc-50">
       <SkipLink />
@@ -18,8 +43,11 @@ export default function AppLayout() {
             <Logo />
           </Link>
         </div>
-        <div className="flex flex-1 flex-col overflow-y-auto px-4 pt-2 pb-6">
+        <div className="flex flex-1 flex-col overflow-y-auto px-4 pt-2 pb-4">
           <AppNavigation />
+        </div>
+        <div className="shrink-0 border-t border-zinc-200 p-3">
+          <AccountMenu />
         </div>
       </aside>
 

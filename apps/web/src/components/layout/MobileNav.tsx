@@ -4,6 +4,7 @@ import { Link, useLocation } from 'react-router';
 import { paths } from '@/app/paths';
 import { Logo } from '@/components/ui/Logo';
 import { AppNavigation } from './AppNavigation';
+import { MobileAccountPanel } from './MobileAccountPanel';
 import { MAIN_CONTENT_ID } from './SkipLink';
 
 const DRAWER_ID = 'mobile-navigation';
@@ -122,6 +123,7 @@ export function MobileNav() {
           <div className="mt-4 flex flex-1 flex-col">
             <AppNavigation onNavigate={close} />
           </div>
+          <MobileAccountPanel />
         </div>
       </dialog>
     </>

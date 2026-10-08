@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react';
 import { createBrowserRouter, redirect, type RouteObject } from 'react-router';
 import { PageLoader } from '@/components/PageLoader';
+import { redirectSignedIn, requireSession } from '@/features/auth/route-guards';
 import { paths } from './paths';
 import { RootRoute } from './RootRoute';
 import { RouteErrorBoundary } from './RouteErrorBoundary';
@@ -42,9 +43,14 @@ export const routes: RouteObject[] = [
         lazy: lazyComponent(() => import('@/components/layout/AuthLayout')),
         children: [
           withErrorBoundary([
-            { path: paths.login, lazy: lazyComponent(() => import('@/pages/auth/LoginPage')) },
+            {
+              path: paths.login,
+              middleware: [redirectSignedIn],
+              lazy: lazyComponent(() => import('@/pages/auth/LoginPage')),
+            },
             {
               path: paths.register,
+              middleware: [redirectSignedIn],
               lazy: lazyComponent(() => import('@/pages/auth/RegisterPage')),
             },
             {
@@ -55,6 +61,7 @@ export const routes: RouteObject[] = [
         ],
       },
       {
+        middleware: [requireSession],
         lazy: lazyComponent(() => import('@/components/layout/AppLayout')),
         children: [
           withErrorBoundary([

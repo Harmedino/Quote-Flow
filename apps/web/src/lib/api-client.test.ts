@@ -3,9 +3,11 @@ import {
   ApiError,
   buildQueryString,
   getErrorMessage,
+  isAuthPath,
   request,
   requestPaginated,
   resolveApiBaseUrl,
+  setAuthHandler,
 } from './api-client';
 import { shouldRetryQuery } from './query-client';
 
@@ -44,6 +46,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  setAuthHandler(null);
 });
 
 describe('resolveApiBaseUrl', () => {
@@ -338,5 +341,98 @@ describe('requestPaginated', () => {
     await expect(requestPaginated('/customers')).rejects.toMatchObject({
       code: 'INVALID_RESPONSE',
     });
+  });
+});
+
+describe('isAuthPath', () => {
+  it('matches the session endpoints only', () => {
+    expect(isAuthPath('/auth/refresh')).toBe(true);
+    expect(isAuthPath('auth/login')).toBe(true);
+    expect(isAuthPath('/auth/me?fields=user')).toBe(true);
+    expect(isAuthPath('/auth')).toBe(true);
+    expect(isAuthPath('/authors')).toBe(false);
+    expect(isAuthPath('/account/password')).toBe(false);
+    expect(isAuthPath('/business')).toBe(false);
+  });
+});
+
+describe('request with an auth handler', () => {
+  function handler(tokens: (string | null)[], renewed: boolean) {
+    let current = 0;
+    const renewSession = vi.fn(() => {
+      current = Math.min(current + 1, tokens.length - 1);
+      return Promise.resolve(renewed);
+    });
+    return {
+      getAccessToken: () => tokens[current] ?? null,
+      renewSession,
+    };
+  }
+
+  function authorizationHeaders(): (string | null)[] {
+    return fetchMock.mock.calls.map(([, init]) => new Headers(init?.headers).get('Authorization'));
+  }
+
+  it('sends no Authorization header without a token', async () => {
+    setAuthHandler(handler([null], false));
+    fetchMock.mockResolvedValue(jsonResponse({ data: 'ok' }));
+
+    await request('/business');
+
+    expect(authorizationHeaders()).toEqual([null]);
+  });
+
+  it('retries once with the renewed token after a 401', async () => {
+    const auth = handler(['old', 'new'], true);
+    setAuthHandler(auth);
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ error: { code: 'UNAUTHORIZED', message: 'x' } }, 401))
+      .mockResolvedValueOnce(jsonResponse({ data: 'ok' }));
+
+    await expect(request('/business', { method: 'PATCH', body: { name: 'A' } })).resolves.toBe(
+      'ok',
+    );
+
+    expect(auth.renewSession).toHaveBeenCalledWith('old');
+    expect(authorizationHeaders()).toEqual(['Bearer old', 'Bearer new']);
+    expect(fetchMock.mock.calls[1]?.[1]?.body).toBe('{"name":"A"}');
+  });
+
+  it('returns the 401 when the session cannot be renewed', async () => {
+    setAuthHandler(handler(['old'], false));
+    fetchMock.mockResolvedValue(
+      jsonResponse({ error: { code: 'UNAUTHORIZED', message: 'Session ended' } }, 401),
+    );
+
+    await expect(request('/business')).rejects.toMatchObject({ status: 401, code: 'UNAUTHORIZED' });
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it('does not renew after a 401 from an auth endpoint', async () => {
+    const auth = handler(['old', 'new'], true);
+    setAuthHandler(auth);
+    fetchMock.mockResolvedValue(
+      jsonResponse(
+        { error: { code: 'UNAUTHORIZED', message: 'Incorrect email or password.' } },
+        401,
+      ),
+    );
+
+    await expect(request('/auth/login', { method: 'POST', body: {} })).rejects.toMatchObject({
+      message: 'Incorrect email or password.',
+    });
+    expect(auth.renewSession).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it('does not renew after other failures', async () => {
+    const auth = handler(['old', 'new'], true);
+    setAuthHandler(auth);
+    fetchMock.mockResolvedValue(jsonResponse({ error: { code: 'FORBIDDEN', message: 'No' } }, 403));
+
+    await expect(request('/business', { method: 'PATCH', body: {} })).rejects.toMatchObject({
+      status: 403,
+    });
+    expect(auth.renewSession).not.toHaveBeenCalled();
   });
 });

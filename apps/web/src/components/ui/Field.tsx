@@ -8,6 +8,8 @@ export interface FieldProps {
   hint?: ReactNode;
   error?: string;
   required?: boolean;
+  /** Shown at the end of the label row, e.g. a "Forgot password?" link. Kept outside the label. */
+  labelAction?: ReactNode;
   /** Id for the control; generated when omitted. Set it here rather than on the control. */
   id?: string;
   className?: string;
@@ -20,6 +22,7 @@ export function Field({
   hint,
   error,
   required = false,
+  labelAction,
   id,
   className,
   children,
@@ -29,16 +32,27 @@ export function Field({
   const hintId = hint ? `${controlId}-hint` : undefined;
   const errorId = error ? `${controlId}-error` : undefined;
 
+  const labelElement = (
+    <label htmlFor={controlId} className="block text-sm font-medium text-zinc-900">
+      {label}
+      {required && (
+        <span aria-hidden="true" className="ml-0.5 text-red-600">
+          *
+        </span>
+      )}
+    </label>
+  );
+
   return (
     <div className={cn('space-y-1.5', className)}>
-      <label htmlFor={controlId} className="block text-sm font-medium text-zinc-900">
-        {label}
-        {required && (
-          <span aria-hidden="true" className="ml-0.5 text-red-600">
-            *
-          </span>
-        )}
-      </label>
+      {labelAction ? (
+        <div className="flex items-baseline justify-between gap-4">
+          {labelElement}
+          {labelAction}
+        </div>
+      ) : (
+        labelElement
+      )}
       <FieldControlContext
         value={{
           id: controlId,
