@@ -153,17 +153,19 @@ describe('QuoteModel', () => {
     expect(await validationErrorsOf(sameDay)).toEqual({});
   });
 
-  it('keeps businessId, createdBy and currency immutable once saved', () => {
+  it('keeps businessId, quoteNumber, createdBy and currency immutable once saved', () => {
     const original = quoteInput();
     const quote = QuoteModel.hydrate({ _id: new Types.ObjectId(), ...original });
 
     quote.set({
       businessId: new Types.ObjectId(),
+      quoteNumber: 'QT-9999',
       createdBy: new Types.ObjectId(),
       currency: 'EUR',
     });
 
     expect(quote.businessId).toEqual(original.businessId);
+    expect(quote.quoteNumber).toBe('QT-0001');
     expect(quote.createdBy).toEqual(original.createdBy);
     expect(quote.currency).toBe('USD');
   });

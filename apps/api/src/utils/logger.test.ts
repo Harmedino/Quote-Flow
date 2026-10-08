@@ -1,5 +1,25 @@
 import { describe, expect, it } from 'vitest';
 import { createCapturingLogger } from '../test/helpers';
+import { shouldUsePrettyLogs } from './logger';
+
+describe('shouldUsePrettyLogs', () => {
+  it('pretty-prints only in development when stdout is a terminal', () => {
+    expect(shouldUsePrettyLogs('development', true)).toBe(true);
+  });
+
+  it.each([
+    ['development', false],
+    ['development', undefined],
+    ['production', true],
+    ['test', true],
+  ] as const)('writes JSON for NODE_ENV=%s with isTTY=%s', (nodeEnv, isTTY) => {
+    expect(shouldUsePrettyLogs(nodeEnv, isTTY)).toBe(false);
+  });
+
+  it('writes JSON when pino-pretty is not installed (a production install in a terminal)', () => {
+    expect(shouldUsePrettyLogs('development', true, () => false)).toBe(false);
+  });
+});
 
 describe('createLogger', () => {
   it('writes JSON lines with a string level and ISO timestamp', () => {

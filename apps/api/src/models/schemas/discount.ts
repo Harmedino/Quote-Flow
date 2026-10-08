@@ -5,6 +5,8 @@ import {
   percentageSchema,
 } from '@quoteflow/shared';
 import { type HydratedDocument, Schema } from 'mongoose';
+// Must load before the schema below is declared (it imports nothing else that loads it).
+import '../validator-messages';
 
 export interface Discount {
   type: DiscountType;

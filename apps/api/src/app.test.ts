@@ -1,13 +1,15 @@
+import { MAX_LINE_ITEMS, TEXT_LIMITS, lineItemsSchema } from '@quoteflow/shared';
+import { Router } from 'express';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { createApp } from './app';
-import type { HealthStatus } from '@quoteflow/shared';
+import { sendData } from './utils/response';
 import {
   TEST_ORIGIN,
   createCapturingLogger,
+  createRouterTestApp,
   createSilentLogger,
   createTestEnv,
-  dataOf,
   errorOf,
 } from './test/helpers';
 
@@ -31,9 +33,10 @@ describe('createApp', () => {
       const res = await request(buildApp()).get('/api/health');
 
       expect(res.status).toBe(503);
-      expect(dataOf<HealthStatus>(res)).toMatchObject({
-        status: 'unavailable',
-        database: 'disconnected',
+      expect(errorOf(res)).toEqual({
+        code: 'SERVICE_UNAVAILABLE',
+        message: 'The service is temporarily unavailable.',
+        requestId: res.headers['x-request-id'],
       });
       expect(res.headers['cache-control']).toBe('no-store');
     });
@@ -75,17 +78,39 @@ describe('createApp', () => {
       expect(JSON.stringify(res.body)).not.toMatch(/Unexpected|SyntaxError|position/);
     });
 
-    it('rejects bodies over 100kb with PAYLOAD_TOO_LARGE', async () => {
+    it('rejects bodies over 1 MB with PAYLOAD_TOO_LARGE', async () => {
       const res = await request(buildApp())
         .post('/api/does-not-exist')
         .set('Content-Type', 'application/json')
-        .send(JSON.stringify({ notes: 'x'.repeat(101 * 1024) }));
+        .send(JSON.stringify({ notes: 'x'.repeat(1024 * 1024) }));
 
       expect(res.status).toBe(413);
       expect(errorOf(res)).toMatchObject({
         code: 'PAYLOAD_TOO_LARGE',
         requestId: res.headers['x-request-id'],
       });
+    });
+
+    it('accepts the largest document the shared rules allow', async () => {
+      const text = (length: number) => '中'.repeat(length);
+      const items = Array.from({ length: MAX_LINE_ITEMS }, () => ({
+        name: text(TEXT_LIMITS.itemName),
+        description: text(TEXT_LIMITS.itemDescription),
+        unit: text(TEXT_LIMITS.itemUnit),
+        quantity: 1,
+        unitPrice: 100,
+      }));
+      expect(lineItemsSchema.safeParse(items).success).toBe(true);
+      const body = { items, notes: text(TEXT_LIMITS.notes), terms: text(TEXT_LIMITS.terms) };
+
+      const router = Router();
+      router.post('/echo', (req, res) => {
+        sendData(res, { received: Buffer.byteLength(JSON.stringify(req.body)) });
+      });
+      const res = await request(createRouterTestApp(router)).post('/echo').send(body);
+
+      expect(res.status).toBe(200);
+      expect(Buffer.byteLength(JSON.stringify(body))).toBeGreaterThan(700_000);
     });
 
     it('logs client errors at warn level without an error object', async () => {
@@ -143,12 +168,14 @@ describe('createApp', () => {
   });
 
   describe('CORS', () => {
-    it('allows a configured origin with credentials and exposes the request id', async () => {
+    it('allows a configured origin with credentials and exposes the request id and retry timing', async () => {
       const res = await request(buildApp()).get('/api/health/live').set('Origin', TEST_ORIGIN);
 
       expect(res.headers['access-control-allow-origin']).toBe(TEST_ORIGIN);
       expect(res.headers['access-control-allow-credentials']).toBe('true');
-      expect(res.headers['access-control-expose-headers']).toBe('X-Request-Id');
+      expect(res.headers['access-control-expose-headers']).toBe(
+        'X-Request-Id,Retry-After,RateLimit,RateLimit-Policy',
+      );
       expect(res.headers.vary).toContain('Origin');
     });
 

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   BusinessModel,
   CounterModel,
@@ -75,6 +75,32 @@ describe.skipIf(!TEST_DATABASE_URI)('demo seed (database)', () => {
         expect(quote.status).toBe('accepted');
         expect(quote.convertedAt).toBeInstanceOf(Date);
       }
+    },
+    SEED_TIMEOUT_MS,
+  );
+
+  it(
+    'recovers from a reset that failed part-way',
+    async () => {
+      const { tenant } = await replaceDemoBusiness(createSeedClock(), 'placeholder-hash');
+      const oldBusinessId = tenant.business._id;
+
+      const failure = vi
+        .spyOn(CustomerModel, 'deleteMany')
+        .mockRejectedValueOnce(new Error('connection lost'));
+      await expect(replaceDemoBusiness(createSeedClock(), 'placeholder-hash')).rejects.toThrow(
+        'connection lost',
+      );
+      failure.mockRestore();
+
+      const { replaced } = await replaceDemoBusiness(createSeedClock(), 'placeholder-hash');
+
+      expect(replaced).toBe(true);
+      expect(await BusinessModel.countDocuments({ name: DEMO_BUSINESS.name })).toBe(1);
+      expect(await BusinessModel.exists({ _id: oldBusinessId })).toBeNull();
+      expect(await CustomerModel.countDocuments({ businessId: oldBusinessId })).toBe(0);
+      expect(await QuoteModel.countDocuments({ businessId: oldBusinessId })).toBe(0);
+      expect(await UserModel.countDocuments({ businessId: oldBusinessId })).toBe(0);
     },
     SEED_TIMEOUT_MS,
   );

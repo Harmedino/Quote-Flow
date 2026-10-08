@@ -1,5 +1,6 @@
 import type { ApiErrorBody, ApiErrorResponse, ApiResponse } from '@quoteflow/shared';
 import express, { type Express, type Router } from 'express';
+import { JSON_BODY_LIMIT } from '../app';
 import { type Env, loadEnv } from '../config/env';
 import { errorHandler } from '../middleware/error-handler';
 import { notFound } from '../middleware/not-found';
@@ -50,7 +51,7 @@ export function createRouterTestApp(
 ): Express {
   const app = express();
   app.use(createRequestLogger(logger));
-  app.use(express.json({ limit: '100kb' }));
+  app.use(express.json({ limit: JSON_BODY_LIMIT }));
   app.use(router);
   app.use(notFound);
   app.use(errorHandler);

@@ -14,6 +14,7 @@ import {
   bulkOperationViolation,
   isTenantScoped,
   isTenantScopedPipeline,
+  pipelineViolation,
   replacementKeepsTenant,
   updateChangesTenant,
 } from './tenant-scope';
@@ -90,7 +91,7 @@ type AnyQuery = Query<unknown, unknown>;
  */
 const BUILT_IN_MIDDLEWARE = Symbol.for('mongoose:built-in-middleware');
 
-function unskippable<Hook extends object>(hook: Hook): Hook {
+export function unskippable<Hook extends object>(hook: Hook): Hook {
   return Object.assign(hook, { [BUILT_IN_MIDDLEWARE]: true });
 }
 
@@ -126,11 +127,13 @@ const guardEstimatedDocumentCount = unskippable(function (this: AnyQuery) {
 
 const guardAggregate = unskippable(function (this: Aggregate<unknown>) {
   if (this.options.skipTenantGuard === true) return;
-  if (!isTenantScopedPipeline(this.pipeline())) {
-    throw new TenantGuardError(
-      `aggregate on ${this.model().modelName} must start with a $match on businessId`,
-    );
+  const modelName = this.model().modelName;
+  const pipeline = this.pipeline();
+  if (!isTenantScopedPipeline(pipeline)) {
+    throw new TenantGuardError(`aggregate on ${modelName} must start with a $match on businessId`);
   }
+  const violation = pipelineViolation(pipeline);
+  if (violation) throw new TenantGuardError(`aggregate on ${modelName}: ${violation}`);
 });
 
 const guardBulkWrite = unskippable(function (
@@ -144,6 +147,13 @@ const guardBulkWrite = unskippable(function (
     if (violation) throw new TenantGuardError(`bulkWrite on ${this.modelName}: ${violation}`);
   }
 });
+
+const guardedSchemas = new WeakSet<Schema>();
+
+/** Whether `tenantGuard` was applied to the schema. */
+export function isTenantGuarded(schema: Schema): boolean {
+  return guardedSchemas.has(schema);
+}
 
 const scopeDocumentWrite = unskippable(function (this: HydratedDocument<TenantOwned>) {
   // Not loaded when a projection excluded it; the query guard then rejects deleteOne/updateOne.
@@ -162,7 +172,9 @@ const scopeDocumentWrite = unskippable(function (this: HydratedDocument<TenantOw
  *   `match: { businessId }`, which also stops a forged reference from
  *   resolving to another tenant's document.
  * - `estimatedDocumentCount` cannot be scoped and is rejected.
- * - Aggregations must start with a `$match` on businessId.
+ * - Aggregations must start with a `$match` on businessId. `$out`, `$merge` and
+ *   `$graphLookup` are rejected, and `$lookup`/`$unionWith` (also inside
+ *   `$facet`) must use a sub-pipeline that starts with a `$match` on businessId.
  * - bulkWrite operations are checked one by one.
  * - Updates may never set, unset or rename businessId, and replacements must
  *   keep it, even when the guard is skipped.
@@ -196,4 +208,5 @@ export function tenantGuard(schema: Schema): void {
     { document: true, query: false },
     scopeDocumentWrite,
   );
+  guardedSchemas.add(schema);
 }

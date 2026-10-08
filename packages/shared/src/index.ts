@@ -1,6 +1,7 @@
 export * from './api';
 export * from './constants/currencies';
 export * from './constants/documents';
+export * from './constants/limits';
 export * from './constants/payments';
 export * from './constants/roles';
 export * from './constants/statuses';

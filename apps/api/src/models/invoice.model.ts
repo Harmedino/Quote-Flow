@@ -1,6 +1,6 @@
-import { INVOICE_STATUSES, type InvoiceStatus } from '@quoteflow/shared';
+import { INVOICE_STATUSES, type InvoiceStatus, TEXT_LIMITS } from '@quoteflow/shared';
 import { type HydratedDocument, type Model, Schema, type Types, model } from 'mongoose';
-import { TEXT_LIMITS } from './limits';
+import { atomicUpdateGuard } from './plugins/atomic-update-guard';
 import { serialization } from './plugins/serialization';
 import { type TenantOwned, tenantGuard } from './plugins/tenant-guard';
 import { type Payment, paymentSubschema } from './schemas/payment';
@@ -45,8 +45,11 @@ const invoiceSchema = new Schema<Invoice, InvoiceModelType>(
       required: true,
       trim: true,
       maxlength: TEXT_LIMITS.documentNumber,
+      immutable: true,
     },
-    quoteId: { type: Schema.Types.ObjectId, ref: 'Quote', default: null },
+    // Immutable: clearing it would take the invoice out of the partial unique index below,
+    // letting the quote be converted again.
+    quoteId: { type: Schema.Types.ObjectId, ref: 'Quote', default: null, immutable: true },
     status: { type: String, enum: INVOICE_STATUSES, required: true, default: 'draft' },
     ...salesDocumentFields,
     payments: { type: [paymentSubschema], default: [] },
@@ -62,6 +65,7 @@ const invoiceSchema = new Schema<Invoice, InvoiceModelType>(
 );
 
 invoiceSchema.plugin(tenantGuard);
+invoiceSchema.plugin(atomicUpdateGuard);
 invoiceSchema.plugin(serialization);
 
 function applyPaymentTotals(invoice: InvoiceDocument): void {

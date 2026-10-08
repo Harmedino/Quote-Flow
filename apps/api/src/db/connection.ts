@@ -23,6 +23,9 @@ export interface ConnectDatabaseOptions {
  *   legitimate service queries. Operator injection is prevented at the edge
  *   instead: every request is parsed with Zod, so filters only ever receive
  *   validated primitives.
+ *
+ * Validator messages are replaced in models/validator-messages.ts instead:
+ * Mongoose copies them into each schema path as it is declared, before this runs.
  */
 export function configureMongoose(): void {
   mongoose.set('strictQuery', 'throw');

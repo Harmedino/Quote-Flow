@@ -13,7 +13,7 @@ export * from './invoice.model';
 export * from './quote.model';
 export * from './service.model';
 export * from './user.model';
-export { TEXT_LIMITS } from './limits';
+export { AtomicUpdateGuardError } from './plugins/atomic-update-guard';
 export { TenantGuardError, type TenantOwned } from './plugins/tenant-guard';
 export type { Address } from './schemas/address';
 export { type CustomerSnapshot, toCustomerSnapshot } from './schemas/customer-snapshot';

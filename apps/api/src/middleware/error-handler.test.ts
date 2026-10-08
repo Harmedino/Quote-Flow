@@ -99,6 +99,25 @@ describe('errorHandler', () => {
     expect(entry).not.toHaveProperty('err');
   });
 
+  it('rejects malformed percent-encoding in a route param as a client error', async () => {
+    const router = Router();
+    router.get('/items/:id', (_req, res) => {
+      res.json({ data: 'unreachable' });
+    });
+    const { logger, entries } = createCapturingLogger();
+
+    const res = await request(createRouterTestApp(router, logger)).get('/items/%E0%A4%A');
+
+    expect(res.status).toBe(400);
+    expect(errorOf(res)).toMatchObject({
+      code: 'BAD_REQUEST',
+      message: 'The request URL is malformed.',
+    });
+    const [entry] = entries();
+    expect(entry).toMatchObject({ level: 'warn', res: { statusCode: 400 } });
+    expect(entry).not.toHaveProperty('err');
+  });
+
   it('delegates to Express when the response has already started', async () => {
     const router = Router();
     router.get('/stream', (_req, res) => {
@@ -190,6 +209,12 @@ describe('toClientError', () => {
       code: 'BAD_REQUEST',
       message: 'The request could not be processed.',
     });
+  });
+
+  it('does not treat other URIErrors or unexposed 4xx statuses as client errors', () => {
+    expect(toClientError(new URIError('URI malformed'))).toMatchObject({ status: 500 });
+    const upstream = Object.assign(new Error('upstream said 404'), { status: 404 });
+    expect(toClientError(upstream)).toMatchObject({ status: 500, ...GENERIC_SERVER_ERROR });
   });
 
   it('does not trust 5xx or unexposed HTTP errors', () => {

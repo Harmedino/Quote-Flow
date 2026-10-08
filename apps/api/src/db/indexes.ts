@@ -29,6 +29,32 @@ async function buildModelIndexes(model: IndexedModel): Promise<IndexReport> {
   };
 }
 
+export interface MissingIndexes {
+  model: string;
+  /** Declared index specs that do not exist in the database, as JSON. */
+  missing: string[];
+}
+
+/**
+ * Lists the declared indexes that do not exist in the database, per model,
+ * without changing anything. Models whose indexes are all present are omitted.
+ */
+export async function findMissingIndexes(
+  models: readonly Pick<IndexedModel, 'modelName' | 'diffIndexes'>[],
+): Promise<MissingIndexes[]> {
+  const results: MissingIndexes[] = [];
+  for (const model of models) {
+    const { toCreate } = await model.diffIndexes();
+    if (toCreate.length > 0) {
+      results.push({
+        model: model.modelName,
+        missing: toCreate.map((index: unknown) => JSON.stringify(index)),
+      });
+    }
+  }
+  return results;
+}
+
 /**
  * Creates every index the given models declare. Non-destructive: an index
  * that exists with different options fails to build (and is reported) instead

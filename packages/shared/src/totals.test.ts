@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { MAX_LINE_ITEMS, MAX_MONEY_AMOUNT, MAX_QUANTITY } from './constants/documents';
 import { calculateDocumentTotals, calculateLineAmount, calculatePercentageOf } from './totals';
 
 describe('calculateLineAmount', () => {
@@ -13,8 +14,15 @@ describe('calculateLineAmount', () => {
     expect(calculateLineAmount(0.5, 1)).toBe(1);
   });
 
-  it('stays exact for large values', () => {
-    expect(calculateLineAmount(100_000, 10_000_000_000)).toBe(1_000_000_000_000_000);
+  it('stays exact up to MAX_MONEY_AMOUNT', () => {
+    expect(calculateLineAmount(1_000, 100_000_000_000)).toBe(100_000_000_000_000);
+    expect(calculateLineAmount(1, MAX_MONEY_AMOUNT)).toBe(MAX_MONEY_AMOUNT);
+  });
+
+  it('rejects a line amount above MAX_MONEY_AMOUNT', () => {
+    expect(() => calculateLineAmount(100_000, MAX_MONEY_AMOUNT)).toThrow(
+      new RangeError('Line amount is too large'),
+    );
   });
 
   it('rejects invalid input', () => {
@@ -68,6 +76,33 @@ describe('calculateDocumentTotals', () => {
     expect(
       calculateDocumentTotals({ items, discount: { type: 'fixed', value: 50_000 }, taxRate: 10 }),
     ).toEqual({ subtotal: 36_000, discount: 36_000, tax: 0, total: 0 });
+  });
+
+  it('rejects a subtotal above MAX_MONEY_AMOUNT as soon as it is reached', () => {
+    const line = { quantity: 1, unitPrice: MAX_MONEY_AMOUNT };
+    expect(calculateDocumentTotals({ items: [line] }).total).toBe(MAX_MONEY_AMOUNT);
+    expect(() => calculateDocumentTotals({ items: [line, { quantity: 1, unitPrice: 1 }] })).toThrow(
+      new RangeError('Document total is too large'),
+    );
+  });
+
+  it('rejects the largest items the validation rules accept', () => {
+    const items = Array.from({ length: MAX_LINE_ITEMS }, () => ({
+      quantity: MAX_QUANTITY,
+      unitPrice: MAX_MONEY_AMOUNT,
+    }));
+    expect(() => calculateDocumentTotals({ items, taxRate: 0 })).toThrow(RangeError);
+  });
+
+  it('rejects a total that only exceeds MAX_MONEY_AMOUNT after tax', () => {
+    const items = [{ quantity: 1, unitPrice: MAX_MONEY_AMOUNT }];
+    expect(() => calculateDocumentTotals({ items, taxRate: 10 })).toThrow(
+      new RangeError('Document total is too large'),
+    );
+    expect(
+      calculateDocumentTotals({ items, discount: { type: 'percentage', value: 50 }, taxRate: 100 })
+        .total,
+    ).toBe(MAX_MONEY_AMOUNT);
   });
 
   it('returns zeros for an empty document', () => {

@@ -32,15 +32,19 @@ describe('GET /api/health (readiness)', () => {
     expect(res.headers['cache-control']).toBe('no-store');
   });
 
-  it('returns 503 when the database is not connected', async () => {
+  it('returns 503 with the standard error envelope when the database is not connected', async () => {
     vi.mocked(isDatabaseConnected).mockReturnValue(false);
 
     const res = await request(buildApp()).get('/api/health');
 
     expect(res.status).toBe(503);
-    expect(dataOf<HealthStatus>(res)).toMatchObject({
-      status: 'unavailable',
-      database: 'disconnected',
+    expect(res.body).toEqual({
+      error: {
+        code: 'SERVICE_UNAVAILABLE',
+        message: 'The service is temporarily unavailable.',
+        requestId: res.headers['x-request-id'],
+      },
     });
+    expect(res.headers['cache-control']).toBe('no-store');
   });
 });

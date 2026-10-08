@@ -1,5 +1,6 @@
 import type { ValidatorProps } from 'mongoose';
 import type { z } from 'zod';
+import './validator-messages';
 
 /**
  * Mongoose validators built from the Zod primitives in @quoteflow/shared, so

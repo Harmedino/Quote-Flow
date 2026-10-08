@@ -1,5 +1,5 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
-import { type Env, EnvValidationError, loadEnv } from './env';
+import { type Env, EnvValidationError, type ScriptEnv, loadEnv, loadScriptEnv } from './env';
 
 const SECRET = 'a-very-long-jwt-secret-for-tests-0123456789';
 const REQUIRED = { MONGODB_URI: 'mongodb://127.0.0.1:27017/quoteflow', JWT_SECRET: SECRET };
@@ -8,6 +8,7 @@ const PRODUCTION = {
   NODE_ENV: 'production',
   CORS_ORIGIN: 'https://app.quoteflow.example',
   APP_URL: 'https://app.quoteflow.example',
+  TRUST_PROXY: '0',
 };
 
 function captureError(source: NodeJS.ProcessEnv): EnvValidationError {
@@ -98,13 +99,13 @@ describe('loadEnv', () => {
 
     expect(error.problems.map((problem) => problem.split(':')[0])).toEqual([
       'NODE_ENV',
-      'PORT',
       'MONGODB_URI',
+      'LOG_LEVEL',
+      'PORT',
       'JWT_SECRET',
       'ACCESS_TOKEN_TTL',
       'REFRESH_TOKEN_TTL_DAYS',
       'TRUST_PROXY',
-      'LOG_LEVEL',
     ]);
     expect(error.message).toMatch(/^Invalid environment configuration:\n {2}- NODE_ENV: /);
     expect(error.message).toContain('  - MONGODB_URI: is required');
@@ -146,6 +147,40 @@ describe('loadEnv', () => {
     expect(captureError({ ...REQUIRED, ACCESS_TOKEN_TTL: value }).problems).toEqual([
       expect.stringMatching(/^ACCESS_TOKEN_TTL: /),
     ]);
+  });
+
+  it.each(['99999999999999999999d', '2h', '61m', '30s', '59s'])(
+    'rejects an ACCESS_TOKEN_TTL of %j outside 1m–1h',
+    (value) => {
+      expect(captureError({ ...REQUIRED, ACCESS_TOKEN_TTL: value }).problems).toEqual([
+        'ACCESS_TOKEN_TTL: must be between 1m and 1h',
+      ]);
+    },
+  );
+
+  it.each(['60s', '1m', '15m', '3600s', '1h'])('accepts an ACCESS_TOKEN_TTL of %j', (value) => {
+    expect(loadEnv({ ...REQUIRED, ACCESS_TOKEN_TTL: value }).ACCESS_TOKEN_TTL).toBe(value);
+  });
+
+  describe('MONGODB_URI', () => {
+    it.each([
+      'mongodb://h1:27017,h2:27017/quoteflow?replicaSet=rs',
+      'mongodb+srv://user:pass@cluster.example.net/quoteflow?retryWrites=true&w=majority',
+      'mongodb://%2Ftmp%2Fmongodb-27017.sock/quoteflow',
+    ])('accepts %s', (uri) => {
+      expect(loadEnv({ ...REQUIRED, MONGODB_URI: uri }).MONGODB_URI).toBe(uri);
+    });
+
+    it.each([
+      'mongodb://127.0.0.1:27017/?retryWrites=true',
+      'mongodb://127.0.0.1:27017',
+      'mongodb://127.0.0.1:27017/',
+      'mongodb+srv://u:p@c.example.net/',
+    ])('rejects %s, which has no database name', (uri) => {
+      expect(captureError({ ...REQUIRED, MONGODB_URI: uri }).problems).toEqual([
+        'MONGODB_URI: must include a database name, e.g. mongodb://127.0.0.1:27017/quoteflow',
+      ]);
+    });
   });
 
   it.each(['1.5', '-1', '4000abc', '0x10'])('rejects non-integer PORT %j', (value) => {
@@ -220,11 +255,43 @@ describe('loadEnv', () => {
       expect(env.APP_URL).toBe('https://app.quoteflow.example');
     });
 
-    it('requires CORS_ORIGIN and APP_URL instead of using local defaults', () => {
+    it('requires CORS_ORIGIN, APP_URL and TRUST_PROXY instead of using local defaults', () => {
       expect(captureError({ ...REQUIRED, NODE_ENV: 'production' }).problems).toEqual([
         'CORS_ORIGIN: is required in production',
         'APP_URL: is required in production',
+        'TRUST_PROXY: is required in production (0 when the API is exposed directly, 1 behind one load balancer)',
       ]);
+    });
+
+    it('accepts an explicit TRUST_PROXY of 0', () => {
+      expect(loadEnv(PRODUCTION).TRUST_PROXY).toBe(0);
+      expect(loadEnv({ ...PRODUCTION, TRUST_PROXY: '1' }).TRUST_PROXY).toBe(1);
+    });
+
+    it('rejects a JWT_SECRET that is not random, which development accepts', () => {
+      const placeholder = 'changemechangemechangemechangeme';
+      expect(captureError({ ...PRODUCTION, JWT_SECRET: placeholder }).problems).toEqual([
+        'JWT_SECRET: must be a random value; generate one with the command in .env.example',
+      ]);
+      expect(loadEnv({ ...REQUIRED, JWT_SECRET: placeholder }).JWT_SECRET).toBe(placeholder);
+    });
+
+    it('reports a short JWT_SECRET once', () => {
+      expect(captureError({ ...PRODUCTION, JWT_SECRET: 'x'.repeat(31) }).problems).toEqual([
+        'JWT_SECRET: must be at least 32 characters long',
+      ]);
+    });
+
+    it('requires every CORS_ORIGIN entry to use https', () => {
+      expect(
+        captureError({
+          ...PRODUCTION,
+          CORS_ORIGIN: 'https://app.quoteflow.example,http://app.example.com',
+        }).problems,
+      ).toEqual(['CORS_ORIGIN (entry 2): must use https in production']);
+      expect(
+        captureError({ ...PRODUCTION, CORS_ORIGIN: 'http://app.example.com' }).problems,
+      ).toEqual(['CORS_ORIGIN (entry 1): must use https in production']);
     });
 
     it('requires APP_URL to use https', () => {
@@ -232,5 +299,39 @@ describe('loadEnv', () => {
         captureError({ ...PRODUCTION, APP_URL: 'http://app.quoteflow.example' }).problems,
       ).toEqual(['APP_URL: must use https in production']);
     });
+  });
+});
+
+describe('loadScriptEnv', () => {
+  const DATABASE_ONLY = { NODE_ENV: 'production', MONGODB_URI: 'mongodb://127.0.0.1:27017/x' };
+
+  it('needs only the database variables, even in production', () => {
+    expect(loadScriptEnv(DATABASE_ONLY)).toEqual({
+      NODE_ENV: 'production',
+      MONGODB_URI: 'mongodb://127.0.0.1:27017/x',
+      LOG_LEVEL: 'info',
+    });
+    expectTypeOf<ScriptEnv>().toEqualTypeOf<
+      Readonly<{
+        NODE_ENV: 'development' | 'test' | 'production';
+        MONGODB_URI: string;
+        LOG_LEVEL: 'fatal' | 'error' | 'warn' | 'info' | 'debug' | 'trace' | 'silent';
+      }>
+    >();
+  });
+
+  it('while the server still requires its own variables', () => {
+    expect(captureError(DATABASE_ONLY).problems.map((problem) => problem.split(':')[0])).toEqual([
+      'JWT_SECRET',
+      'CORS_ORIGIN',
+      'APP_URL',
+      'TRUST_PROXY',
+    ]);
+  });
+
+  it('applies the same MONGODB_URI rules', () => {
+    expect(() => loadScriptEnv({ MONGODB_URI: 'mongodb://127.0.0.1:27017' })).toThrow(
+      /MONGODB_URI: must include a database name/,
+    );
   });
 });

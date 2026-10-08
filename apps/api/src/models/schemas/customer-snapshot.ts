@@ -1,6 +1,5 @@
-import { emailSchema, personNameSchema, phoneSchema } from '@quoteflow/shared';
+import { TEXT_LIMITS, emailSchema, personNameSchema, phoneSchema } from '@quoteflow/shared';
 import { Schema } from 'mongoose';
-import { TEXT_LIMITS } from '../limits';
 import { validateWith } from '../validators';
 import { type Address, addressSubschema } from './address';
 

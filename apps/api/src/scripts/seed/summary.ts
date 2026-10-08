@@ -15,6 +15,7 @@ import {
   UserModel,
 } from '../../models';
 import { DEMO_USERS } from '../seed-data/business';
+import type { DemoPassword } from './password';
 import type { DemoTenant } from './tenant';
 
 interface StatusCount {
@@ -43,7 +44,7 @@ function sumOf(invoices: readonly InvoiceDocument[], amount: (invoice: InvoiceDo
 export async function describeSeededTenant(
   { business }: DemoTenant,
   invoices: readonly InvoiceDocument[],
-  password: string,
+  password: DemoPassword,
 ): Promise<string> {
   const businessId = business._id;
   const [users, customers, archived, services, inactive, quoteRows, invoiceRows] =
@@ -72,10 +73,12 @@ export async function describeSeededTenant(
     `  Invoices   ${sum(invoiceRows)}: ${formatBreakdown(INVOICE_STATUSES, INVOICE_STATUS_LABELS, invoiceRows)}`,
     `  Collected  ${formatMoney(collected, currency, 'en-US')} of ${formatMoney(invoiced, currency, 'en-US')} invoiced`,
     '',
-    'Demo login (development only; the password changes on every seed run)',
+    password.generated
+      ? 'Demo login (development only; the password changes on every seed run)'
+      : 'Demo login (development only)',
     `  Owner     ${DEMO_USERS.owner.email}`,
     `  Staff     ${DEMO_USERS.staff.email}`,
-    `  Password  ${password}`,
+    `  Password  ${password.generated ? password.value : '(from SEED_DEMO_PASSWORD)'}`,
     '',
   ].join('\n');
 }

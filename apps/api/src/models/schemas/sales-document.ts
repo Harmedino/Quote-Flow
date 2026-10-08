@@ -3,13 +3,13 @@ import {
   type CurrencyCode,
   type DocumentTotals,
   MAX_LINE_ITEMS,
+  TEXT_LIMITS,
   calculateDocumentTotals,
   calculateLineAmount,
   percentageSchema,
 } from '@quoteflow/shared';
 import { type Document, Schema, type Types } from 'mongoose';
 import { PUBLIC_TOKEN_PATTERN } from '../../utils/tokens';
-import { TEXT_LIMITS } from '../limits';
 import { validateWith } from '../validators';
 import { type CustomerSnapshot, customerSnapshotSubschema } from './customer-snapshot';
 import { type Discount, discountSubschema } from './discount';
@@ -74,7 +74,8 @@ export const salesDocumentFields = {
  * Recalculates line amounts and totals with the shared calculations, so they
  * can never drift from the items or be supplied by a client. Runs in each
  * model's pre('validate') hook. Because of this, services must update quotes
- * and invoices with load-modify-save, never findOneAndUpdate/updateOne.
+ * and invoices with load-modify-save; plugins/atomic-update-guard.ts rejects
+ * atomic updates unless they opt in and leave every derived input alone.
  */
 export function applyDerivedTotals(document: SalesDocument & Document): void {
   try {

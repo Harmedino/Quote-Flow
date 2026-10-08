@@ -1,3 +1,4 @@
+import { Types } from 'mongoose';
 import { describe, expect, it } from 'vitest';
 import { invoiceInput, paymentInput, validationErrorsOf } from '../test/model-fixtures';
 import { InvoiceModel } from './invoice.model';
@@ -95,6 +96,39 @@ describe('InvoiceModel', () => {
     expect(await validationErrorsOf(invoice)).toMatchObject({
       dueDate: 'The due date cannot be before the issue date',
     });
+  });
+
+  it('settles a large IDR invoice with a single payment', async () => {
+    // 2 × Rp 90,000,000.00 + 11% tax = Rp 199,800,000.00.
+    const invoice = new InvoiceModel(
+      invoiceInput({
+        currency: 'IDR',
+        items: [{ name: 'Office fit-out', quantity: 2, unitPrice: 9_000_000_000 }],
+        taxRate: 11,
+      }),
+    );
+    await invoice.validate();
+    expect(invoice.totals.total).toBe(19_980_000_000);
+
+    invoice.payments.push(paymentInput({ amount: invoice.totals.total }));
+    invoice.status = 'paid';
+    expect(await validationErrorsOf(invoice)).toEqual({});
+    expect(invoice.balanceDue).toBe(0);
+  });
+
+  it('keeps invoiceNumber and quoteId immutable once saved', () => {
+    const quoteId = new Types.ObjectId();
+    const invoice = InvoiceModel.hydrate({
+      _id: new Types.ObjectId(),
+      ...invoiceInput({ quoteId }),
+    });
+
+    invoice.set({ invoiceNumber: 'INV-9999', quoteId: new Types.ObjectId() });
+    expect(invoice.invoiceNumber).toBe('INV-0001');
+    expect(invoice.quoteId).toEqual(quoteId);
+
+    invoice.quoteId = null;
+    expect(invoice.quoteId).toEqual(quoteId);
   });
 
   it('rejects an unknown status', async () => {

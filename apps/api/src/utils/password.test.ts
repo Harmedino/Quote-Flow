@@ -1,4 +1,4 @@
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { hashPassword, verifyPassword } from './password';
 
@@ -20,6 +20,7 @@ describe('password hashing', () => {
 
   it('rejects passwords that bcrypt would silently truncate', async () => {
     await expect(hashPassword('é'.repeat(37))).rejects.toThrow(RangeError);
+    await expect(hashPassword('é'.repeat(36))).resolves.toMatch(/^\$2b\$12\$/);
   });
 
   it('still does the bcrypt work when there is no stored hash', async () => {

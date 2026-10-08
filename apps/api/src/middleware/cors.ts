@@ -13,7 +13,8 @@ export function createCorsMiddleware(allowedOrigins: readonly string[]): Request
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', REQUEST_ID_HEADER],
-    exposedHeaders: [REQUEST_ID_HEADER],
+    // Retry-After and the draft-8 RateLimit headers let a cross-origin web app time its retries.
+    exposedHeaders: [REQUEST_ID_HEADER, 'Retry-After', 'RateLimit', 'RateLimit-Policy'],
     maxAge: 600,
   });
 

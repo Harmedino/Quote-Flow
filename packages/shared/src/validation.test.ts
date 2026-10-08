@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { formatDocumentNumber } from './constants/documents';
+import { MAX_MONEY_AMOUNT, formatDocumentNumber } from './constants/documents';
 import {
+  addressSchema,
   discountSchema,
   documentPrefixSchema,
   emailSchema,
   hexColorSchema,
   lineItemInputSchema,
+  moneySchema,
   objectIdSchema,
   paginationQuerySchema,
   passwordSchema,
@@ -69,6 +71,13 @@ describe('validation primitives', () => {
     expect(lineItemInputSchema.safeParse({ ...item, name: '  ' }).success).toBe(false);
   });
 
+  it('bounds money at MAX_MONEY_AMOUNT, which covers large-denomination currencies', () => {
+    // Rp 120,000,000.00 in minor units.
+    expect(moneySchema.safeParse(12_000_000_000).success).toBe(true);
+    expect(moneySchema.safeParse(MAX_MONEY_AMOUNT).success).toBe(true);
+    expect(moneySchema.safeParse(MAX_MONEY_AMOUNT + 1).success).toBe(false);
+  });
+
   it('validates discounts by type', () => {
     expect(discountSchema.safeParse({ type: 'percentage', value: 15 }).success).toBe(true);
     expect(discountSchema.safeParse({ type: 'percentage', value: 150 }).success).toBe(false);
@@ -83,6 +92,43 @@ describe('validation primitives', () => {
       pageSize: 50,
     });
     expect(paginationQuerySchema.safeParse({ pageSize: '1000' }).success).toBe(false);
+  });
+});
+
+describe('validation messages', () => {
+  function messagesOf(result: { error?: { issues: { message: string }[] } }): string[] {
+    return result.error?.issues.map((issue) => issue.message) ?? [];
+  }
+
+  it.each([
+    [
+      'an overlong address line',
+      addressSchema,
+      { line1: 'x'.repeat(201) },
+      'Must be at most 200 characters',
+    ],
+    [
+      'an overlong unit',
+      lineItemInputSchema,
+      { name: 'Deep cleaning', quantity: 1, unitPrice: 100, unit: 'x'.repeat(31) },
+      'Must be at most 30 characters',
+    ],
+    ['page 0', paginationQuerySchema, { page: '0' }, 'Page must be 1 or more'],
+    ['a non-numeric page', paginationQuerySchema, { page: 'abc' }, 'Page must be a number'],
+    ['a fractional page', paginationQuerySchema, { page: '1.5' }, 'Page must be a whole number'],
+    ['page size 101', paginationQuerySchema, { pageSize: '101' }, 'Page size cannot exceed 100'],
+    [
+      'a non-numeric page size',
+      paginationQuerySchema,
+      { pageSize: 'abc' },
+      'Page size must be a number',
+    ],
+  ])('reports a readable message for %s', (_label, schema, input, message) => {
+    const messages = messagesOf(schema.safeParse(input));
+    expect(messages).toEqual([message]);
+    for (const text of messages) {
+      expect(text).not.toMatch(/^(Too big|Too small|Invalid input)/);
+    }
   });
 });
 

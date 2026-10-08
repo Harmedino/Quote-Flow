@@ -14,7 +14,8 @@ import { createRequestLogger } from './middleware/request-logger';
 import { createApiRouter } from './routes';
 import type { Logger } from './utils/logger';
 
-const JSON_BODY_LIMIT = '100kb';
+/** Fits the largest quote the shared rules accept (about 0.7 MB in 3-byte UTF-8) with headroom. */
+export const JSON_BODY_LIMIT = '1mb';
 
 export interface CreateAppOptions {
   env: Env;

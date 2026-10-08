@@ -8,6 +8,9 @@ import {
   DEFAULT_QUOTE_PREFIX,
   DEFAULT_QUOTE_VALIDITY_DAYS,
   DEFAULT_TIMEZONE,
+  INVOICE_DUE_DAYS_RANGE,
+  QUOTE_VALIDITY_DAYS_RANGE,
+  TEXT_LIMITS,
   documentPrefixSchema,
   emailSchema,
   hexColorSchema,
@@ -16,7 +19,6 @@ import {
   timeZoneSchema,
 } from '@quoteflow/shared';
 import { type HydratedDocument, Schema, model } from 'mongoose';
-import { INVOICE_DUE_DAYS_RANGE, QUOTE_VALIDITY_DAYS_RANGE, TEXT_LIMITS } from './limits';
 import { serialization } from './plugins/serialization';
 import { type Address, addressSubschema } from './schemas/address';
 import type { Timestamps } from './types';

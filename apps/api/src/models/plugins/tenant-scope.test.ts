@@ -4,8 +4,10 @@ import {
   bulkOperationViolation,
   isTenantScoped,
   isTenantScopedPipeline,
+  pipelineViolation,
   replacementKeepsTenant,
   updateChangesTenant,
+  updateTouchesPaths,
 } from './tenant-scope';
 
 const tenant = new Types.ObjectId();
@@ -69,6 +71,25 @@ describe('updateChangesTenant', () => {
   });
 });
 
+describe('updateTouchesPaths', () => {
+  const isItemsPath = (path: string) => path === 'items' || path.startsWith('items.');
+
+  it.each([
+    ['a nested item field', { $set: { 'items.0.quantity': 2 } }],
+    ['a push', { $push: { items: { name: 'x' } } }],
+    ['a rename target', { $rename: { notes: 'items' } }],
+    ['a pipeline', [{ $set: { status: 'x' } }]],
+  ])('detects %s', (_label, update) => {
+    expect(updateTouchesPaths(update, isItemsPath)).toBe(true);
+  });
+
+  it('ignores paths that merely share a prefix', () => {
+    expect(updateTouchesPaths({ $set: { itemsCount: 2, status: 'sent' } }, isItemsPath)).toBe(
+      false,
+    );
+  });
+});
+
 describe('replacementKeepsTenant', () => {
   it('requires the replacement to keep the single tenant the filter selects', () => {
     expect(replacementKeepsTenant({ businessId: tenant }, { businessId: tenant })).toBe(true);
@@ -102,6 +123,92 @@ describe('isTenantScopedPipeline', () => {
     expect(isTenantScopedPipeline([{ $sort: { n: 1 } }, { $match: { businessId: tenant } }])).toBe(
       false,
     );
+  });
+});
+
+describe('pipelineViolation', () => {
+  const scoped = [{ $match: { businessId: tenant } }];
+  const lookup = (spec: Record<string, unknown>) => ({
+    $lookup: { from: 'customers', as: 'customer', ...spec },
+  });
+
+  it.each([
+    ['a plain pipeline', [{ $match: { businessId: tenant } }, { $group: { _id: '$status' } }]],
+    ['a scoped $lookup pipeline', [lookup({ pipeline: [...scoped, { $limit: 1 }] })]],
+    ['a scoped $unionWith pipeline', [{ $unionWith: { coll: 'customers', pipeline: scoped } }]],
+    [
+      'a $facet of safe stages',
+      [{ $facet: { counts: [{ $count: 'n' }], first: [{ $limit: 1 }] } }],
+    ],
+    ['a scoped $lookup inside $facet', [{ $facet: { joined: [lookup({ pipeline: scoped })] } }]],
+  ])('accepts %s', (_label, pipeline) => {
+    expect(pipelineViolation(pipeline)).toBeUndefined();
+  });
+
+  it.each([
+    ['$out', [{ $out: 'stolen' }], '$out is not allowed'],
+    ['$merge', [{ $merge: { into: 'stolen' } }], '$merge is not allowed'],
+    [
+      '$graphLookup',
+      [
+        {
+          $graphLookup: {
+            from: 'quotes',
+            startWith: '$_id',
+            connectFromField: 'a',
+            connectToField: 'b',
+            as: 'c',
+          },
+        },
+      ],
+      '$graphLookup is not allowed',
+    ],
+    [
+      'a localField $lookup',
+      [lookup({ localField: 'customerId', foreignField: '_id' })],
+      '$lookup must use a pipeline',
+    ],
+    ['a string $unionWith', [{ $unionWith: 'customers' }], '$unionWith must use a pipeline'],
+    [
+      'a $unionWith without a pipeline',
+      [{ $unionWith: { coll: 'customers' } }],
+      '$unionWith must use a pipeline',
+    ],
+    [
+      'a $lookup pipeline without a businessId $match',
+      [lookup({ pipeline: [{ $match: { name: 'x' } }] })],
+      '$lookup must use a pipeline',
+    ],
+    [
+      'a $lookup pipeline that matches businessId too late',
+      [lookup({ pipeline: [{ $limit: 5 }, ...scoped] })],
+      '$lookup must use a pipeline',
+    ],
+    ['$out inside $facet', [{ $facet: { a: [{ $count: 'n' }], b: [{ $out: 'x' }] } }], '$out'],
+    [
+      'an unscoped $lookup inside $facet',
+      [{ $facet: { joined: [lookup({ localField: 'customerId', foreignField: '_id' })] } }],
+      '$lookup must use a pipeline',
+    ],
+    [
+      '$merge inside a scoped $lookup',
+      [lookup({ pipeline: [...scoped, { $merge: 'x' }] })],
+      '$merge',
+    ],
+    [
+      'an unscoped $unionWith inside a scoped $lookup',
+      [lookup({ pipeline: [...scoped, { $unionWith: 'users' }] })],
+      '$unionWith must use a pipeline',
+    ],
+  ])('rejects %s', (_label, pipeline, message) => {
+    expect(pipelineViolation(pipeline)).toContain(message);
+  });
+
+  it('names only the stage, never values', () => {
+    const violation = pipelineViolation([
+      lookup({ pipeline: [{ $match: { email: 'olivia.harper@example.com' } }] }),
+    ]);
+    expect(violation).toBe('$lookup must use a pipeline that starts with a $match on businessId');
   });
 });
 

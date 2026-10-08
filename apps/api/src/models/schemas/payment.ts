@@ -1,6 +1,5 @@
-import { PAYMENT_METHODS, type PaymentMethod, moneySchema } from '@quoteflow/shared';
+import { PAYMENT_METHODS, type PaymentMethod, TEXT_LIMITS, moneySchema } from '@quoteflow/shared';
 import { Schema, type Types } from 'mongoose';
-import { TEXT_LIMITS } from '../limits';
 import { serialization } from '../plugins/serialization';
 import { validateWith } from '../validators';
 

@@ -1,4 +1,11 @@
-import mongoose, { type Model, type Query, type QueryOptions, Schema, Types } from 'mongoose';
+import mongoose, {
+  type Model,
+  type PipelineStage,
+  type Query,
+  type QueryOptions,
+  Schema,
+  Types,
+} from 'mongoose';
 import { describe, expect, it } from 'vitest';
 import { BusinessModel, TENANT_MODELS } from '../index';
 import { type TenantOwned, TenantGuardError, tenantGuard } from './tenant-guard';
@@ -189,6 +196,69 @@ describe('tenantGuard plugin', () => {
         .option({ middleware: false })
         .exec(),
     );
+  });
+
+  describe('aggregation stages that read or write other collections', () => {
+    const scoped = { $match: { businessId: tenant } };
+    const run = (stages: Record<string, unknown>[], options = {}) =>
+      // Cast: Mongoose's stage types forbid some of these stages, e.g. $out inside $facet.
+      Thing.aggregate([scoped, ...stages] as PipelineStage[])
+        .option(options)
+        .exec();
+    const localLookup = {
+      $lookup: { from: 'customers', localField: 'customerId', foreignField: '_id', as: 'c' },
+    };
+    const graphLookup = {
+      $graphLookup: {
+        from: 'things',
+        startWith: '$_id',
+        connectFromField: 'parent',
+        connectToField: '_id',
+        as: 'tree',
+      },
+    };
+
+    const unsafe: [string, Record<string, unknown>[]][] = [
+      ['$out', [{ $out: 'stolen' }]],
+      ['$merge', [{ $merge: { into: 'stolen' } }]],
+      ['$graphLookup', [graphLookup]],
+      ['a localField $lookup', [localLookup]],
+      ['a string $unionWith', [{ $unionWith: 'customers' }]],
+      [
+        'a $lookup pipeline without a businessId $match',
+        [{ $lookup: { from: 'customers', pipeline: [{ $match: { name: 'x' } }], as: 'c' } }],
+      ],
+      ['$out inside $facet', [{ $facet: { copy: [{ $out: 'stolen' }] } }]],
+      ['a localField $lookup inside $facet', [{ $facet: { joined: [localLookup] } }]],
+      ['a string $unionWith inside $facet', [{ $facet: { all: [{ $unionWith: 'customers' }] } }]],
+    ];
+
+    it.each(unsafe)('rejects %s', async (_label, stages) => {
+      await expectBlocked(run(stages));
+    });
+
+    it.each(unsafe)('allows %s when the guard is explicitly skipped', async (_label, stages) => {
+      await expectAllowed(run(stages, { skipTenantGuard: true }));
+    });
+
+    it('allows $lookup and $unionWith pipelines that start with a $match on businessId', async () => {
+      await expectAllowed(run([{ $lookup: { from: 'customers', pipeline: [scoped], as: 'c' } }]));
+      await expectAllowed(run([{ $unionWith: { coll: 'customers', pipeline: [scoped] } }]));
+      await expectAllowed(
+        run([
+          { $facet: { joined: [{ $lookup: { from: 'customers', pipeline: [scoped], as: 'c' } }] } },
+        ]),
+      );
+    });
+
+    it('names the model and stage in the error, never values', async () => {
+      const error: unknown = await run([{ $unionWith: 'customers' }]).catch(
+        (rejection: unknown) => rejection,
+      );
+      expect((error as Error).message).toBe(
+        'Tenant guard: aggregate on TenantGuardTestThing: $unionWith must use a pipeline that starts with a $match on businessId',
+      );
+    });
   });
 
   it('checks every bulkWrite operation', async () => {

@@ -1,9 +1,10 @@
-import type { ApiErrorResponse, ApiFieldError } from '@quoteflow/shared';
+import type { ApiFieldError } from '@quoteflow/shared';
 import type { NextFunction, Request, Response } from 'express';
 import mongoose from 'mongoose';
 import { z } from 'zod';
 import { isDuplicateKeyError } from '../db/errors';
 import { AppError, badRequest, conflict, validationFailed } from '../utils/app-error';
+import { sendError } from '../utils/response';
 import { getRequestId } from './request-logger';
 
 /** An error created by the `http-errors` package, e.g. by Express's body parser. */
@@ -62,6 +63,10 @@ export function toClientError(error: unknown): AppError {
   if (error instanceof mongoose.Error.VersionError) {
     return conflict('This record was changed by someone else. Reload it and try again.');
   }
+  // The router throws this (status 400, but no `expose`) for malformed percent-encoding in a param.
+  if (error instanceof URIError && 'status' in error && error.status === 400) {
+    return badRequest('The request URL is malformed.');
+  }
   if (isHttpError(error)) {
     const mapped = fromHttpError(error);
     if (mapped) return mapped;
@@ -98,13 +103,5 @@ export function errorHandler(
     res.err = asError(error);
   }
 
-  const body: ApiErrorResponse = {
-    error: {
-      code: clientError.code,
-      message: clientError.message,
-      ...(clientError.details && { details: clientError.details }),
-      requestId: getRequestId(req),
-    },
-  };
-  res.status(clientError.status).json(body);
+  sendError(res, clientError, getRequestId(req));
 }

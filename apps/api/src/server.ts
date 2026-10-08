@@ -1,10 +1,13 @@
 import { once } from 'node:events';
 import { type Server, createServer } from 'node:http';
 import { createApp } from './app';
-import type { Env } from './config/env';
+import { type Env, loadEnv } from './config/env';
 import { loadEnvOrExit } from './config/load-env-or-exit';
 import { connectDatabase, disconnectDatabase } from './db/connection';
-import { type Logger, createLogger } from './utils/logger';
+import { findMissingIndexes } from './db/indexes';
+// Compiles every model before connecting, so development's autoIndex builds their indexes.
+import { ALL_MODELS } from './models';
+import { type Logger, createLogger, shouldUsePrettyLogs } from './utils/logger';
 
 const SHUTDOWN_TIMEOUT_MS = 10_000;
 
@@ -56,11 +59,23 @@ function enableGracefulShutdown(server: Server, logger: Logger): void {
   });
 }
 
+/** Production never builds indexes itself (db:indexes:prod does), so it refuses to run without them. */
+async function assertIndexesExist(logger: Logger): Promise<void> {
+  const missing = await findMissingIndexes(ALL_MODELS);
+  if (missing.length === 0) return;
+  logger.fatal(
+    { missing },
+    'Declared MongoDB indexes are missing; run db:indexes:prod against this database before starting the API',
+  );
+  throw new Error('Declared MongoDB indexes are missing');
+}
+
 async function start(env: Env, logger: Logger): Promise<void> {
   await connectDatabase(env.MONGODB_URI, {
     autoIndex: env.NODE_ENV !== 'production',
     logger,
   });
+  if (env.NODE_ENV === 'production') await assertIndexesExist(logger);
 
   const server = createServer(createApp({ env, logger }));
   server.listen(env.PORT);
@@ -68,13 +83,13 @@ async function start(env: Env, logger: Logger): Promise<void> {
 
   enableGracefulShutdown(server, logger);
   logger.info(
-    { port: env.PORT, nodeEnv: env.NODE_ENV },
+    { port: env.PORT, nodeEnv: env.NODE_ENV, trustProxy: env.TRUST_PROXY },
     `QuoteFlow API listening on port ${env.PORT}`,
   );
 }
 
-const env = loadEnvOrExit();
-const logger = createLogger({ level: env.LOG_LEVEL, pretty: env.NODE_ENV === 'development' });
+const env = loadEnvOrExit(loadEnv);
+const logger = createLogger({ level: env.LOG_LEVEL, pretty: shouldUsePrettyLogs(env.NODE_ENV) });
 
 process.on('uncaughtException', (error) => {
   logger.fatal({ err: error }, 'Uncaught exception');

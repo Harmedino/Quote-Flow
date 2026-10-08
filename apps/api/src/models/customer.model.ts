@@ -1,5 +1,5 @@
+import { TEXT_LIMITS } from '@quoteflow/shared';
 import { type HydratedDocument, Schema, model } from 'mongoose';
-import { TEXT_LIMITS } from './limits';
 import { serialization } from './plugins/serialization';
 import { type TenantOwned, tenantGuard } from './plugins/tenant-guard';
 import { type CustomerContact, customerContactFields } from './schemas/customer-snapshot';

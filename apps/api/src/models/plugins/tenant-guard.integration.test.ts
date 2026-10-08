@@ -53,6 +53,26 @@ describe.skipIf(!TEST_DATABASE_URI)('tenant isolation (database)', () => {
     expect(commands).toEqual([]);
   });
 
+  it('rejects aggregations that reach other collections before anything is sent', async () => {
+    const commands = await recordCommands(async () => {
+      await expect(
+        QuoteModel.aggregate([{ $match: { businessId: businessA } }, { $unionWith: 'customers' }]),
+      ).rejects.toBeInstanceOf(TenantGuardError);
+      await expect(
+        QuoteModel.aggregate([
+          { $match: { businessId: businessA } },
+          {
+            $lookup: { from: 'customers', localField: 'customerId', foreignField: '_id', as: 'c' },
+          },
+        ]),
+      ).rejects.toBeInstanceOf(TenantGuardError);
+      await expect(
+        QuoteModel.aggregate([{ $match: { businessId: businessA } }, { $out: 'stolen' }]),
+      ).rejects.toBeInstanceOf(TenantGuardError);
+    });
+    expect(commands.filter((command) => command.name === 'aggregate')).toEqual([]);
+  });
+
   it('allows deliberate cross-tenant lookups without sending the opt-out to the server', async () => {
     const commands = await recordCommands(async () => {
       const everyone = await CustomerModel.find({ email: 'olivia.harper@example.com' }, null, {

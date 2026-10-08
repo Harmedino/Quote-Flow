@@ -1,7 +1,9 @@
 import { randomBytes } from 'node:crypto';
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 
 const BCRYPT_COST = 12;
+/** bcrypt ignores every byte after the 72nd. */
+const BCRYPT_MAX_BYTES = 72;
 
 let dummyHash: Promise<string> | undefined;
 
@@ -12,8 +14,8 @@ function getDummyHash(): Promise<string> {
 }
 
 export async function hashPassword(password: string): Promise<string> {
-  // bcrypt ignores everything after 72 bytes; passwordSchema rejects such passwords at the edge.
-  if (bcrypt.truncates(password)) {
+  // passwordSchema rejects such passwords at the edge; this keeps them from being silently truncated.
+  if (Buffer.byteLength(password, 'utf8') > BCRYPT_MAX_BYTES) {
     throw new RangeError('Password exceeds the 72-byte bcrypt limit');
   }
   return bcrypt.hash(password, BCRYPT_COST);

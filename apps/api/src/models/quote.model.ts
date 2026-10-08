@@ -1,6 +1,6 @@
-import { QUOTE_STATUSES, type QuoteStatus } from '@quoteflow/shared';
+import { QUOTE_STATUSES, type QuoteStatus, TEXT_LIMITS } from '@quoteflow/shared';
 import { type HydratedDocument, type Model, Schema, type Types, model } from 'mongoose';
-import { TEXT_LIMITS } from './limits';
+import { atomicUpdateGuard } from './plugins/atomic-update-guard';
 import { serialization } from './plugins/serialization';
 import { type TenantOwned, tenantGuard } from './plugins/tenant-guard';
 import {
@@ -40,6 +40,7 @@ const quoteSchema = new Schema<Quote, QuoteModelType>(
       required: true,
       trim: true,
       maxlength: TEXT_LIMITS.documentNumber,
+      immutable: true,
     },
     status: { type: String, enum: QUOTE_STATUSES, required: true, default: 'draft' },
     ...salesDocumentFields,
@@ -57,6 +58,7 @@ const quoteSchema = new Schema<Quote, QuoteModelType>(
 );
 
 quoteSchema.plugin(tenantGuard);
+quoteSchema.plugin(atomicUpdateGuard);
 quoteSchema.plugin(serialization);
 
 quoteSchema.pre('validate', function (this: QuoteDocument) {

@@ -1,24 +1,25 @@
-import type { Env } from '../config/env';
+import { type ScriptEnv, loadScriptEnv } from '../config/env';
 import { loadEnvOrExit } from '../config/load-env-or-exit';
 import { connectDatabase, disconnectDatabase } from '../db/connection';
-import { type Logger, createLogger } from '../utils/logger';
+import { type Logger, createLogger, shouldUsePrettyLogs } from '../utils/logger';
 
 export interface ScriptContext {
-  env: Env;
+  env: ScriptEnv;
   logger: Logger;
 }
 
 /**
- * Runs a one-off command-line task: loads the environment, connects to
- * MongoDB (without automatic index builds), runs `task`, disconnects and sets
- * the exit code. A task signals failure by throwing or by returning false.
+ * Runs a one-off command-line task: loads the environment (only NODE_ENV,
+ * MONGODB_URI and LOG_LEVEL; the server's variables are not needed), connects
+ * to MongoDB (without automatic index builds), runs `task`, disconnects and
+ * sets the exit code. A task signals failure by throwing or by returning false.
  */
 export async function runScript(
   name: string,
   task: (context: ScriptContext) => Promise<boolean | void>,
 ): Promise<void> {
-  const env = loadEnvOrExit();
-  const logger = createLogger({ level: env.LOG_LEVEL, pretty: env.NODE_ENV === 'development' });
+  const env = loadEnvOrExit(loadScriptEnv);
+  const logger = createLogger({ level: env.LOG_LEVEL, pretty: shouldUsePrettyLogs(env.NODE_ENV) });
 
   let succeeded = false;
   try {
