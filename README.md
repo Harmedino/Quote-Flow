@@ -394,8 +394,8 @@ Copy `deploy/api` to the server and, from that directory, run
 ## Deploying to Vercel
 
 The repository deploys to Vercel as one project: the web app is served as static files and the
-whole REST API runs as a single Vercel Function (`api/index.mjs`, which wraps the API bundle).
-`vercel.json` holds the install, build and routing configuration.
+whole REST API runs as a single Vercel Function (`apps/web/api/index.mjs`, which wraps the API
+bundle). `apps/web/vercel.json` holds the build and routing configuration.
 
 1. **Create the database (MongoDB Atlas, free tier is fine).**
    - Create a cluster, then under _Database Access_ add a database user with a strong password.
@@ -403,8 +403,9 @@ whole REST API runs as a single Vercel Function (`api/index.mjs`, which wraps th
    - Under _Connect → Drivers_ copy the connection string and add the database name before the
      `?`, e.g. `mongodb+srv://quoteflow:<password>@cluster0.abcde.mongodb.net/quoteflow?retryWrites=true&w=majority`.
 2. **Configure the Vercel project** (_Settings → General_):
-   - _Root Directory_: leave empty (the repository root, where `vercel.json` lives).
-   - _Framework Preset_: Other. _Node.js Version_: 22.x or newer.
+   - _Root Directory_: `apps/web`, with "Include files outside the root directory" enabled (the
+     default for monorepos).
+   - _Node.js Version_: 22.x or newer.
 3. **Add environment variables** (_Settings → Environment Variables_, for Production and Preview):
 
    | Variable      | Value                                                                                      |
