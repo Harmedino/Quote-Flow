@@ -14,6 +14,10 @@ describe('maskUrlTokens', () => {
     [`/api/public/invoices/${token}/pdf?download=1`, '/api/public/invoices/:token/pdf?download=1'],
     [`/API/Public/Quotes/${token}`, '/API/Public/Quotes/:token'],
     ['/api/public/quotes/not-a-real-token', '/api/public/quotes/:token'],
+    [
+      `http://localhost:4000/api/public/quotes/${token}`,
+      'http://localhost:4000/api/public/quotes/:token',
+    ],
   ])('masks the token in %s', (url, masked) => {
     expect(maskUrlTokens(url)).toBe(masked);
   });

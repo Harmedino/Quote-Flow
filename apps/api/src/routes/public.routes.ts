@@ -1,5 +1,9 @@
 import { type RequestHandler, Router } from 'express';
-import { createPublicController, rejectQuoteSchemas } from '../controllers/public.controller';
+import {
+  acceptQuoteSchemas,
+  createPublicController,
+  rejectQuoteSchemas,
+} from '../controllers/public.controller';
 import { noStore } from '../middleware/no-store';
 import { type RateLimitSettings, createRateLimiter } from '../middleware/rate-limit';
 import { validate } from '../middleware/validate';
@@ -38,7 +42,12 @@ export function createPublicRouter({ logger, clock }: PublicRouterOptions): Rout
 
   const router = Router();
   router.get('/quotes/:token', ...view, controller.viewQuote);
-  router.post('/quotes/:token/accept', ...respond, controller.acceptQuote);
+  router.post(
+    '/quotes/:token/accept',
+    ...respond,
+    validate(acceptQuoteSchemas),
+    controller.acceptQuote,
+  );
   router.post(
     '/quotes/:token/reject',
     ...respond,

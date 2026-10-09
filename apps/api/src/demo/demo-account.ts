@@ -13,7 +13,7 @@ import { replaceDemoBusiness } from './demo';
  * DEMO_LOGIN_ENABLED is set). It is created on first use and rebuilt once a
  * day, so visitors' edits don't accumulate and its dates stay relative to
  * today. Real businesses are never touched: the rebuild only removes the
- * business owned by the demo owner's email.
+ * business owned by the demo owner's email, and only if it is marked as the demo.
  */
 
 const DEMO_REFRESH_MS = 24 * 60 * 60 * 1000;
@@ -29,7 +29,8 @@ async function findDemoAccount(): Promise<DemoAccount | undefined> {
     skipTenantGuard: true,
   });
   if (!user) return undefined;
-  const business = await BusinessModel.findById(user.businessId);
+  // Only a business the demo builder created, never one that merely uses the email.
+  const business = await BusinessModel.findOne({ _id: user.businessId, isDemo: true });
   return business ? { user, business } : undefined;
 }
 

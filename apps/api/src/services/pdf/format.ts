@@ -62,3 +62,19 @@ export function pdfFileName(documentNumber: string): string {
     .slice(0, 80);
   return `${safe || 'document'}.pdf`;
 }
+
+/**
+ * 40 characters without a space, then more. A base character and its combining
+ * marks count as one, so a mark is never split off.
+ */
+const LONG_RUN = /(?:[^\s\p{M}]\p{M}*){40}(?=[^\s\p{M}])/gu;
+
+/**
+ * Adds an invisible break opportunity (U+200B, which Inter draws as nothing)
+ * every 40 characters of an unbroken run. pdfkit wraps a word wider than the
+ * line by re-measuring the rest of it for every line, so a few thousand
+ * characters without a space take seconds and block the server meanwhile.
+ */
+export function breakLongRuns(value: string): string {
+  return value.replace(LONG_RUN, '$&\u200B');
+}

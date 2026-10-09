@@ -28,6 +28,11 @@ export interface Quote extends TenantOwned, SalesDocument, Timestamps {
   /** Set when the quote is converted into an invoice. */
   invoiceId?: Types.ObjectId;
   convertedAt?: Date;
+  /**
+   * Bumped on every edit by the business, so a customer's answer only applies
+   * to the content they saw. Missing on quotes created before it existed (revision 0).
+   */
+  revision?: number;
 }
 
 export type QuoteDocument = HydratedDocument<Quote, SalesDocumentOverrides>;
@@ -52,6 +57,7 @@ const quoteSchema = new Schema<Quote, QuoteModelType>(
     rejectionReason: { type: String, trim: true, maxlength: TEXT_LIMITS.rejectionReason },
     invoiceId: { type: Schema.Types.ObjectId, ref: 'Invoice' },
     convertedAt: { type: Date },
+    revision: { type: Number, default: 0, min: 0 },
   },
   // Concurrent saves of a stale copy fail with a VersionError instead of overwriting derived fields.
   { timestamps: true, optimisticConcurrency: true },

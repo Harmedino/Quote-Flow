@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { readQuoteFlash } from './quote-flash';
-import { buildQuoteShare, publicQuoteUrl } from './quote-share';
+import { buildQuoteShare, canShareQuote, publicQuoteUrl } from './quote-share';
 
 const base = {
   origin: 'https://app.quoteflow.example',
@@ -29,10 +29,19 @@ describe('quote sharing', () => {
   });
 
   it('opens WhatsApp without a chat when there is no usable number', () => {
-    for (const customerPhone of [null, '0803']) {
+    for (const customerPhone of [null, '0803', '0803 765 4321']) {
       const share = buildQuoteShare({ ...base, customerPhone });
       expect(share.hasWhatsAppNumber).toBe(false);
       expect(share.whatsAppUrl.startsWith('https://wa.me/?text=')).toBe(true);
+    }
+  });
+
+  it('offers sharing only for quotes a customer can still open and act on', () => {
+    for (const status of ['draft', 'sent', 'viewed', 'accepted'] as const) {
+      expect(canShareQuote(status)).toBe(true);
+    }
+    for (const status of ['rejected', 'expired'] as const) {
+      expect(canShareQuote(status)).toBe(false);
     }
   });
 

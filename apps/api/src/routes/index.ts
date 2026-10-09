@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { type Env, durationInSeconds } from '../config/env';
 import { createRequireAuth } from '../middleware/auth';
 import { type AuthRateLimits, createAuthRateLimiters } from '../middleware/auth-rate-limits';
+import { createMongoRateLimitStore } from '../middleware/mongo-rate-limit-store';
 import { createTrustedOriginCheck } from '../middleware/trusted-origin';
 import { createAccessTokenService } from '../services/access-token.service';
 import { createAccountService } from '../services/account.service';
@@ -38,8 +39,11 @@ export function createApiRouter({ env, logger, clock, authRateLimits }: ApiRoute
     clock,
   });
   const sessions = createSessionService({ refreshTokenTtlDays: env.REFRESH_TOKEN_TTL_DAYS, clock });
-  const requireAuth = createRequireAuth(tokens);
-  const limiters = createAuthRateLimiters(authRateLimits, logger);
+  const requireAuth = createRequireAuth(tokens, sessions);
+  // Shared through MongoDB: each serverless instance would otherwise count on its own.
+  const limiters = createAuthRateLimiters(authRateLimits, logger, (name) =>
+    createMongoRateLimitStore(`auth.${name}`, clock),
+  );
 
   const router = Router();
   router.use('/health', createHealthRouter());

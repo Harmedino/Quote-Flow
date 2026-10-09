@@ -7,6 +7,7 @@ import type {
 import type { Types } from 'mongoose';
 import type { z } from 'zod';
 import { isDuplicateKeyError } from '../db/errors';
+import { isDemoEmail } from '../demo/data/business';
 import { ensureDemoAccount } from '../demo/demo-account';
 import {
   type BusinessDocument,
@@ -17,7 +18,7 @@ import {
 } from '../models';
 import { toBusinessDto } from '../serializers/business.serializer';
 import { toUserDto } from '../serializers/user.serializer';
-import { AppError, sessionExpired, unauthorized } from '../utils/app-error';
+import { AppError, sessionExpired, unauthorized, validationFailed } from '../utils/app-error';
 import type { Clock } from '../utils/clock';
 import type { Logger } from '../utils/logger';
 import { hashPassword, verifyPassword } from '../utils/password';
@@ -116,13 +117,18 @@ export function createAuthService({ tokens, sessions, clock }: AuthServiceOption
 
   return {
     async register({ name, businessName, email, password, currency, timezone }, client) {
+      // The demo is found through its owner's email, so nobody else may hold one on its domain.
+      if (isDemoEmail(email)) {
+        throw validationFailed([{ path: 'email', message: 'This email address is reserved' }]);
+      }
       const existing = await UserModel.exists({ email }).setOptions({ skipTenantGuard: true });
       if (existing) throw emailTaken();
 
       const passwordHash = await hashPassword(password);
+      // The business's contact email is public (quotes, invoices, PDFs), so it is never
+      // defaulted to the sign-in email: the owner chooses what customers see.
       const business = await BusinessModel.create({
         name: businessName,
-        email,
         ...(currency !== undefined && { currency }),
         ...(timezone !== undefined && { timezone }),
       });
@@ -228,7 +234,11 @@ export function createAuthService({ tokens, sessions, clock }: AuthServiceOption
     },
 
     async logoutAll(auth, client) {
-      const revokedSessions = await sessions.revokeAllForUser(auth, 'logout_all');
+      // Every demo visitor signs in as the same owner, so one must not sign the others out.
+      const isDemo = await BusinessModel.exists({ _id: auth.businessId, isDemo: true });
+      const revokedSessions = isDemo
+        ? await sessions.revokeOne(auth, 'logout_all')
+        : await sessions.revokeAllForUser(auth, 'logout_all');
       client.log.info(
         { event: 'auth.logout_all', userId: auth.userId, revokedSessions },
         'Signed out of every session',

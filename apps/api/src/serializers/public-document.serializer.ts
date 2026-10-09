@@ -57,6 +57,7 @@ export function toPublicQuoteDto(quote: Quote, business: Business, today: string
       acceptedAt: toTimestamp(quote.acceptedAt),
       rejectedAt: toTimestamp(quote.rejectedAt),
       rejectionReason: quote.rejectionReason ?? null,
+      revision: quote.revision ?? 0,
     },
   };
 }

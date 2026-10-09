@@ -1,5 +1,8 @@
 const segment = (value: string): string => encodeURIComponent(value);
 
+/** Query parameter marking the business's own preview of a public quote. */
+export const PREVIEW_PARAM = 'preview';
+
 /** Every in-app URL is built here so links never drift from the route table. */
 export const paths = {
   home: '/',
@@ -24,6 +27,8 @@ export const paths = {
   accountSettings: '/settings/account',
 
   publicQuote: (token: string) => `/quote/${segment(token)}`,
+  /** The business's own look at a quote link; the API does not record it as the customer's view. */
+  publicQuotePreview: (token: string) => `/quote/${segment(token)}?${PREVIEW_PARAM}=1`,
   publicInvoice: (token: string) => `/invoice/${segment(token)}`,
 } as const;
 

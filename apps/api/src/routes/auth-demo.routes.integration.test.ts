@@ -2,11 +2,13 @@ import type { AuthSessionDto, DemoAvailabilityDto, QuoteListItemDto } from '@quo
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { DEMO_BUSINESS, DEMO_OWNER_EMAIL } from '../demo/data/business';
-import { BusinessModel } from '../models';
+import { removeDemoBusiness } from '../demo/reset';
+import { BusinessModel, SessionModel, UserModel } from '../models';
 import {
   bearer,
   createAuthTestApp,
   createTestClock,
+  refresh,
   refreshCookieOf,
   registerOwner,
 } from '../test/auth';
@@ -90,5 +92,57 @@ describe.skipIf(!TEST_DATABASE_URI)('POST /api/auth/demo (database)', () => {
     await startDemo(app).expect(200);
 
     expect(await BusinessModel.exists({ _id: owner.session.business.id })).not.toBeNull();
+  });
+
+  it('signs a demo visitor out of their own session only, not every visitor', async () => {
+    const app = demoApp();
+    const first = await startDemo(app).expect(200);
+    const second = await startDemo(app).expect(200);
+
+    await request(app)
+      .post('/api/auth/logout-all')
+      .set('Authorization', bearer(dataOf<AuthSessionDto>(first).accessToken))
+      .expect(204);
+
+    await refresh(app, refreshCookieOf(first)?.value ?? '').expect(401);
+    await refresh(app, refreshCookieOf(second)?.value ?? '').expect(200);
+  });
+
+  it('cannot be claimed by a business editing its own settings', async () => {
+    const app = demoApp();
+    const owner = await registerOwner(app);
+
+    await request(app)
+      .patch('/api/business')
+      .set('Authorization', bearer(owner.session.accessToken))
+      .send({ name: 'Still Not The Demo', isDemo: true });
+
+    const stored = await BusinessModel.findById(owner.session.business.id).lean();
+    expect(stored?.isDemo).toBe(false);
+  });
+
+  it('never signs visitors in to an account that merely uses the demo email', async () => {
+    const app = demoApp();
+    await removeDemoBusiness(DEMO_OWNER_EMAIL);
+    // Signed up before the domain was reserved: a real business holding the demo owner's email.
+    const impostor = await BusinessModel.create({ name: 'Attacker Co' });
+    await UserModel.create({
+      businessId: impostor._id,
+      name: 'Attacker',
+      email: DEMO_OWNER_EMAIL,
+      passwordHash: 'not-used-here',
+      role: 'owner',
+    });
+
+    try {
+      const res = await startDemo(app);
+
+      expect(res.status).toBe(500);
+      expect(refreshCookieOf(res)).toBeUndefined();
+      expect(await BusinessModel.exists({ _id: impostor._id })).not.toBeNull();
+      expect(await SessionModel.countDocuments({ businessId: impostor._id })).toBe(0);
+    } finally {
+      await UserModel.deleteMany({ businessId: impostor._id });
+    }
   });
 });

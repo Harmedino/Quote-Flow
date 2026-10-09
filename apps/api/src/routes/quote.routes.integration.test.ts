@@ -1,4 +1,5 @@
 import {
+  type PublicQuoteDto,
   type QuoteDto,
   type QuoteInput,
   type QuoteListItemDto,
@@ -300,19 +301,58 @@ describe.skipIf(!TEST_DATABASE_URI)('quote routes (database)', () => {
     const whileSent = await request(app)
       .put(`/api/quotes/${quote.id}`)
       .set('Authorization', auth(tenant))
-      .send(quoteInput(tenant, { discount: null }));
+      .send(quoteInput(tenant, { customerId: newCustomer.id, discount: null }));
     expect(whileSent.status).toBe(200);
     expect(dataOf<QuoteDto>(whileSent)).toMatchObject({ status: 'sent', discount: null });
+
+    // Once sent, its public link belongs to that customer: another one never sees it.
+    const retargeted = await request(app)
+      .put(`/api/quotes/${quote.id}`)
+      .set('Authorization', auth(tenant))
+      .send(quoteInput(tenant));
+    expect(retargeted.status).toBe(409);
+    expect(errorOf(retargeted).details).toEqual([
+      { path: 'customerId', message: expect.stringContaining('duplicate it') as unknown },
+    ]);
+    const stored = await QuoteModel.findOne({ _id: quote.id, businessId: tenant.businessId });
+    expect(stored?.customer.name).toBe('Bola Ade');
 
     for (const status of ['accepted', 'rejected'] as const) {
       await setStored(quote.id, { status });
       const refused = await request(app)
         .put(`/api/quotes/${quote.id}`)
         .set('Authorization', auth(tenant))
-        .send(quoteInput(tenant));
+        .send(quoteInput(tenant, { customerId: newCustomer.id }));
       expect(refused.status).toBe(409);
       expect(errorOf(refused).code).toBe('CONFLICT');
     }
+  });
+
+  it('lets the customer answer only the version of a sent quote they last saw', async () => {
+    const tenant = await createTenant();
+    const quote = await createQuote(tenant);
+    await request(app).post(`/api/quotes/${quote.id}/send`).set('Authorization', auth(tenant));
+    const publicPath = `/api/public/quotes/${quote.publicToken}`;
+    const seen = dataOf<PublicQuoteDto>(await request(app).get(publicPath).expect(200)).quote;
+
+    const revised = await request(app)
+      .put(`/api/quotes/${quote.id}`)
+      .set('Authorization', auth(tenant))
+      .send(
+        quoteInput(tenant, {
+          items: [{ name: 'Deep cleaning', quantity: 1, unitPrice: 9_999_900 }],
+        }),
+      )
+      .expect(200);
+
+    await request(app).post(`${publicPath}/accept`).send({ revision: seen.revision }).expect(409);
+    const current = dataOf<PublicQuoteDto>(await request(app).get(publicPath).expect(200)).quote;
+    expect(current.totals.total).toBe(dataOf<QuoteDto>(revised).totals.total);
+    const accepted = await request(app)
+      .post(`${publicPath}/accept`)
+      .send({ revision: current.revision })
+      .expect(200);
+    expect(dataOf<PublicQuoteDto>(accepted).quote.totals).toEqual(current.totals);
   });
 
   it('revives an expired quote when it is revised with a future expiry date', async () => {
@@ -382,6 +422,27 @@ describe.skipIf(!TEST_DATABASE_URI)('quote routes (database)', () => {
       .post(`/api/quotes/${quote.id}/send`)
       .set('Authorization', auth(tenant));
     expect(accepted.status).toBe(409);
+  });
+
+  it('refuses to send a draft whose expiry date has already passed', async () => {
+    const tenant = await createTenant();
+    const quote = await createQuote(tenant, {
+      issueDate: addDaysToIsoDate(today(), -20),
+      expiryDate: addDaysToIsoDate(today(), -1),
+    });
+    expect(quote.status).toBe('draft');
+
+    const send = await request(app)
+      .post(`/api/quotes/${quote.id}/send`)
+      .set('Authorization', auth(tenant));
+
+    expect(send.status).toBe(409);
+    expect(errorOf(send).message).toMatch(/expiry date has passed/);
+    const stored = await request(app)
+      .get(`/api/quotes/${quote.id}`)
+      .set('Authorization', auth(tenant))
+      .expect(200);
+    expect(dataOf<QuoteDto>(stored)).toMatchObject({ status: 'draft', sentAt: null });
   });
 
   it('deletes drafts only', async () => {

@@ -21,6 +21,7 @@ describe('paths', () => {
     expect(paths.invoice('i1')).toBe('/invoices/i1');
     expect(paths.editInvoice('i1')).toBe('/invoices/i1/edit');
     expect(paths.publicQuote('tok_123')).toBe('/quote/tok_123');
+    expect(paths.publicQuotePreview('tok_123')).toBe('/quote/tok_123?preview=1');
     expect(paths.publicInvoice('tok_123')).toBe('/invoice/tok_123');
   });
 

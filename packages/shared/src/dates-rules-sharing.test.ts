@@ -75,6 +75,12 @@ describe('sharing', () => {
     expect(toWhatsAppPhone(null)).toBeNull();
   });
 
+  it('rejects local numbers that start with a trunk prefix', () => {
+    expect(toWhatsAppPhone('0803 765 4321')).toBeNull();
+    expect(toWhatsAppPhone('(0)20 7946 0958')).toBeNull();
+    expect(buildWhatsAppUrl('Hi', '08037654321')).toBe('https://wa.me/?text=Hi');
+  });
+
   it('builds the share message and link', () => {
     const message = buildQuoteShareMessage({
       customerName: 'John Smith',

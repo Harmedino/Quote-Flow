@@ -3,6 +3,7 @@ import type { PdfDocumentModel, PdfTone } from './document-model';
 import { PDF_FONTS, loadPdfFonts } from './fonts';
 import {
   addressLines,
+  breakLongRuns,
   discountLabel,
   formatPdfDate,
   formatPdfMoney,
@@ -81,12 +82,12 @@ function text(
   options: PDFKit.Mixins.TextOptions & { font?: string; size?: number; color?: string } = {},
 ): number {
   const { font = PDF_FONTS.regular, size = 9.5, color = COLOR.body, ...rest } = options;
-  doc.font(font).fontSize(size).fillColor(color).text(value, x, y, rest);
+  doc.font(font).fontSize(size).fillColor(color).text(breakLongRuns(value), x, y, rest);
   return doc.y;
 }
 
 function heightOf(doc: Doc, value: string, font: string, size: number, width: number): number {
-  return doc.font(font).fontSize(size).heightOfString(value, { width });
+  return doc.font(font).fontSize(size).heightOfString(breakLongRuns(value), { width });
 }
 
 function drawStatusPill(doc: Doc, label: string, tone: PdfTone, right: number, y: number): number {

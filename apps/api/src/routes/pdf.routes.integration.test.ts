@@ -7,6 +7,7 @@ import { TEST_DATABASE_URI, useTestDatabase } from '../test/database';
 import { errorOf } from '../test/helpers';
 import { invoiceInput, paymentInput, quoteInput } from '../test/model-fixtures';
 import { generatePublicToken } from '../utils/tokens';
+import { USER_PDF_RATE_LIMIT } from './pdf.routes';
 
 type BinaryCallback = (error: Error | null, body: Buffer) => void;
 
@@ -124,6 +125,23 @@ describe.skipIf(!TEST_DATABASE_URI)('PDF routes (database)', () => {
       expect(res.status, path).toBe(404);
       expect(res.headers['cache-control']).toBe('no-store');
     }
+  });
+
+  it('limits business-side downloads per user', async () => {
+    const app = createAuthTestApp();
+    const owner = await registerOwner(app);
+    const other = await registerOwner(app);
+    const path = '/api/quotes/0123456789abcdef01234567/pdf';
+    const get = (accessToken: string) =>
+      request(app).get(path).set('Authorization', bearer(accessToken));
+
+    for (let attempt = 0; attempt < USER_PDF_RATE_LIMIT.limit; attempt += 1) {
+      await get(owner.session.accessToken).expect(404);
+    }
+    const limited = await get(owner.session.accessToken).expect(429);
+
+    expect(errorOf(limited).code).toBe('RATE_LIMITED');
+    await get(other.session.accessToken).expect(404);
   });
 
   it('still lets the business download its own drafts', async () => {

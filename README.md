@@ -322,7 +322,9 @@ Sign-in arrives in stage 2; until then the demo data is visible through the data
 The demo password is random on every run and printed when the seed finishes, unless you set
 `SEED_DEMO_PASSWORD` (at least 8 characters, never printed back) in `.env` for stable demos. The
 seed is safe to re-run: it finds the demo business by its owner's email, deletes only that
-business's data and recreates it. It refuses to run when `NODE_ENV=production`.
+business's data (and only when the business is marked as the demo) and recreates it. Sign-ups on
+the `quoteflow.test` domain are refused, so nobody else can hold the demo emails. It refuses to run
+when `NODE_ENV=production`.
 
 ## Scripts
 
@@ -430,7 +432,8 @@ bundle). `apps/web/vercel.json` holds the build and routing configuration.
 
 Notes: preview deployments work without listing their URLs, because the web app and API share
 an origin. They use the same database unless you set a different `MONGODB_URI` for the Preview
-environment. Rate-limit counters live in each function instance, so limits are approximate.
+environment. The sign-in, sign-up and session rate limits are counted in MongoDB, so they hold
+across function instances; the other rate limits are counted per instance and are approximate.
 
 ## Deployment considerations
 
@@ -452,8 +455,9 @@ environment. Rate-limit counters live in each function instance, so limits are a
   client IPs.
 - **Health checks.** Use `/api/health/live` for liveness and `/api/health` for readiness (returns
   503 while the database is unavailable).
-- **Multiple API instances.** Rate-limit counters are in memory per instance. Before scaling out,
-  move them to a shared store (e.g. Redis).
+- **Multiple API instances.** The authentication rate limits share their counters through
+  MongoDB. The global and public-link limits are in memory per instance; before scaling out, move
+  them to a shared store too.
 - **MongoDB.** Use a replica set or Atlas cluster with backups enabled and a database user limited to
   the QuoteFlow database.
 - **Secrets.** Generate a unique `JWT_SECRET` per environment and keep it in your platform's secret

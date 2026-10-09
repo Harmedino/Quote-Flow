@@ -1,6 +1,7 @@
 import { type PublicQuoteDto, canRespondToQuote } from '@quoteflow/shared';
 import { useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router';
+import { useParams, useSearchParams } from 'react-router';
+import { PREVIEW_PARAM } from '@/app/paths';
 import { SalesDocument } from '@/components/documents/SalesDocument';
 import { brandColorVars } from '@/components/documents/brand-color';
 import { Badge } from '@/components/ui/Badge';
@@ -36,7 +37,7 @@ function prefersReducedMotion(): boolean {
 
 function PublicQuoteView({ token, data }: { token: string; data: PublicQuoteDto }) {
   const { business, quote } = data;
-  const answer = useAnswerQuote(token);
+  const answer = useAnswerQuote(token, quote.revision);
   const [dialog, setDialog] = useState<QuoteDialog>(null);
   const [reason, setReason] = useState('');
   const [justAnswered, setJustAnswered] = useState(false);
@@ -140,7 +141,8 @@ function PublicQuoteView({ token, data }: { token: string; data: PublicQuoteDto 
 
 export default function PublicQuotePage() {
   const { token = '' } = useParams();
-  const query = usePublicQuote(token);
+  const [searchParams] = useSearchParams();
+  const query = usePublicQuote(token, searchParams.get(PREVIEW_PARAM) === '1');
 
   // A failed background refetch keeps showing the quote it already has.
   if (query.data) return <PublicQuoteView token={token} data={query.data} />;

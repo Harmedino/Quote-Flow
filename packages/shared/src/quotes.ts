@@ -31,9 +31,12 @@ import {
  *   GET    /api/quotes/:id/pdf                        → application/pdf
  *
  * Public (no account; the 256-bit token is the capability):
- *   GET    /api/public/quotes/:token                  → 200 PublicQuoteDto (records the view)
- *   POST   /api/public/quotes/:token/accept           → 200 PublicQuoteDto
+ *   GET    /api/public/quotes/:token                  → 200 PublicQuoteDto (records the view,
+ *                                                       except for the business's own ?preview=1)
+ *   POST   /api/public/quotes/:token/accept  AcceptQuoteInput → 200 PublicQuoteDto
  *   POST   /api/public/quotes/:token/reject  RejectQuoteInput → 200 PublicQuoteDto
+ *          (409 when `revision` is not the quote's current one: the customer must see a
+ *          revised quote before answering it)
  *   GET    /api/public/quotes/:token/pdf              → application/pdf
  *
  * Omitted taxRate, notes, terms and dates fall back to the business defaults
@@ -66,12 +69,18 @@ export const quoteListQuerySchema = paginationQuerySchema.extend({
   search: z.string().trim().max(100).optional(),
 });
 
-export const rejectQuoteInputSchema = z.object({
+/** An answer names the revision of the quote the customer saw (PublicQuoteDto's `revision`). */
+export const acceptQuoteInputSchema = z.object({
+  revision: z.number().int().min(0),
+});
+
+export const rejectQuoteInputSchema = acceptQuoteInputSchema.extend({
   reason: optionalText(TEXT_LIMITS.rejectionReason),
 });
 
 export type QuoteInput = z.input<typeof quoteInputSchema>;
 export type QuoteListQuery = z.input<typeof quoteListQuerySchema>;
+export type AcceptQuoteInput = z.input<typeof acceptQuoteInputSchema>;
 export type RejectQuoteInput = z.input<typeof rejectQuoteInputSchema>;
 
 export interface QuoteDto {
@@ -134,5 +143,7 @@ export interface PublicQuoteDto {
     acceptedAt: string | null;
     rejectedAt: string | null;
     rejectionReason: string | null;
+    /** Changes whenever the business edits the quote; answers must send the one they saw. */
+    revision: number;
   };
 }

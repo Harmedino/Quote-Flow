@@ -1,6 +1,7 @@
 import type { UserRole } from '@quoteflow/shared';
 import type { Request, RequestHandler } from 'express';
 import type { AccessTokenService, AuthContext } from '../services/access-token.service';
+import type { SessionService } from '../services/session.service';
 import { forbidden, sessionExpired, unauthorized } from '../utils/app-error';
 
 const BEARER_PATTERN = /^Bearer +([A-Za-z0-9._~+/-]+=*) *$/i;
@@ -12,10 +13,13 @@ function bearerTokenOf(req: Request): string | undefined {
 /**
  * Authenticates a request by its `Authorization: Bearer` access token (never
  * a cookie, so these routes need no CSRF protection) and sets `req.auth`.
- * Tokens are not checked against the session store: a revoked session keeps
- * working until its access token expires (at most ACCESS_TOKEN_TTL).
+ * The token's session must still be active, so signing out, a password change
+ * or a detected refresh-token replay ends access at once, not when the token expires.
  */
-export function createRequireAuth(tokens: Pick<AccessTokenService, 'verify'>): RequestHandler {
+export function createRequireAuth(
+  tokens: Pick<AccessTokenService, 'verify'>,
+  sessions: Pick<SessionService, 'isActive'>,
+): RequestHandler {
   return async (req, res, next) => {
     const token = bearerTokenOf(req);
     if (!token) {
@@ -23,7 +27,7 @@ export function createRequireAuth(tokens: Pick<AccessTokenService, 'verify'>): R
       throw unauthorized();
     }
     const auth = await tokens.verify(token);
-    if (!auth) {
+    if (!auth || !(await sessions.isActive(auth))) {
       res.set('WWW-Authenticate', 'Bearer error="invalid_token"');
       throw sessionExpired();
     }

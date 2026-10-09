@@ -95,10 +95,13 @@ describe.skipIf(!TEST_DATABASE_URI)('public routes (database)', () => {
   }
 
   const view = (app: Express, token: string) => request(app).get(`/api/public/quotes/${token}`);
-  const accept = (app: Express, token: string) =>
-    request(app).post(`/api/public/quotes/${token}/accept`);
-  const reject = (app: Express, token: string, body?: object) =>
-    request(app).post(`/api/public/quotes/${token}/reject`).send(body);
+  /** Answers name the revision the customer saw; quotes created here are at revision 0. */
+  const accept = (app: Express, token: string, revision = 0) =>
+    request(app).post(`/api/public/quotes/${token}/accept`).send({ revision });
+  const reject = (app: Express, token: string, body: object = {}) =>
+    request(app)
+      .post(`/api/public/quotes/${token}/reject`)
+      .send({ revision: 0, ...body });
 
   describe('GET /public/quotes/:token', () => {
     it('returns the quote and the public business details, and nothing internal', async () => {
@@ -151,6 +154,7 @@ describe.skipIf(!TEST_DATABASE_URI)('public routes (database)', () => {
           acceptedAt: null,
           rejectedAt: null,
           rejectionReason: null,
+          revision: 0,
         },
       } satisfies PublicQuoteDto);
       expectNoInternalFields(res.body, quote.publicToken);
@@ -177,6 +181,23 @@ describe.skipIf(!TEST_DATABASE_URI)('public routes (database)', () => {
       expect(dataOf<PublicQuoteDto>(res).quote.status).toBe('viewed');
       stored = await QuoteModel.findOne(scope).lean();
       expect(stored).toMatchObject({ status: 'viewed', viewedAt: NOW, lastViewedAt: later });
+    });
+
+    it('does not record the business previewing its own link as a view', async () => {
+      const { app } = testApp();
+      const business = await createBusiness();
+      const quote = await createQuote(business._id);
+
+      const res = await request(app)
+        .get(`/api/public/quotes/${quote.publicToken}`)
+        .query({ preview: '1' })
+        .expect(200);
+
+      expect(dataOf<PublicQuoteDto>(res).quote.status).toBe('sent');
+      const stored = await QuoteModel.findOne({ _id: quote._id, businessId: business._id }).lean();
+      expect(stored).toMatchObject({ status: 'sent' });
+      expect(stored?.viewedAt).toBeUndefined();
+      expect(stored?.lastViewedAt).toBeUndefined();
     });
 
     it('does not record views of answered or expired quotes', async () => {
@@ -294,10 +315,7 @@ describe.skipIf(!TEST_DATABASE_URI)('public routes (database)', () => {
         acceptedAt: null,
       });
 
-      // A bare POST (no body) declines without a reason.
-      const bare = await request(app)
-        .post(`/api/public/quotes/${withoutReason.publicToken}/reject`)
-        .expect(200);
+      const bare = await reject(app, withoutReason.publicToken).expect(200);
       expect(dataOf<PublicQuoteDto>(bare).quote).toMatchObject({
         status: 'rejected',
         rejectionReason: null,
@@ -307,14 +325,20 @@ describe.skipIf(!TEST_DATABASE_URI)('public routes (database)', () => {
       expect(errorOf(again).message).toBe('This quote has already been declined.');
     });
 
-    it('validates the reason', async () => {
+    it('validates the reason and requires the revision the customer saw', async () => {
       const { app } = testApp();
       const business = await createBusiness();
       const quote = await createQuote(business._id);
 
       const res = await reject(app, quote.publicToken, { reason: 'x'.repeat(1001) }).expect(400);
-
       expect(errorOf(res)).toMatchObject({ code: 'VALIDATION_ERROR' });
+      for (const path of ['accept', 'reject']) {
+        const answer = () => request(app).post(`/api/public/quotes/${quote.publicToken}/${path}`);
+        await answer().expect(400);
+        const res = await answer().send({ reason: 'No revision' }).expect(400);
+        expect(errorOf(res).details?.map((detail) => detail.path)).toEqual(['revision']);
+      }
+
       const stored = await QuoteModel.findOne({ _id: quote._id, businessId: business._id }).lean();
       expect(stored?.status).toBe('sent');
     });
@@ -333,6 +357,48 @@ describe.skipIf(!TEST_DATABASE_URI)('public routes (database)', () => {
       expect(errorOf(declined).message).toBe(message);
       const stored = await QuoteModel.findOne({ _id: quote._id, businessId: business._id }).lean();
       expect(stored?.status).toBe('sent');
+    });
+
+    it('refuses an answer to a quote the business revised after the customer saw it', async () => {
+      const { app } = testApp();
+      const business = await createBusiness();
+      const quote = await createQuote(business._id);
+      const seen = dataOf<PublicQuoteDto>(await view(app, quote.publicToken).expect(200)).quote;
+
+      // As the quote service's update does: new content, next revision.
+      const revised = await QuoteModel.findOne({ _id: quote._id, businessId: business._id });
+      if (!revised) throw new Error('quote not found');
+      revised.set('items', [{ name: 'Deep cleaning', quantity: 1, unitPrice: 9_999_900 }]);
+      revised.revision = seen.revision + 1;
+      await revised.save();
+
+      for (const answer of [accept(app, quote.publicToken), reject(app, quote.publicToken)]) {
+        const res = await answer.expect(409);
+        expect(errorOf(res).message).toBe(
+          'This quote was just updated. Please refresh the page and try again.',
+        );
+      }
+      const stored = await QuoteModel.findOne({ _id: quote._id, businessId: business._id }).lean();
+      expect(stored?.status).toBe('viewed');
+
+      const current = dataOf<PublicQuoteDto>(await view(app, quote.publicToken).expect(200)).quote;
+      expect(current.revision).toBe(seen.revision + 1);
+      const res = await accept(app, quote.publicToken, current.revision).expect(200);
+      expect(dataOf<PublicQuoteDto>(res).quote).toMatchObject({
+        status: 'accepted',
+        totals: current.totals,
+      });
+    });
+
+    it('accepts quotes stored before revisions existed as revision 0', async () => {
+      const { app } = testApp();
+      const business = await createBusiness();
+      const quote = await createQuote(business._id);
+      await QuoteModel.collection.updateOne({ _id: quote._id }, { $unset: { revision: '' } });
+
+      const seen = dataOf<PublicQuoteDto>(await view(app, quote.publicToken).expect(200)).quote;
+      expect(seen.revision).toBe(0);
+      await accept(app, quote.publicToken, seen.revision).expect(200);
     });
 
     it('can still be answered on its expiry date', async () => {

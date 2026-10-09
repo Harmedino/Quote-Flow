@@ -18,8 +18,9 @@ export function getRequestId(req: IncomingMessage): string | undefined {
   return typeof req.id === 'string' ? req.id : undefined;
 }
 
-// Express matches routes case-insensitively, so the mask does too.
-const PUBLIC_TOKEN_IN_URL = new RegExp(`^(${API_PREFIX}/public/(?:quotes|invoices)/)[^/?#]+`, 'i');
+// Express matches routes case-insensitively, so the mask does too. Not anchored: a request
+// line may carry an absolute URL (`GET http://host/api/...`), which Express routes all the same.
+const PUBLIC_TOKEN_IN_URL = new RegExp(`(${API_PREFIX}/public/(?:quotes|invoices)/)[^/?#]+`, 'gi');
 
 /** Public document tokens are capabilities, so they never reach the logs. */
 export function maskUrlTokens(url: string): string {

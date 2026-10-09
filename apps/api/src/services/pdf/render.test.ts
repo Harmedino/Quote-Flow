@@ -1,7 +1,8 @@
 import { inflateSync } from 'node:zlib';
-import { describe, expect, it } from 'vitest';
+import PDFDocument from 'pdfkit';
+import { describe, expect, it, vi } from 'vitest';
 import type { PdfDocumentModel } from './document-model';
-import { formatPdfMoney, pdfFileName } from './format';
+import { breakLongRuns, formatPdfMoney, pdfFileName } from './format';
 import { renderDocumentPdf } from './render';
 
 const LONG_DESCRIPTION =
@@ -98,6 +99,26 @@ describe('renderDocumentPdf', () => {
     expect(pdf.subarray(0, 5).toString('latin1')).toBe('%PDF-');
     expect(pdf.toString('latin1').match(/\/Type \/Page\b/g)).toHaveLength(1);
   });
+
+  it('wraps text without spaces in linear time', async () => {
+    // Re-measuring the rest of an unbroken word for every line took seconds per document.
+    const measure = vi.spyOn(PDFDocument.prototype, 'widthOfString');
+    const unbroken = 'W'.repeat(5_000);
+    try {
+      const pdf = await renderDocumentPdf(
+        sampleModel({
+          items: [{ ...sampleModel().items[0]!, name: 'N'.repeat(200), description: unbroken }],
+          notes: unbroken,
+          terms: unbroken,
+        }),
+      );
+      expect(pdf.subarray(0, 5).toString('latin1')).toBe('%PDF-');
+      const measured = measure.mock.calls.reduce((sum, [text]) => sum + String(text).length, 0);
+      expect(measured).toBeLessThan(30 * unbroken.length);
+    } finally {
+      measure.mockRestore();
+    }
+  });
 });
 
 describe('pdf formatting', () => {
@@ -106,6 +127,19 @@ describe('pdf formatting', () => {
     expect(formatPdfMoney(1_000, 'GHS')).toBe('GH₵10.00');
     expect(formatPdfMoney(1_250, 'KWD')).toBe('KWD\u00a01.250');
     expect(formatPdfMoney(1_234_500, 'USD')).toBe('$12,345.00');
+  });
+
+  it('adds invisible break opportunities only to long unbroken runs', () => {
+    const email = 'accounts.receivable@example.com';
+    expect(breakLongRuns(`Contact ${email} today`)).toBe(`Contact ${email} today`);
+    expect(breakLongRuns('W'.repeat(40))).toBe('W'.repeat(40));
+
+    const broken = breakLongRuns(`${'W'.repeat(100)} end`);
+    expect(broken).toBe(`${'W'.repeat(40)}\u200B${'W'.repeat(40)}\u200B${'W'.repeat(20)} end`);
+    // A combining mark stays with its base character.
+    expect(breakLongRuns(`${'a'.repeat(39)}ọ̀${'b'.repeat(5)}`)).toBe(
+      `${'a'.repeat(39)}ọ̀\u200B${'b'.repeat(5)}`,
+    );
   });
 
   it('sanitises the attachment file name', () => {
