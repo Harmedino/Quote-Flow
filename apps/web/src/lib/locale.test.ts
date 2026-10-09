@@ -81,12 +81,26 @@ describe('time zones', () => {
     expect(timeZoneOptions(['UTC'], winter)).toContainEqual({ value: 'UTC', label: 'UTC (GMT)' });
   });
 
-  it('keeps the GMT style when the runtime names the zero offset "UTC"', () => {
+  it.each(['UTC', 'GMT+0', 'UTC+0', 'GMT-0'])(
+    'labels the zero offset as GMT when the runtime formats it as "%s"',
+    (formatted) => {
+      const formatToParts = vi
+        .spyOn(Intl.DateTimeFormat.prototype, 'formatToParts')
+        .mockReturnValue([{ type: 'timeZoneName', value: formatted }]);
+      try {
+        expect(timeZoneLabel('UTC', new Date('2026-01-15T12:00:00Z'))).toBe('UTC (GMT)');
+      } finally {
+        formatToParts.mockRestore();
+      }
+    },
+  );
+
+  it('keeps non-zero offsets as they are', () => {
     const formatToParts = vi
       .spyOn(Intl.DateTimeFormat.prototype, 'formatToParts')
-      .mockReturnValue([{ type: 'timeZoneName', value: 'UTC' }]);
+      .mockReturnValue([{ type: 'timeZoneName', value: 'GMT+5:30' }]);
     try {
-      expect(timeZoneLabel('UTC', new Date('2026-01-15T12:00:00Z'))).toBe('UTC (GMT)');
+      expect(timeZoneLabel('Asia/Kolkata', new Date())).toBe('Asia/Kolkata (GMT+5:30)');
     } finally {
       formatToParts.mockRestore();
     }

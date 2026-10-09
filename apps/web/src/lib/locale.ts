@@ -112,8 +112,10 @@ function utcOffset(timeZone: string, at: Date): string | null {
   try {
     const parts = new Intl.DateTimeFormat('en-US', { timeZone, timeZoneName: 'shortOffset' });
     const offset = parts.formatToParts(at).find((part) => part.type === 'timeZoneName')?.value;
-    // Newer ICU data names the zero offset "UTC" for some zones; keep one style throughout.
-    return offset?.replace(/^UTC/, 'GMT') ?? null;
+    if (offset === undefined) return null;
+    // ICU versions disagree on the zero offset ("GMT", "GMT+0", "UTC"); keep one style throughout.
+    const gmt = offset.replace(/^UTC/, 'GMT');
+    return /^GMT(?:[+-]0(?::00)?)?$/.test(gmt) ? 'GMT' : gmt;
   } catch {
     return null;
   }
