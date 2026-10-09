@@ -1,15 +1,17 @@
-import { UserCog } from 'lucide-react';
 import { DocumentTitle } from '@/components/DocumentTitle';
-import { ModulePlaceholder } from '@/components/ModulePlaceholder';
+import { ChangePasswordSection } from './account/ChangePasswordSection';
+import { ProfileSection } from './account/ProfileSection';
+import { SessionsSection } from './account/SessionsSection';
 
 export default function AccountSettingsPage() {
   return (
     <>
       <DocumentTitle title="Account settings" />
-      <ModulePlaceholder
-        icon={UserCog}
-        description="Update your name, email address and password."
-      />
+      <div className="divide-y divide-zinc-200">
+        <ProfileSection />
+        <ChangePasswordSection />
+        <SessionsSection />
+      </div>
     </>
   );
 }

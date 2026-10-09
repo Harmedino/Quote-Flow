@@ -25,6 +25,8 @@ export function formatMoney(minor: number, currency: CurrencyCode, locale?: stri
   return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency,
+    // Local symbols businesses and their customers recognise (₦, GH₵, R) instead of codes.
+    currencyDisplay: 'narrowSymbol',
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
   }).format(fromMinorUnits(minor, currency));

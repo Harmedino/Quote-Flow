@@ -10,11 +10,16 @@ export interface ButtonProps extends ComponentProps<'button'>, ButtonStyleProps 
   loading?: boolean;
 }
 
+/**
+ * `aria-disabled` (without `disabled`) styles the button as unavailable but keeps
+ * it focusable; its clicks still fire, so the handler must ignore them.
+ */
 export function Button({
   variant,
   size,
   loading = false,
   disabled,
+  'aria-disabled': ariaDisabled,
   type = 'button',
   className,
   onClick,
@@ -25,7 +30,7 @@ export function Button({
     <button
       type={type}
       disabled={disabled}
-      aria-disabled={loading || undefined}
+      aria-disabled={loading || ariaDisabled || undefined}
       aria-busy={loading || undefined}
       className={buttonClasses({ variant, size, className })}
       onClick={(event) => {

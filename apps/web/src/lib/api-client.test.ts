@@ -3,9 +3,12 @@ import {
   ApiError,
   buildQueryString,
   getErrorMessage,
+  isAuthPath,
   request,
+  requestBlob,
   requestPaginated,
   resolveApiBaseUrl,
+  setAuthHandler,
 } from './api-client';
 import { shouldRetryQuery } from './query-client';
 
@@ -44,6 +47,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  setAuthHandler(null);
 });
 
 describe('resolveApiBaseUrl', () => {
@@ -336,6 +340,161 @@ describe('requestPaginated', () => {
     fetchMock.mockResolvedValue(jsonResponse({ data: [{ id: 'c1' }] }));
 
     await expect(requestPaginated('/customers')).rejects.toMatchObject({
+      code: 'INVALID_RESPONSE',
+    });
+  });
+});
+
+describe('isAuthPath', () => {
+  it('matches the session endpoints only', () => {
+    expect(isAuthPath('/auth/refresh')).toBe(true);
+    expect(isAuthPath('auth/login')).toBe(true);
+    expect(isAuthPath('/auth/me?fields=user')).toBe(true);
+    expect(isAuthPath('/auth')).toBe(true);
+    expect(isAuthPath('/authors')).toBe(false);
+    expect(isAuthPath('/account/password')).toBe(false);
+    expect(isAuthPath('/business')).toBe(false);
+  });
+});
+
+describe('request with an auth handler', () => {
+  function handler(tokens: (string | null)[], renewed: boolean) {
+    let current = 0;
+    const renewSession = vi.fn(() => {
+      current = Math.min(current + 1, tokens.length - 1);
+      return Promise.resolve(renewed);
+    });
+    return {
+      getAccessToken: () => tokens[current] ?? null,
+      renewSession,
+    };
+  }
+
+  function authorizationHeaders(): (string | null)[] {
+    return fetchMock.mock.calls.map(([, init]) => new Headers(init?.headers).get('Authorization'));
+  }
+
+  it('sends no Authorization header without a token', async () => {
+    setAuthHandler(handler([null], false));
+    fetchMock.mockResolvedValue(jsonResponse({ data: 'ok' }));
+
+    await request('/business');
+
+    expect(authorizationHeaders()).toEqual([null]);
+  });
+
+  it('retries once with the renewed token after a 401', async () => {
+    const auth = handler(['old', 'new'], true);
+    setAuthHandler(auth);
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ error: { code: 'UNAUTHORIZED', message: 'x' } }, 401))
+      .mockResolvedValueOnce(jsonResponse({ data: 'ok' }));
+
+    await expect(request('/business', { method: 'PATCH', body: { name: 'A' } })).resolves.toBe(
+      'ok',
+    );
+
+    expect(auth.renewSession).toHaveBeenCalledWith('old');
+    expect(authorizationHeaders()).toEqual(['Bearer old', 'Bearer new']);
+    expect(fetchMock.mock.calls[1]?.[1]?.body).toBe('{"name":"A"}');
+  });
+
+  it('returns the 401 when the session cannot be renewed', async () => {
+    setAuthHandler(handler(['old'], false));
+    fetchMock.mockResolvedValue(
+      jsonResponse({ error: { code: 'UNAUTHORIZED', message: 'Session ended' } }, 401),
+    );
+
+    await expect(request('/business')).rejects.toMatchObject({ status: 401, code: 'UNAUTHORIZED' });
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it('does not renew after a 401 from an auth endpoint', async () => {
+    const auth = handler(['old', 'new'], true);
+    setAuthHandler(auth);
+    fetchMock.mockResolvedValue(
+      jsonResponse(
+        { error: { code: 'UNAUTHORIZED', message: 'Incorrect email or password.' } },
+        401,
+      ),
+    );
+
+    await expect(request('/auth/login', { method: 'POST', body: {} })).rejects.toMatchObject({
+      message: 'Incorrect email or password.',
+    });
+    expect(auth.renewSession).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it('does not renew after other failures', async () => {
+    const auth = handler(['old', 'new'], true);
+    setAuthHandler(auth);
+    fetchMock.mockResolvedValue(jsonResponse({ error: { code: 'FORBIDDEN', message: 'No' } }, 403));
+
+    await expect(request('/business', { method: 'PATCH', body: {} })).rejects.toMatchObject({
+      status: 403,
+    });
+    expect(auth.renewSession).not.toHaveBeenCalled();
+  });
+});
+
+describe('requestBlob', () => {
+  it('returns the binary body with the Bearer token and a wildcard Accept header', async () => {
+    setAuthHandler({ getAccessToken: () => 'token', renewSession: () => Promise.resolve(false) });
+    fetchMock.mockResolvedValue(
+      new Response(new Uint8Array([37, 80, 68, 70]), {
+        status: 200,
+        headers: { 'Content-Type': 'application/pdf' },
+      }),
+    );
+
+    const blob = await requestBlob('/quotes/q1/pdf');
+
+    expect(blob.type).toBe('application/pdf');
+    expect(await blob.text()).toBe('%PDF');
+    const { url, init } = lastFetchCall();
+    expect(url).toBe('/api/quotes/q1/pdf');
+    const headers = new Headers(init.headers);
+    expect(headers.get('Accept')).toBe('*/*');
+    expect(headers.get('Authorization')).toBe('Bearer token');
+  });
+
+  it('renews the session once after a 401', async () => {
+    let token = 'old';
+    setAuthHandler({
+      getAccessToken: () => token,
+      renewSession: () => {
+        token = 'new';
+        return Promise.resolve(true);
+      },
+    });
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ error: { code: 'UNAUTHORIZED', message: 'x' } }, 401))
+      .mockResolvedValueOnce(new Response('file', { status: 200 }));
+
+    await expect(requestBlob('/invoices/i1/pdf').then((blob) => blob.text())).resolves.toBe('file');
+    expect(new Headers(fetchMock.mock.calls[1]?.[1]?.headers).get('Authorization')).toBe(
+      'Bearer new',
+    );
+  });
+
+  it('throws an ApiError from the JSON error envelope', async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({ error: { code: 'NOT_FOUND', message: 'Quote not found' } }, 404),
+    );
+
+    await expect(requestBlob('/quotes/missing/pdf')).rejects.toMatchObject({
+      status: 404,
+      code: 'NOT_FOUND',
+      message: 'Quote not found',
+    });
+  });
+
+  it('maps a non-JSON failure to INVALID_RESPONSE', async () => {
+    fetchMock.mockResolvedValue(new Response('<html>Bad gateway</html>', { status: 502 }));
+
+    await expect(requestBlob('/quotes/q1/pdf')).rejects.toMatchObject({
+      status: 502,
       code: 'INVALID_RESPONSE',
     });
   });

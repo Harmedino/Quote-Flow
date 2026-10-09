@@ -10,6 +10,8 @@ export interface ConnectDatabaseOptions {
   /** Build indexes when models initialise. Disabled in production, where `db:indexes` builds them. */
   autoIndex: boolean;
   logger: Logger;
+  /** Connections per process. Serverless instances use a small pool so they don't exhaust the cluster. */
+  maxPoolSize?: number;
 }
 
 /**
@@ -56,7 +58,7 @@ function logConnectionEvents(connection: mongoose.Connection, logger: Logger): (
  */
 export async function connectDatabase(
   uri: string,
-  { autoIndex, logger }: ConnectDatabaseOptions,
+  { autoIndex, logger, maxPoolSize }: ConnectDatabaseOptions,
 ): Promise<void> {
   configureMongoose();
   logger.info('Connecting to MongoDB');
@@ -65,6 +67,7 @@ export async function connectDatabase(
     autoIndex,
     appName: APP_NAME,
     serverSelectionTimeoutMS: SERVER_SELECTION_TIMEOUT_MS,
+    ...(maxPoolSize !== undefined && { maxPoolSize }),
   });
 
   const { connection } = mongoose;

@@ -2,6 +2,7 @@ import express, { type Express } from 'express';
 import helmet from 'helmet';
 import type { Env } from './config/env';
 import { API_PREFIX, isHealthCheckUrl } from './config/paths';
+import type { AuthRateLimits } from './middleware/auth-rate-limits';
 import { createCorsMiddleware } from './middleware/cors';
 import { errorHandler } from './middleware/error-handler';
 import { notFound } from './middleware/not-found';
@@ -12,6 +13,7 @@ import {
 } from './middleware/rate-limit';
 import { createRequestLogger } from './middleware/request-logger';
 import { createApiRouter } from './routes';
+import { type Clock, systemClock } from './utils/clock';
 import type { Logger } from './utils/logger';
 
 /** Fits the largest quote the shared rules accept (about 0.7 MB in 3-byte UTF-8) with headroom. */
@@ -22,12 +24,18 @@ export interface CreateAppOptions {
   logger: Logger;
   /** Global per-IP limit for API requests; `false` disables it (e.g. in tests). */
   rateLimit?: RateLimitSettings | false;
+  /** Overrides for the sign-in, sign-up, refresh and password limits; `false` disables them. */
+  authRateLimits?: Partial<AuthRateLimits> | false;
+  /** The time source for tokens and sessions; tests inject one to move past expiries. */
+  clock?: Clock;
 }
 
 export function createApp({
   env,
   logger,
   rateLimit = GLOBAL_RATE_LIMIT,
+  authRateLimits = {},
+  clock = systemClock,
 }: CreateAppOptions): Express {
   const app = express();
   app.set('env', env.NODE_ENV);
@@ -62,7 +70,7 @@ export function createApp({
   }
   app.use(express.json({ limit: JSON_BODY_LIMIT }));
 
-  app.use(API_PREFIX, createApiRouter());
+  app.use(API_PREFIX, createApiRouter({ env, logger, clock, authRateLimits }));
   app.use(notFound);
   app.use(errorHandler);
 

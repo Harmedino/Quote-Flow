@@ -15,3 +15,15 @@ export function formatDate(
 ): string {
   return new Intl.DateTimeFormat(locale, { dateStyle, timeZone }).format(new Date(value));
 }
+
+/**
+ * Formats a calendar date sent by the API as 'YYYY-MM-DD' (issue, expiry, due
+ * and payment dates). These are dates, not instants, so they are formatted in
+ * UTC: formatting them in the viewer's zone could show the previous day.
+ */
+export function formatCalendarDate(
+  isoDate: string,
+  { locale, dateStyle = 'medium' }: Omit<FormatDateOptions, 'timeZone'> = {},
+): string {
+  return formatDate(`${isoDate}T00:00:00Z`, { locale, dateStyle, timeZone: 'UTC' });
+}

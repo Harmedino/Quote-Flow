@@ -13,6 +13,8 @@ export interface RateLimiterOptions extends RateLimitSettings {
   message?: string;
   skip?: Options['skip'];
   keyGenerator?: Options['keyGenerator'];
+  /** Count only requests that fail (status 400 or above), e.g. failed sign-in attempts. */
+  skipSuccessfulRequests?: boolean;
 }
 
 export const GLOBAL_RATE_LIMIT: RateLimitSettings = { windowMs: 15 * 60 * 1000, limit: 300 };
@@ -29,12 +31,14 @@ export function createRateLimiter({
   message = 'Too many requests. Please try again later.',
   skip,
   keyGenerator,
+  skipSuccessfulRequests = false,
 }: RateLimiterOptions): RateLimitRequestHandler {
   return rateLimit({
     windowMs,
     limit,
     skip,
     keyGenerator,
+    skipSuccessfulRequests,
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     handler: (_req, _res, next) => {

@@ -71,7 +71,8 @@ function jwtSecretSchema(isProduction: boolean) {
 
 const DURATION_UNIT_SECONDS = { s: 1, m: 60, h: 3600, d: 86_400 } as const;
 
-function durationInSeconds(value: string): number {
+/** Converts a duration such as `15m` or `3600s`, already validated by the schema below, to seconds. */
+export function durationInSeconds(value: string): number {
   const unit = value.slice(-1) as keyof typeof DURATION_UNIT_SECONDS;
   return Number(value.slice(0, -1)) * DURATION_UNIT_SECONDS[unit];
 }
@@ -131,6 +132,10 @@ function appUrlSchema(requireHttps: boolean) {
   });
 }
 
+const booleanFlagSchema = z
+  .enum(['true', 'false'], { error: 'must be true or false' })
+  .transform((value) => value === 'true');
+
 /** What every process that talks to MongoDB needs, including the ops scripts. */
 const databaseEnvSchema = z.object({
   NODE_ENV: nodeEnvSchema.default('development'),
@@ -156,6 +161,8 @@ function createServerEnvSchema(isProduction: boolean) {
           'is required in production (0 when the API is exposed directly, 1 behind one load balancer)',
         )
       : integerInRange(0, 10).default(0),
+    // Off unless asked for: it lets anyone sign in to the shared demo business.
+    DEMO_LOGIN_ENABLED: booleanFlagSchema.default(false),
   });
 }
 

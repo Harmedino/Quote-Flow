@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { hashPassword, verifyPassword } from './password';
+import { hashPassword, preparePasswordVerification, verifyPassword } from './password';
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -21,6 +21,16 @@ describe('password hashing', () => {
   it('rejects passwords that bcrypt would silently truncate', async () => {
     await expect(hashPassword('é'.repeat(37))).rejects.toThrow(RangeError);
     await expect(hashPassword('é'.repeat(36))).resolves.toMatch(/^\$2b\$12\$/);
+  });
+
+  it('can compute the dummy hash ahead of the first unknown-account check', async () => {
+    const hash = vi.spyOn(bcrypt, 'hash');
+
+    await preparePasswordVerification();
+    await preparePasswordVerification();
+    expect(await verifyPassword('anything', undefined)).toBe(false);
+
+    expect(hash).toHaveBeenCalledTimes(1);
   });
 
   it('still does the bcrypt work when there is no stored hash', async () => {

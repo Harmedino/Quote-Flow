@@ -48,6 +48,11 @@ export const validationFailed = (
 export const unauthorized = (message = 'Authentication is required.') =>
   new AppError('UNAUTHORIZED', message);
 
+const SESSION_EXPIRED_MESSAGE = 'Your session has expired. Please sign in again.';
+
+/** An access or refresh token that is invalid, expired or revoked, or whose account is gone. */
+export const sessionExpired = () => unauthorized(SESSION_EXPIRED_MESSAGE);
+
 export const forbidden = (message = 'You do not have permission to perform this action.') =>
   new AppError('FORBIDDEN', message);
 

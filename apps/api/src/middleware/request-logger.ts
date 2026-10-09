@@ -3,7 +3,7 @@ import type { IncomingMessage } from 'node:http';
 import type { Request, RequestHandler, Response } from 'express';
 import type { LevelWithSilent } from 'pino';
 import { pinoHttp } from 'pino-http';
-import { isHealthCheckUrl } from '../config/paths';
+import { API_PREFIX, isHealthCheckUrl } from '../config/paths';
 import type { Logger } from '../utils/logger';
 
 export const REQUEST_ID_HEADER = 'X-Request-Id';
@@ -18,11 +18,19 @@ export function getRequestId(req: IncomingMessage): string | undefined {
   return typeof req.id === 'string' ? req.id : undefined;
 }
 
+// Express matches routes case-insensitively, so the mask does too.
+const PUBLIC_TOKEN_IN_URL = new RegExp(`^(${API_PREFIX}/public/(?:quotes|invoices)/)[^/?#]+`, 'i');
+
+/** Public document tokens are capabilities, so they never reach the logs. */
+export function maskUrlTokens(url: string): string {
+  return url.replace(PUBLIC_TOKEN_IN_URL, '$1:token');
+}
+
 /** Bodies, headers and query objects are deliberately not logged. */
 function serializeRequest(req: Request) {
   return {
     method: req.method,
-    url: req.originalUrl,
+    url: maskUrlTokens(req.originalUrl),
     ip: req.ip,
     userAgent: req.get('user-agent'),
   };
@@ -33,7 +41,7 @@ function serializeResponse(res: Response) {
 }
 
 function summarize(req: Request, res: Response): string {
-  return `${req.method} ${req.originalUrl} ${res.writableEnded ? res.statusCode : 'aborted'}`;
+  return `${req.method} ${maskUrlTokens(req.originalUrl)} ${res.writableEnded ? res.statusCode : 'aborted'}`;
 }
 
 /**

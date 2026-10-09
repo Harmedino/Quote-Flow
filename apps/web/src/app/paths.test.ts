@@ -1,6 +1,7 @@
 import { matchRoutes } from 'react-router';
 import { describe, expect, it } from 'vitest';
-import { paths } from './paths';
+import { redirectSignedIn, requireSession } from '@/features/auth/route-guards';
+import { paths, withRedirectTo } from './paths';
 import { routes } from './router';
 
 /** Resolves a URL against the real route table and returns the deepest match. */
@@ -18,13 +19,16 @@ describe('paths', () => {
     expect(paths.quote('q1')).toBe('/quotes/q1');
     expect(paths.editQuote('q1')).toBe('/quotes/q1/edit');
     expect(paths.invoice('i1')).toBe('/invoices/i1');
+    expect(paths.editInvoice('i1')).toBe('/invoices/i1/edit');
     expect(paths.publicQuote('tok_123')).toBe('/quote/tok_123');
+    expect(paths.publicInvoice('tok_123')).toBe('/invoice/tok_123');
   });
 
   it('encodes parameters so they stay within one path segment', () => {
     expect(paths.quote('a/b')).toBe('/quotes/a%2Fb');
     expect(paths.editQuote('a b?c')).toBe('/quotes/a%20b%3Fc/edit');
     expect(paths.publicQuote('x#y&z')).toBe('/quote/x%23y%26z');
+    expect(paths.publicInvoice('x#y&z')).toBe('/invoice/x%23y%26z');
   });
 
   it.each([
@@ -38,6 +42,7 @@ describe('paths', () => {
     [paths.quotes, '/quotes'],
     [paths.newQuote, '/quotes/new'],
     [paths.invoices, '/invoices'],
+    [paths.newInvoice, '/invoices/new'],
     [paths.businessSettings, '/settings/business'],
     [paths.accountSettings, '/settings/account'],
   ])('%s resolves to its own route', (url, pattern) => {
@@ -61,8 +66,16 @@ describe('paths', () => {
       pattern: '/invoices/:invoiceId',
       params: { invoiceId: 'i1' },
     });
+    expect(resolve(paths.editInvoice('i1'))).toEqual({
+      pattern: '/invoices/:invoiceId/edit',
+      params: { invoiceId: 'i1' },
+    });
     expect(resolve(paths.publicQuote('tok'))).toEqual({
       pattern: '/quote/:token',
+      params: { token: 'tok' },
+    });
+    expect(resolve(paths.publicInvoice('tok'))).toEqual({
+      pattern: '/invoice/:token',
       params: { token: 'tok' },
     });
   });
@@ -71,5 +84,57 @@ describe('paths', () => {
     const settings = matchRoutes(routes, paths.settings)?.at(-1);
     expect(settings?.route.index).toBe(true);
     expect(resolve('/no/such/page').pattern).toBe('*');
+  });
+
+  it('protects every signed-in page and only the sign-in and sign-up pages redirect signed-in users', () => {
+    const middlewareFor = (url: string) =>
+      (matchRoutes(routes, url) ?? []).flatMap((match) => match.route.middleware ?? []);
+
+    for (const url of [
+      paths.dashboard,
+      paths.customers,
+      paths.customer('c1'),
+      paths.services,
+      paths.quotes,
+      paths.newQuote,
+      paths.quote('q1'),
+      paths.editQuote('q1'),
+      paths.invoices,
+      paths.newInvoice,
+      paths.invoice('i1'),
+      paths.editInvoice('i1'),
+      paths.settings,
+      paths.businessSettings,
+      paths.accountSettings,
+    ]) {
+      expect(middlewareFor(url), url).toEqual([requireSession]);
+    }
+    expect(middlewareFor(paths.login)).toEqual([redirectSignedIn]);
+    expect(middlewareFor(paths.register)).toEqual([redirectSignedIn]);
+    for (const url of [
+      paths.home,
+      paths.forgotPassword,
+      paths.publicQuote('tok'),
+      paths.publicInvoice('tok'),
+      '/nope',
+    ]) {
+      expect(middlewareFor(url), url).toEqual([]);
+    }
+  });
+});
+
+describe('withRedirectTo', () => {
+  it('adds an encoded redirectTo parameter', () => {
+    expect(withRedirectTo(paths.login, '/quotes?status=sent')).toBe(
+      '/login?redirectTo=%2Fquotes%3Fstatus%3Dsent',
+    );
+    expect(withRedirectTo(paths.register, '/quotes/new')).toBe(
+      '/register?redirectTo=%2Fquotes%2Fnew',
+    );
+  });
+
+  it('leaves the path alone without a destination', () => {
+    expect(withRedirectTo(paths.login, null)).toBe('/login');
+    expect(withRedirectTo(paths.login, '')).toBe('/login');
   });
 });

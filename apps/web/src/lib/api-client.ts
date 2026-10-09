@@ -44,6 +44,31 @@ export function resolveApiBaseUrl(configured: string | undefined): string {
 
 const API_BASE_URL = resolveApiBaseUrl(import.meta.env.VITE_API_URL);
 
+/**
+ * Connects the client to the session layer without depending on it: the
+ * handler supplies the Bearer token and renews the session after a 401.
+ */
+export interface AuthHandler {
+  getAccessToken(): string | null;
+  /**
+   * Called at most once per request, after a 401. `rejectedToken` is the token
+   * that was refused. Resolves true when a newer token is available and the
+   * request should be retried with it, false when the session has ended.
+   */
+  renewSession(rejectedToken: string | null): Promise<boolean>;
+}
+
+let authHandler: AuthHandler | null = null;
+
+export function setAuthHandler(handler: AuthHandler | null): void {
+  authHandler = handler;
+}
+
+/** Session endpoints settle authentication themselves, so their 401s are final. */
+export function isAuthPath(path: string): boolean {
+  return /^\/?auth(?:[/?#]|$)/.test(path);
+}
+
 export function buildQueryString(query: QueryParams | undefined): string {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(query ?? {})) {
@@ -85,13 +110,16 @@ function serializeBody(body: unknown): BodyInit | undefined {
 }
 
 /** The single place where request headers are assembled. */
-function buildHeaders({ body, headers }: RequestOptions): Headers {
+function buildHeaders({ body, headers }: RequestOptions, accessToken: string | null): Headers {
   const result = new Headers(headers);
   if (!result.has('Accept')) {
     result.set('Accept', 'application/json');
   }
   if (body !== undefined && !isRawBody(body) && !result.has('Content-Type')) {
     result.set('Content-Type', 'application/json');
+  }
+  if (accessToken && !result.has('Authorization')) {
+    result.set('Authorization', `Bearer ${accessToken}`);
   }
   return result;
 }
@@ -116,11 +144,15 @@ function toTransportError(error: unknown, signal: AbortSignal | undefined): unkn
   });
 }
 
-async function send(path: string, options: RequestOptions): Promise<Response> {
+async function sendOnce(
+  path: string,
+  options: RequestOptions,
+  accessToken: string | null,
+): Promise<Response> {
   try {
     return await fetch(buildUrl(path, options.query), {
       method: options.method ?? 'GET',
-      headers: buildHeaders(options),
+      headers: buildHeaders(options, accessToken),
       body: serializeBody(options.body),
       credentials: 'include',
       signal: options.signal,
@@ -128,6 +160,20 @@ async function send(path: string, options: RequestOptions): Promise<Response> {
   } catch (error) {
     throw toTransportError(error, options.signal);
   }
+}
+
+/** Sends the request with the current access token, renewing the session and retrying once on 401. */
+async function send(path: string, options: RequestOptions): Promise<Response> {
+  const handler = authHandler;
+  const accessToken = handler?.getAccessToken() ?? null;
+  const response = await sendOnce(path, options, accessToken);
+  if (response.status !== 401 || !handler || isAuthPath(path)) {
+    return response;
+  }
+  if (!(await handler.renewSession(accessToken))) {
+    return response;
+  }
+  return sendOnce(path, options, handler.getAccessToken());
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -272,4 +318,26 @@ export async function requestPaginated<T>(
     throw invalidResponse(response);
   }
   return { data: envelope.data as T[], meta: envelope.meta };
+}
+
+/**
+ * Like {@link request}, for endpoints that return a file (e.g. a PDF). Shares
+ * the base URL, Bearer token and 401 renewal; failures still arrive as JSON
+ * error envelopes and are thrown as {@link ApiError}s.
+ */
+export async function requestBlob(path: string, options: RequestOptions = {}): Promise<Blob> {
+  const headers = new Headers(options.headers);
+  if (!headers.has('Accept')) {
+    headers.set('Accept', '*/*');
+  }
+  const response = await send(path, { ...options, headers });
+  if (!response.ok) {
+    await readEnvelope(response, options.signal);
+    throw invalidResponse(response);
+  }
+  try {
+    return await response.blob();
+  } catch (error) {
+    throw toTransportError(error, options.signal);
+  }
 }
