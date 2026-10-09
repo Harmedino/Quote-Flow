@@ -111,7 +111,9 @@ export function detectTimeZone(): string | undefined {
 function utcOffset(timeZone: string, at: Date): string | null {
   try {
     const parts = new Intl.DateTimeFormat('en-US', { timeZone, timeZoneName: 'shortOffset' });
-    return parts.formatToParts(at).find((part) => part.type === 'timeZoneName')?.value ?? null;
+    const offset = parts.formatToParts(at).find((part) => part.type === 'timeZoneName')?.value;
+    // Newer ICU data names the zero offset "UTC" for some zones; keep one style throughout.
+    return offset?.replace(/^UTC/, 'GMT') ?? null;
   } catch {
     return null;
   }

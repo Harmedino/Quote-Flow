@@ -1,5 +1,5 @@
 import { CURRENCIES, DEFAULT_TIMEZONE } from '@quoteflow/shared';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   CURRENCY_OPTIONS,
   guessCurrency,
@@ -79,6 +79,17 @@ describe('time zones', () => {
     expect(timeZoneLabel('America/New_York', winter)).toBe('America/New York (GMT-5)');
     expect(timeZoneLabel('America/New_York', summer)).toBe('America/New York (GMT-4)');
     expect(timeZoneOptions(['UTC'], winter)).toContainEqual({ value: 'UTC', label: 'UTC (GMT)' });
+  });
+
+  it('keeps the GMT style when the runtime names the zero offset "UTC"', () => {
+    const formatToParts = vi
+      .spyOn(Intl.DateTimeFormat.prototype, 'formatToParts')
+      .mockReturnValue([{ type: 'timeZoneName', value: 'UTC' }]);
+    try {
+      expect(timeZoneLabel('UTC', new Date('2026-01-15T12:00:00Z'))).toBe('UTC (GMT)');
+    } finally {
+      formatToParts.mockRestore();
+    }
   });
 
   it('labels an unknown zone with its name only', () => {
