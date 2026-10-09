@@ -13,8 +13,8 @@ import {
   QuoteModel,
   ServiceModel,
   UserModel,
-} from '../../models';
-import { DEMO_USERS } from '../seed-data/business';
+} from '../models';
+import { DEMO_USERS } from './data/business';
 import type { DemoPassword } from './password';
 import type { DemoTenant } from './tenant';
 

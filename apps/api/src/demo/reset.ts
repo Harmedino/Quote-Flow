@@ -1,5 +1,5 @@
 import type { Model } from 'mongoose';
-import { BusinessModel, TENANT_MODELS, type TenantOwned, UserModel } from '../../models';
+import { BusinessModel, TENANT_MODELS, type TenantOwned, UserModel } from '../models';
 
 const tenantModels: readonly Pick<Model<TenantOwned>, 'deleteMany'>[] = TENANT_MODELS;
 

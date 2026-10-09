@@ -47,6 +47,7 @@ describe('auth rate limiters', () => {
       register: { windowMs: 60 * 60_000, limit: 10 },
       refresh: { windowMs: 15 * 60_000, limit: 120 },
       changePassword: { windowMs: 15 * 60_000, limit: 10 },
+      demo: { windowMs: 15 * 60_000, limit: 20 },
     });
   });
 

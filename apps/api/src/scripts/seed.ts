@@ -1,9 +1,9 @@
 import { hashPassword } from '../utils/password';
 import { runScript } from './run-script';
-import { createSeedClock } from './seed/clock';
-import { replaceDemoBusiness } from './seed/demo';
-import { InvalidSeedPasswordError, resolveDemoPassword } from './seed/password';
-import { describeSeededTenant } from './seed/summary';
+import { createSeedClock } from '../demo/clock';
+import { replaceDemoBusiness } from '../demo/demo';
+import { InvalidSeedPasswordError, resolveDemoPassword } from '../demo/password';
+import { describeSeededTenant } from '../demo/summary';
 
 /**
  * Development seed (`pnpm seed`): replaces the demo business, found through its

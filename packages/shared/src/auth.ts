@@ -18,6 +18,8 @@ import {
  *   POST /api/auth/refresh       (refresh cookie)     → 200 AuthSessionDto (+ rotated cookie)
  *   POST /api/auth/logout        (refresh cookie)     → 204 (cookie cleared)
  *   POST /api/auth/logout-all    (bearer)             → 204 (every session revoked, cookie cleared)
+ *   GET  /api/auth/demo                               → 200 DemoAvailabilityDto
+ *   POST /api/auth/demo                               → 200 AuthSessionDto (+ refresh cookie); 404 when disabled
  *   GET  /api/auth/me            (bearer)             → 200 CurrentUserDto
  *   PATCH /api/account           UpdateAccountInput   → 200 UserDto
  *   PUT  /api/account/password   ChangePasswordInput  → 204 (other sessions revoked)
@@ -81,4 +83,9 @@ export interface AuthSessionDto extends CurrentUserDto {
   accessToken: string;
   /** ISO timestamp after which the access token is rejected. */
   accessTokenExpiresAt: string;
+}
+
+/** Whether the deployment offers "Explore the demo" (DEMO_LOGIN_ENABLED on the API). */
+export interface DemoAvailabilityDto {
+  available: boolean;
 }

@@ -18,6 +18,8 @@ export interface AuthRateLimits {
   refresh: RateLimitSettings;
   /** Password changes per user (each one checks the current password). */
   changePassword: RateLimitSettings;
+  /** Demo sign-ins per IP address. */
+  demo: RateLimitSettings;
 }
 
 export const AUTH_RATE_LIMITS: AuthRateLimits = {
@@ -26,6 +28,7 @@ export const AUTH_RATE_LIMITS: AuthRateLimits = {
   register: { windowMs: 60 * MINUTE_MS, limit: 10 },
   refresh: { windowMs: 15 * MINUTE_MS, limit: 120 },
   changePassword: { windowMs: 15 * MINUTE_MS, limit: 10 },
+  demo: { windowMs: 15 * MINUTE_MS, limit: 20 },
 };
 
 export type AuthRateLimiters = Record<keyof AuthRateLimits, RequestHandler>;
@@ -59,6 +62,7 @@ export function createAuthRateLimiters(
       register: allowAll,
       refresh: allowAll,
       changePassword: allowAll,
+      demo: allowAll,
     };
   }
 
@@ -90,6 +94,11 @@ export function createAuthRateLimiters(
       logger,
       message: 'Too many password change attempts. Please wait a few minutes and try again.',
       keyGenerator: (req) => authOf(req).userId,
+    }),
+    demo: createRateLimiter({
+      ...settings.demo,
+      logger,
+      message: 'Too many demo sign-ins from this network. Please try again later.',
     }),
   };
 }

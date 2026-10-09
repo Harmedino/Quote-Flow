@@ -7,15 +7,15 @@ import {
   type LineItem,
   type QuoteDocument,
   toCustomerSnapshot,
-} from '../../models';
-import { nextDocumentNumber } from '../../services/numbering.service';
-import { generatePublicToken } from '../../utils/tokens';
+} from '../models';
+import { nextDocumentNumber } from '../services/numbering.service';
+import { generatePublicToken } from '../utils/tokens';
 import {
   type InvoicePlan,
   type PaymentPlan,
   STANDALONE_INVOICE_PLANS,
   type StandaloneInvoicePlan,
-} from '../seed-data/documents';
+} from './data/documents';
 import { type SeedClock, addDays, addHours } from './clock';
 import { buildLineItems } from './line-items';
 import type { SeededQuote } from './quotes';

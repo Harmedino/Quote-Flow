@@ -41,6 +41,7 @@ describe('loadEnv', () => {
       APP_URL: 'http://localhost:5173',
       TRUST_PROXY: 0,
       LOG_LEVEL: 'info',
+      DEMO_LOGIN_ENABLED: false,
     });
   });
 
@@ -76,6 +77,14 @@ describe('loadEnv', () => {
     ]);
   });
 
+  it('enables the demo login only when asked for explicitly', () => {
+    expect(loadEnv({ ...REQUIRED, DEMO_LOGIN_ENABLED: 'true' }).DEMO_LOGIN_ENABLED).toBe(true);
+    expect(loadEnv({ ...REQUIRED, DEMO_LOGIN_ENABLED: 'false' }).DEMO_LOGIN_ENABLED).toBe(false);
+    expect(captureError({ ...REQUIRED, DEMO_LOGIN_ENABLED: 'yes' }).problems).toEqual([
+      'DEMO_LOGIN_ENABLED: must be true or false',
+    ]);
+  });
+
   it('returns a frozen, fully typed object', () => {
     expect(Object.isFrozen(loadEnv(REQUIRED))).toBe(true);
     expectTypeOf<Env>().toEqualTypeOf<
@@ -90,6 +99,7 @@ describe('loadEnv', () => {
         APP_URL: string;
         TRUST_PROXY: number;
         LOG_LEVEL: 'fatal' | 'error' | 'warn' | 'info' | 'debug' | 'trace' | 'silent';
+        DEMO_LOGIN_ENABLED: boolean;
       }>
     >();
   });

@@ -1,6 +1,6 @@
-import type { LineItem, ServiceDocument } from '../../models';
-import type { ItemPlan } from '../seed-data/documents';
-import type { DemoServiceKey } from '../seed-data/services';
+import type { LineItem, ServiceDocument } from '../models';
+import type { ItemPlan } from './data/documents';
+import type { DemoServiceKey } from './data/services';
 
 /** Line items as a user would enter them; amounts and totals are left to the model hooks. */
 export function buildLineItems(

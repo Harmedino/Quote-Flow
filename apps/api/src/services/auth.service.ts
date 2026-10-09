@@ -7,6 +7,7 @@ import type {
 import type { Types } from 'mongoose';
 import type { z } from 'zod';
 import { isDuplicateKeyError } from '../db/errors';
+import { ensureDemoAccount } from '../demo/demo-account';
 import {
   type BusinessDocument,
   BusinessModel,
@@ -41,6 +42,8 @@ export interface SignedIn {
 export interface AuthService {
   register(input: RegisterData, client: ClientInfo): Promise<SignedIn>;
   login(input: LoginData, client: ClientInfo): Promise<SignedIn>;
+  /** Signs in to the shared demo business, creating or refreshing it first. */
+  demo(client: ClientInfo): Promise<SignedIn>;
   refresh(refreshToken: string | undefined, client: ClientInfo): Promise<SignedIn>;
   logout(refreshToken: string | undefined, client: ClientInfo): Promise<void>;
   logoutAll(auth: AuthContext, client: ClientInfo): Promise<void>;
@@ -174,6 +177,15 @@ export function createAuthService({ tokens, sessions, clock }: AuthServiceOption
 
       client.log.info({ event: 'auth.login', userId: user.id }, 'Signed in');
       return signIn({ user, business }, client);
+    },
+
+    async demo(client) {
+      const account = await ensureDemoAccount(clock, client.log);
+      client.log.info(
+        { event: 'auth.demo_login', userId: account.user.id },
+        'Signed in to the demo',
+      );
+      return signIn(account, client);
     },
 
     async refresh(refreshToken, client) {

@@ -12,7 +12,7 @@ import {
 import { Types } from 'mongoose';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import { BusinessModel, UserModel } from '../models';
-import { DEMO_BUSINESS } from '../scripts/seed-data/business';
+import { DEMO_BUSINESS } from '../demo/data/business';
 import { toBusinessDto } from './business.serializer';
 import { toUserDto } from './user.serializer';
 

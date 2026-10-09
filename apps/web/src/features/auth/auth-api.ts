@@ -2,6 +2,7 @@ import type {
   AuthSessionDto,
   ChangePasswordInput,
   CurrentUserDto,
+  DemoAvailabilityDto,
   LoginInput,
   RegisterInput,
   UpdateAccountInput,
@@ -17,6 +18,16 @@ export function register(input: RegisterInput): Promise<AuthSessionDto> {
 
 export function login(input: LoginInput): Promise<AuthSessionDto> {
   return request('/auth/login', { method: 'POST', body: input });
+}
+
+/** Whether this deployment offers "Explore the demo". */
+export function getDemoAvailability(): Promise<DemoAvailabilityDto> {
+  return request('/auth/demo');
+}
+
+/** Signs in to the shared demo business (created or refreshed by the server as needed). */
+export function startDemo(): Promise<AuthSessionDto> {
+  return request('/auth/demo', { method: 'POST' });
 }
 
 /** Authenticated by the httpOnly refresh cookie, which the response rotates. */

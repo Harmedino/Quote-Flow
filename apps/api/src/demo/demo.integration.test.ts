@@ -7,11 +7,11 @@ import {
   QuoteModel,
   SessionModel,
   UserModel,
-} from '../../models';
-import { nextDocumentNumber } from '../../services/numbering.service';
-import { TEST_DATABASE_URI, useTestDatabase } from '../../test/database';
-import { DEMO_BUSINESS } from '../seed-data/business';
-import { QUOTE_PLANS, STANDALONE_INVOICE_PLANS } from '../seed-data/documents';
+} from '../models';
+import { nextDocumentNumber } from '../services/numbering.service';
+import { TEST_DATABASE_URI, useTestDatabase } from '../test/database';
+import { DEMO_BUSINESS } from './data/business';
+import { QUOTE_PLANS, STANDALONE_INVOICE_PLANS } from './data/documents';
 import { createSeedClock } from './clock';
 import { replaceDemoBusiness } from './demo';
 

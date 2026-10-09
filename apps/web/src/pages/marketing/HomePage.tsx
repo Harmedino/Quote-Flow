@@ -4,6 +4,7 @@ import { paths } from '@/app/paths';
 import { DocumentTitle } from '@/components/DocumentTitle';
 import { ButtonLink } from '@/components/ui/ButtonLink';
 import { buttonClasses } from '@/components/ui/button-styles';
+import { DemoLoginButton } from '@/features/auth/DemoLoginButton';
 import { cn } from '@/lib/cn';
 import { Features } from './home/Features';
 import { HowItWorks } from './home/HowItWorks';
@@ -68,9 +69,19 @@ export default function HomePage() {
                 Start free
                 <ArrowRight aria-hidden="true" />
               </ButtonLink>
-              <a href="#product" className={buttonClasses({ size: 'lg', variant: 'secondary' })}>
-                View demo
-              </a>
+              <DemoLoginButton
+                size="lg"
+                label="View live demo"
+                className="w-full sm:w-auto"
+                fallback={
+                  <a
+                    href="#product"
+                    className={buttonClasses({ size: 'lg', variant: 'secondary' })}
+                  >
+                    View demo
+                  </a>
+                }
+              />
             </div>
             <ul className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-zinc-600">
               {HIGHLIGHTS.map((item) => (

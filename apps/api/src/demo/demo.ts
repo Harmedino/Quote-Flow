@@ -1,5 +1,5 @@
-import type { InvoiceDocument } from '../../models';
-import { DEMO_OWNER_EMAIL } from '../seed-data/business';
+import type { InvoiceDocument } from '../models';
+import { DEMO_OWNER_EMAIL } from './data/business';
 import type { SeedClock } from './clock';
 import { createInvoices } from './invoices';
 import { createQuotes } from './quotes';

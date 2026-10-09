@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/Input';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { PasswordInput } from '@/components/ui/PasswordInput';
 import { TextLink } from '@/components/ui/TextLink';
+import { DemoLoginButton } from '@/features/auth/DemoLoginButton';
 import { login } from '@/features/auth/auth-api';
 import {
   isSessionExpiredState,
@@ -90,6 +91,8 @@ export default function LoginPage() {
           Sign in
         </Button>
       </form>
+
+      <DemoLoginButton divider className="w-full" />
 
       <AuthFooterLink
         prompt="New to QuoteFlow?"

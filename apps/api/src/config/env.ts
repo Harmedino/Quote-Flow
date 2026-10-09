@@ -132,6 +132,10 @@ function appUrlSchema(requireHttps: boolean) {
   });
 }
 
+const booleanFlagSchema = z
+  .enum(['true', 'false'], { error: 'must be true or false' })
+  .transform((value) => value === 'true');
+
 /** What every process that talks to MongoDB needs, including the ops scripts. */
 const databaseEnvSchema = z.object({
   NODE_ENV: nodeEnvSchema.default('development'),
@@ -157,6 +161,8 @@ function createServerEnvSchema(isProduction: boolean) {
           'is required in production (0 when the API is exposed directly, 1 behind one load balancer)',
         )
       : integerInRange(0, 10).default(0),
+    // Off unless asked for: it lets anyone sign in to the shared demo business.
+    DEMO_LOGIN_ENABLED: booleanFlagSchema.default(false),
   });
 }
 

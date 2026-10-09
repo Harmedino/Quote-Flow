@@ -7,10 +7,10 @@ import {
   type ServiceDocument,
   UserModel,
   type UserDocument,
-} from '../../models';
-import { DEMO_BUSINESS, DEMO_USERS, type DemoUserRole } from '../seed-data/business';
-import { DEMO_CUSTOMERS, type DemoCustomerKey } from '../seed-data/customers';
-import { DEMO_SERVICES, type DemoServiceKey } from '../seed-data/services';
+} from '../models';
+import { DEMO_BUSINESS, DEMO_USERS, type DemoUserRole } from './data/business';
+import { DEMO_CUSTOMERS, type DemoCustomerKey } from './data/customers';
+import { DEMO_SERVICES, type DemoServiceKey } from './data/services';
 import type { SeedClock } from './clock';
 
 const BUSINESS_AGE_DAYS = 120;

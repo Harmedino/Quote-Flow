@@ -278,6 +278,7 @@ your hosting platform. `.env` files are git-ignored — never commit them.
 | `TRUST_PROXY`            | **Yes in production** | `0` (not in production) | Proxy hops to trust for client IPs: `0` when exposed directly, `1` behind one load balancer or PaaS router.       |
 | `LOG_LEVEL`              | No                    | `info`                  | `fatal`, `error`, `warn`, `info`, `debug`, `trace` or `silent`.                                                   |
 | `VITE_API_URL`           | No                    | `/api`                  | Web app only: API base URL **including** `/api`. Leave empty when the API is served on `/api` of the same origin. |
+| `DEMO_LOGIN_ENABLED`     | No                    | `false`                 | `true` adds an "Explore the demo" button that signs visitors in to a shared demo business (rebuilt daily).        |
 | `SEED_DEMO_PASSWORD`     | No (development only) | random                  | Fixed password for the seeded demo users, handy for repeat demos.                                                 |
 
 `NODE_ENV` is intentionally not set in `.env.example`: Vite also reads the root `.env`, and
@@ -421,7 +422,10 @@ bundle). `apps/web/vercel.json` holds the build and routing configuration.
    missing indexes. Check `https://<your-app>/api/health`: it should return
    `{"data":{"status":"ok",…}}`. If it returns 503, the function logs (_Deployments → Functions_)
    name the missing or invalid variable.
-5. **Optional demo data.** From your computer, load the demo business into the same database:
+5. **Optional one-click demo.** Add `DEMO_LOGIN_ENABLED` = `true` to get an "Explore the demo"
+   button on the sign-in page (and "View live demo" on the landing page). The first click creates
+   the demo business in your database; it is rebuilt every 24 hours.
+6. **Optional demo data.** From your computer, load the demo business into the same database:
    `MONGODB_URI="<atlas connection string>" SEED_DEMO_PASSWORD="<a password>" pnpm seed`.
 
 Notes: preview deployments work without listing their URLs, because the web app and API share

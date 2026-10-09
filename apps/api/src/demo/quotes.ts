@@ -1,7 +1,7 @@
-import { QuoteModel, type Quote, type QuoteDocument, toCustomerSnapshot } from '../../models';
-import { nextDocumentNumber } from '../../services/numbering.service';
-import { generatePublicToken } from '../../utils/tokens';
-import { QUOTE_PLANS, type QuotePlan } from '../seed-data/documents';
+import { QuoteModel, type Quote, type QuoteDocument, toCustomerSnapshot } from '../models';
+import { nextDocumentNumber } from '../services/numbering.service';
+import { generatePublicToken } from '../utils/tokens';
+import { QUOTE_PLANS, type QuotePlan } from './data/documents';
 import { type SeedClock, addDays, addHours } from './clock';
 import { buildLineItems } from './line-items';
 import type { DemoTenant } from './tenant';

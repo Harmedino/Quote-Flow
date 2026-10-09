@@ -51,6 +51,7 @@ export function createApiRouter({ env, logger, clock, authRateLimits }: ApiRoute
       requireAuth,
       trustedOrigin: createTrustedOriginCheck(env.CORS_ORIGIN),
       limiters,
+      demoLoginEnabled: env.DEMO_LOGIN_ENABLED,
     }),
   );
   router.use(

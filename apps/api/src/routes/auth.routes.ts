@@ -17,6 +17,8 @@ export interface AuthRouterOptions {
   /** Guards the endpoints that set or use the refresh cookie against cross-site requests. */
   trustedOrigin: RequestHandler;
   limiters: AuthRateLimiters;
+  /** Whether "Explore the demo" may sign visitors in to the shared demo business. */
+  demoLoginEnabled: boolean;
 }
 
 export function createAuthRouter({
@@ -25,8 +27,9 @@ export function createAuthRouter({
   requireAuth,
   trustedOrigin,
   limiters,
+  demoLoginEnabled,
 }: AuthRouterOptions): Router {
-  const controller = createAuthController(auth, refreshCookie);
+  const controller = createAuthController(auth, refreshCookie, demoLoginEnabled);
   const router = Router();
   router.use(noStore);
 
@@ -45,6 +48,8 @@ export function createAuthRouter({
     validate(loginSchemas),
     controller.login,
   );
+  router.get('/demo', controller.demoAvailability);
+  router.post('/demo', trustedOrigin, limiters.demo, controller.demo);
   router.post('/refresh', trustedOrigin, limiters.refresh, controller.refresh);
   router.post('/logout', trustedOrigin, controller.logout);
   router.post('/logout-all', requireAuth, controller.logoutAll);
