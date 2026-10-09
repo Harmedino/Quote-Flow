@@ -116,7 +116,7 @@ export function UpcomingInvoicesCard({ invoices }: { invoices: readonly InvoiceL
   return (
     <ListCard
       title="Upcoming due invoices"
-      viewAll={{ to: paths.invoices, label: 'All invoices' }}
+      viewAll={{ to: paths.invoices, label: 'View all' }}
       items={invoices}
       empty="Nothing waiting to be paid."
     >
@@ -163,7 +163,8 @@ export function RecentCustomersCard({ customers }: { customers: readonly Custome
           secondary={customer.company ?? customer.email ?? customer.phone ?? 'No contact details'}
           amount={
             <span className="text-xs font-normal text-zinc-500">
-              Added {formatDate(customer.createdAt)}
+              <span className="max-sm:sr-only">Added </span>
+              {formatDate(customer.createdAt)}
             </span>
           }
         />

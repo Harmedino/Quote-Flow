@@ -1,4 +1,4 @@
-import { type QuoteDto, canSendQuote } from '@quoteflow/shared';
+import type { QuoteDto } from '@quoteflow/shared';
 import { Check, ExternalLink, Link2, MessageCircle } from 'lucide-react';
 import { useState } from 'react';
 import { paths } from '@/app/paths';
@@ -6,7 +6,7 @@ import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { buttonClasses } from '@/components/ui/button-styles';
 import { getErrorMessage } from '@/lib/api-client';
-import { buildQuoteShare } from '../quote-share';
+import { buildQuoteShare, canShareQuote } from '../quote-share';
 import { useSendQuote } from '../use-quotes';
 
 export interface QuoteSharePanelProps {
@@ -33,7 +33,7 @@ export function QuoteSharePanel({ quote, businessName }: QuoteSharePanelProps) {
     customerPhone: quote.customer.phone,
   });
 
-  if (!canSendQuote(quote.status) && quote.status !== 'accepted') {
+  if (!canShareQuote(quote.status)) {
     return null;
   }
 
@@ -122,7 +122,7 @@ export function QuoteSharePanel({ quote, businessName }: QuoteSharePanelProps) {
           </Button>
         ) : (
           <a
-            href={paths.publicQuote(quote.publicToken)}
+            href={paths.publicQuotePreview(quote.publicToken)}
             target="_blank"
             rel="noopener noreferrer"
             className={buttonClasses({ variant: 'secondary' })}

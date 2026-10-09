@@ -13,6 +13,7 @@ export {
   getErrorMessage,
   getFieldErrors,
   isApiError,
+  isMissingRecordError,
   type ClientErrorCode,
 } from './api-error';
 

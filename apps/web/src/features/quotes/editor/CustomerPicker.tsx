@@ -1,7 +1,7 @@
 import type { CustomerDto } from '@quoteflow/shared';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { CircleAlert, Mail, MapPin, Phone, Search, UserPlus } from 'lucide-react';
-import { useId, useRef, useState } from 'react';
+import { type Ref, useEffect, useId, useRef, useState } from 'react';
 import { formatAddressLines } from '@/components/documents/document-format';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
@@ -32,9 +32,11 @@ export interface CustomerPickerProps {
 function SelectedCustomerCard({
   customer,
   onChange,
+  changeButtonRef,
 }: {
   customer: SelectedCustomer;
   onChange: () => void;
+  changeButtonRef: Ref<HTMLButtonElement>;
 }) {
   const address = formatAddressLines(customer.address).join(', ');
   const details = [
@@ -50,7 +52,7 @@ function SelectedCustomerCard({
           <p className="truncate font-semibold text-zinc-950">{customer.name}</p>
           {customer.company && <p className="truncate text-zinc-600">{customer.company}</p>}
         </div>
-        <Button variant="ghost" size="sm" onClick={onChange}>
+        <Button ref={changeButtonRef} variant="ghost" size="sm" onClick={onChange}>
           Change
         </Button>
       </div>
@@ -75,6 +77,9 @@ export function CustomerPicker({ customer, onChange, error, inputId }: CustomerP
   const [open, setOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const changeButtonRef = useRef<HTMLButtonElement>(null);
+  // Choosing a customer replaces the search box with the customer card; focus follows to "Change".
+  const focusCardAfterSelect = useRef(false);
   const listboxId = useId();
   const errorId = `${inputId}-error`;
   const search = useDebouncedValue(text.trim());
@@ -88,9 +93,21 @@ export function CustomerPicker({ customer, onChange, error, inputId }: CustomerP
   });
   const options = results.data?.data ?? [];
 
+  useEffect(() => {
+    if (focusCardAfterSelect.current && !searching) {
+      focusCardAfterSelect.current = false;
+      changeButtonRef.current?.focus();
+    }
+  });
+
+  function closeSearch() {
+    focusCardAfterSelect.current = true;
+    setSearching(false);
+  }
+
   function select(next: CustomerDto) {
     onChange(selectedCustomerFromDto(next));
-    setSearching(false);
+    closeSearch();
     setOpen(false);
     setText('');
   }
@@ -103,6 +120,7 @@ export function CustomerPicker({ customer, onChange, error, inputId }: CustomerP
     return (
       <SelectedCustomerCard
         customer={customer}
+        changeButtonRef={changeButtonRef}
         onChange={() => {
           setSearching(true);
           setOpen(true);
@@ -209,7 +227,7 @@ export function CustomerPicker({ customer, onChange, error, inputId }: CustomerP
         <button
           type="button"
           className="mt-2 text-sm font-medium text-brand-700 hover:text-brand-800"
-          onClick={() => setSearching(false)}
+          onClick={closeSearch}
         >
           Keep {customer.name}
         </button>

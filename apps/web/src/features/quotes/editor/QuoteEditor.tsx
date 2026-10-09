@@ -182,7 +182,7 @@ export function QuoteEditor({ business, initialValues, initialCustomer, quote }:
           {formError}
         </Alert>
       )}
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_18rem] xl:items-start">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start">
         <div className="min-w-0 space-y-6">
           <EditorSection title="Customer" headingId={`${formId}-customer`}>
             <CustomerPicker

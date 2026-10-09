@@ -2,6 +2,7 @@ import { canEditQuote, QUOTE_STATUS_LABELS } from '@quoteflow/shared';
 import { useLocation, useParams } from 'react-router';
 import { paths } from '@/app/paths';
 import { DocumentTitle } from '@/components/DocumentTitle';
+import { QueryError } from '@/components/QueryError';
 import { Alert } from '@/components/ui/Alert';
 import { ButtonLink } from '@/components/ui/ButtonLink';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -10,8 +11,9 @@ import { QuoteEditor } from '@/features/quotes/editor/QuoteEditor';
 import { readQuoteFlash } from '@/features/quotes/quote-flash';
 import { quoteFormValuesFromQuote } from '@/features/quotes/quote-form';
 import { EditorSkeleton } from '@/features/quotes/ui/EditorSkeleton';
-import { LoadError } from '@/features/quotes/ui/LoadError';
+import { QuoteNotFound } from '@/features/quotes/ui/QuoteNotFound';
 import { useQuoteQuery } from '@/features/quotes/use-quotes';
+import { isMissingRecordError } from '@/lib/api-client';
 
 export default function EditQuotePage() {
   const { quoteId = '' } = useParams<'quoteId'>();
@@ -20,6 +22,7 @@ export default function EditQuotePage() {
   const query = useQuoteQuery(quoteId);
   const quote = query.data;
   const duplicated = readQuoteFlash(location.state) === 'duplicated';
+  const missing = isMissingRecordError(query.error);
 
   return (
     <>
@@ -27,16 +30,24 @@ export default function EditQuotePage() {
       <PageHeader
         title={quote ? `Edit ${quote.quoteNumber}` : 'Edit quote'}
         description={
-          quote?.status === 'draft' || !quote
-            ? 'Update the items, pricing and terms before you send.'
-            : 'Your customer will see the changes the next time they open the quote link.'
+          missing
+            ? undefined
+            : quote?.status === 'draft' || !quote
+              ? 'Update the items, pricing and terms before you send.'
+              : 'Your customer will see the changes the next time they open the quote link.'
         }
-        back={{ to: paths.quote(quoteId), label: 'Back to quote' }}
+        back={
+          missing
+            ? { to: paths.quotes, label: 'Quotes' }
+            : { to: paths.quote(quoteId), label: 'Back to quote' }
+        }
       />
       {query.isPending ? (
         <EditorSkeleton />
+      ) : missing ? (
+        <QuoteNotFound />
       ) : query.isError || !quote ? (
-        <LoadError
+        <QueryError
           title="We couldn’t load this quote"
           error={query.error}
           retrying={query.isFetching}

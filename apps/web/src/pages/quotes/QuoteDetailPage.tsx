@@ -1,35 +1,28 @@
 import type { BusinessDto, PublicBusinessDto } from '@quoteflow/shared';
-import type { ReactNode } from 'react';
 import { useLocation, useParams } from 'react-router';
 import { paths } from '@/app/paths';
 import { DocumentTitle } from '@/components/DocumentTitle';
 import { SalesDocument } from '@/components/documents/SalesDocument';
+import { QueryError } from '@/components/QueryError';
 import { QuoteStatusBadge } from '@/components/StatusBadge';
-import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { PanelCard } from '@/components/ui/PanelCard';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useBusinessQuery } from '@/features/business/use-business';
 import { readQuoteFlash } from '@/features/quotes/quote-flash';
-import { LoadError } from '@/features/quotes/ui/LoadError';
+import { canShareQuote } from '@/features/quotes/quote-share';
 import { QuoteActionsPanel } from '@/features/quotes/ui/QuoteActionsPanel';
 import { QuoteFlashBanner } from '@/features/quotes/ui/QuoteFlashBanner';
+import { QuoteNotFound } from '@/features/quotes/ui/QuoteNotFound';
 import { QuoteSharePanel } from '@/features/quotes/ui/QuoteSharePanel';
 import { QuoteTimeline } from '@/features/quotes/ui/QuoteTimeline';
 import { useQuoteQuery } from '@/features/quotes/use-quotes';
+import { isMissingRecordError } from '@/lib/api-client';
 import { formatMoney } from '@/lib/format';
 
 function toPublicBusiness(business: BusinessDto): PublicBusinessDto {
   const { name, logoUrl, email, phone, website, address, brandColor } = business;
   return { name, logoUrl, email, phone, website, address, brandColor };
-}
-
-function PanelCard({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <Card className="p-5">
-      <h2 className="mb-4 text-sm font-semibold text-zinc-950">{title}</h2>
-      {children}
-    </Card>
-  );
 }
 
 function DetailSkeleton() {
@@ -67,12 +60,14 @@ export default function QuoteDetailPage() {
             : undefined
         }
         back={{ to: paths.quotes, label: 'Quotes' }}
-        actions={quote && <QuoteStatusBadge status={quote.status} />}
+        badge={quote && <QuoteStatusBadge status={quote.status} />}
       />
       {query.isPending ? (
         <DetailSkeleton />
+      ) : isMissingRecordError(query.error) ? (
+        <QuoteNotFound />
       ) : query.isError || !quote ? (
-        <LoadError
+        <QueryError
           title="We couldn’t load this quote"
           error={query.error}
           retrying={query.isFetching}
@@ -86,9 +81,11 @@ export default function QuoteDetailPage() {
               aria-label="Quote actions"
               className="space-y-4 lg:sticky lg:top-8 lg:col-start-2 lg:row-start-1"
             >
-              <PanelCard title="Share with customer">
-                <QuoteSharePanel quote={quote} businessName={business.name} />
-              </PanelCard>
+              {canShareQuote(quote.status) && (
+                <PanelCard title="Share with customer">
+                  <QuoteSharePanel quote={quote} businessName={business.name} />
+                </PanelCard>
+              )}
               <PanelCard title="Actions">
                 <QuoteActionsPanel quote={quote} />
               </PanelCard>

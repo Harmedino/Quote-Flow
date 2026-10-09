@@ -5,6 +5,7 @@ import {
   getErrorMessage,
   getFieldErrors,
   isApiError,
+  isMissingRecordError,
 } from './api-error';
 
 function apiError(init: Partial<ApiErrorInit> & Pick<ApiErrorInit, 'code'>): ApiError {
@@ -107,5 +108,18 @@ describe('getFieldErrors', () => {
     expect(getFieldErrors(apiError({ code: 'NOT_FOUND', status: 404 }))).toEqual({});
     expect(getFieldErrors(new Error('boom'))).toEqual({});
     expect(getFieldErrors(undefined)).toEqual({});
+  });
+});
+
+describe('isMissingRecordError', () => {
+  it('treats unknown and malformed record ids as missing', () => {
+    expect(isMissingRecordError(apiError({ code: 'NOT_FOUND', status: 404 }))).toBe(true);
+    expect(isMissingRecordError(apiError({ code: 'VALIDATION_ERROR' }))).toBe(true);
+  });
+
+  it('leaves other failures to the retryable error state', () => {
+    expect(isMissingRecordError(apiError({ code: 'NETWORK_ERROR', status: 0 }))).toBe(false);
+    expect(isMissingRecordError(apiError({ code: 'INTERNAL_ERROR', status: 500 }))).toBe(false);
+    expect(isMissingRecordError(new Error('boom'))).toBe(false);
   });
 });

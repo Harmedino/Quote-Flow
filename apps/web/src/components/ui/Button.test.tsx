@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { Button } from './Button';
+import { buttonClasses } from './button-styles';
 
 describe('Button', () => {
   it('defaults to type="button" so it never submits a form by accident', () => {
@@ -27,5 +28,12 @@ describe('Button', () => {
 
     expect(html).not.toContain('aria-busy');
     expect(html).not.toContain('disabled=""');
+  });
+
+  it('gives the quiet destructive variant red text with no neutral colour to override it', () => {
+    const classes = buttonClasses({ variant: 'danger-ghost' });
+
+    expect(classes).toContain('text-red-700');
+    expect(classes).not.toMatch(/text-zinc-/);
   });
 });

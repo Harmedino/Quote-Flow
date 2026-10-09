@@ -16,8 +16,8 @@ import { paths } from '@/app/paths';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { ButtonLink } from '@/components/ui/ButtonLink';
-import { Card, CardContent } from '@/components/ui/Card';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { PanelCard } from '@/components/ui/PanelCard';
 import { getErrorMessage } from '@/lib/api-client';
 import { downloadFile } from '@/lib/download';
 import { getInvoiceActions } from './invoice-view';
@@ -33,6 +33,8 @@ export interface InvoiceActionsCardProps {
 }
 
 type Confirmation = 'delete' | 'cancel' | null;
+
+const ACTION = 'w-full justify-start';
 
 /** Every action the lifecycle rules allow for this invoice, primary action first. */
 export function InvoiceActionsCard({ invoice, businessName, today }: InvoiceActionsCardProps) {
@@ -73,17 +75,17 @@ export function InvoiceActionsCard({ invoice, businessName, today }: InvoiceActi
   const hasPhone = toWhatsAppPhone(invoice.customer.phone) !== null;
 
   return (
-    <Card>
-      <CardContent className="space-y-3">
+    <PanelCard title="Actions">
+      <div className="space-y-2">
         {actions.recordPayment && (
-          <Button className="w-full" onClick={() => setPaymentOpen(true)}>
+          <Button className={ACTION} onClick={() => setPaymentOpen(true)}>
             <Banknote aria-hidden="true" />
             Record payment
           </Button>
         )}
         {actions.markAsSent && (
           <Button
-            className="w-full"
+            className={ACTION}
             variant={actions.recordPayment ? 'secondary' : 'primary'}
             loading={send.isPending}
             onClick={() => send.mutate()}
@@ -93,24 +95,24 @@ export function InvoiceActionsCard({ invoice, businessName, today }: InvoiceActi
           </Button>
         )}
         {actions.edit && (
-          <ButtonLink to={paths.editInvoice(invoice.id)} variant="secondary" className="w-full">
+          <ButtonLink to={paths.editInvoice(invoice.id)} variant="secondary" className={ACTION}>
             <Pencil aria-hidden="true" />
             Edit draft
           </ButtonLink>
         )}
 
         {actions.share && (
-          <div className="space-y-3 border-t border-zinc-200 pt-3">
+          <div className="space-y-2 border-t border-zinc-200 pt-3">
             <Button
               variant="secondary"
-              className="w-full"
+              className={ACTION}
               loading={sharing.sending}
               onClick={() => void sharing.shareOnWhatsApp()}
             >
               <MessageCircle aria-hidden="true" />
               Share via WhatsApp
             </Button>
-            <Button variant="secondary" className="w-full" onClick={() => void sharing.copyLink()}>
+            <Button variant="secondary" className={ACTION} onClick={() => void sharing.copyLink()}>
               {sharing.copied ? <Check aria-hidden="true" /> : <Link2 aria-hidden="true" />}
               {sharing.copied ? 'Link copied' : 'Copy link'}
             </Button>
@@ -128,7 +130,7 @@ export function InvoiceActionsCard({ invoice, businessName, today }: InvoiceActi
 
         <Button
           variant="secondary"
-          className="w-full"
+          className={ACTION}
           loading={downloading}
           onClick={() => void downloadPdf()}
         >
@@ -150,11 +152,11 @@ export function InvoiceActionsCard({ invoice, businessName, today }: InvoiceActi
         )}
 
         {(actions.delete || actions.cancel) && (
-          <div className="flex flex-col gap-1 border-t border-zinc-200 pt-3">
+          <div className="flex flex-col gap-1 border-t border-zinc-200 pt-2">
             {actions.delete && (
               <Button
-                variant="ghost"
-                className="w-full justify-start text-red-700 hover:bg-red-50 hover:text-red-800"
+                variant="danger-ghost"
+                className={ACTION}
                 onClick={() => setConfirmation('delete')}
               >
                 <Trash2 aria-hidden="true" />
@@ -163,8 +165,8 @@ export function InvoiceActionsCard({ invoice, businessName, today }: InvoiceActi
             )}
             {actions.cancel && (
               <Button
-                variant="ghost"
-                className="w-full justify-start text-red-700 hover:bg-red-50 hover:text-red-800"
+                variant="danger-ghost"
+                className={ACTION}
                 onClick={() => setConfirmation('cancel')}
               >
                 <Ban aria-hidden="true" />
@@ -173,7 +175,7 @@ export function InvoiceActionsCard({ invoice, businessName, today }: InvoiceActi
             )}
           </div>
         )}
-      </CardContent>
+      </div>
 
       <RecordPaymentDialog
         open={paymentOpen}
@@ -206,6 +208,6 @@ export function InvoiceActionsCard({ invoice, businessName, today }: InvoiceActi
         onCancel={closeConfirmation}
         onConfirm={() => cancel.mutate(undefined, { onSuccess: closeConfirmation })}
       />
-    </Card>
+    </PanelCard>
   );
 }

@@ -65,23 +65,11 @@ function ServiceActions({
 }: Omit<ServiceListProps, 'services'> & { service: ServiceDto }) {
   return (
     <div className="flex items-center justify-end gap-1">
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => onEdit(service)}
-        title="Edit"
-        className="px-2"
-      >
+      <Button variant="ghost" size="icon" onClick={() => onEdit(service)} title="Edit">
         <Pencil aria-hidden="true" />
         <span className="sr-only">Edit {service.name}</span>
       </Button>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => onDelete(service)}
-        title="Delete"
-        className="px-2 text-zinc-500 hover:bg-red-50 hover:text-red-700"
-      >
+      <Button variant="ghost" size="icon" onClick={() => onDelete(service)} title="Delete">
         <Trash2 aria-hidden="true" />
         <span className="sr-only">Delete {service.name}</span>
       </Button>

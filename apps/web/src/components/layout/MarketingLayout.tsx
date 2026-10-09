@@ -52,8 +52,8 @@ export default function MarketingLayout() {
               Quotes, approvals, invoices and payments for service businesses.
             </p>
           </div>
-          <nav aria-label="Product">
-            <h2 className="text-sm font-semibold text-zinc-950">Product</h2>
+          <nav aria-label="Explore">
+            <h2 className="text-sm font-semibold text-zinc-950">Explore</h2>
             <ul className="mt-3 space-y-2">
               {SECTION_LINKS.map((link) => (
                 <li key={link.hash}>

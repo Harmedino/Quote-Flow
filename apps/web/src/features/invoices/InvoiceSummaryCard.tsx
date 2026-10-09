@@ -3,8 +3,7 @@ import { FileText } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { paths } from '@/app/paths';
-import { InvoiceStatusBadge } from '@/components/StatusBadge';
-import { Card, CardContent } from '@/components/ui/Card';
+import { Card } from '@/components/ui/Card';
 import { cn } from '@/lib/cn';
 import { formatCalendarDate, formatDate, formatMoney } from '@/lib/format';
 
@@ -43,7 +42,7 @@ function statusNote(invoice: InvoiceDto, timeZone: string): string | null {
   }
 }
 
-/** Status, amounts and where the invoice came from. */
+/** What is owed, the payment totals and where the invoice came from. */
 export function InvoiceSummaryCard({
   invoice,
   timeZone,
@@ -56,49 +55,45 @@ export function InvoiceSummaryCard({
   const outstanding = invoice.status !== 'cancelled' && invoice.balanceDue > 0;
 
   return (
-    <Card>
-      <CardContent className="space-y-5">
-        <div className="flex items-center justify-between gap-3">
-          <InvoiceStatusBadge status={invoice.status} />
-          <p className="text-sm text-zinc-500">
+    <Card className="space-y-5 p-5">
+      <div>
+        <div className="flex items-baseline justify-between gap-3 text-sm">
+          <p className="font-semibold text-zinc-950">{outstanding ? 'Balance due' : 'Total'}</p>
+          <p className="text-zinc-500">
             Due{' '}
             <span className={cn(invoice.status === 'overdue' && 'font-medium text-red-700')}>
               {formatCalendarDate(invoice.dueDate)}
             </span>
           </p>
         </div>
+        <p
+          className={cn(
+            'mt-1 text-3xl font-semibold tracking-tight tabular-nums',
+            invoice.status === 'overdue' ? 'text-red-700' : 'text-zinc-950',
+          )}
+        >
+          {money(outstanding ? invoice.balanceDue : invoice.totals.total)}
+        </p>
+        {note && <p className="mt-1.5 text-sm text-pretty text-zinc-600">{note}</p>}
+      </div>
 
-        <div>
-          <p className="text-sm text-zinc-600">{outstanding ? 'Balance due' : 'Total'}</p>
-          <p
-            className={cn(
-              'mt-1 text-3xl font-semibold tracking-tight tabular-nums',
-              invoice.status === 'overdue' ? 'text-red-700' : 'text-zinc-950',
-            )}
-          >
-            {money(outstanding ? invoice.balanceDue : invoice.totals.total)}
-          </p>
-          {note && <p className="mt-1.5 text-sm text-pretty text-zinc-600">{note}</p>}
-        </div>
+      <dl className="space-y-2 border-t border-zinc-200 pt-4 text-sm">
+        <Row label="Total">{money(invoice.totals.total)}</Row>
+        <Row label="Paid">{money(invoice.amountPaid)}</Row>
+        <Row label="Balance due" className="font-medium">
+          {money(invoice.status === 'cancelled' ? 0 : invoice.balanceDue)}
+        </Row>
+      </dl>
 
-        <dl className="space-y-2 border-t border-zinc-200 pt-4 text-sm">
-          <Row label="Total">{money(invoice.totals.total)}</Row>
-          <Row label="Paid">{money(invoice.amountPaid)}</Row>
-          <Row label="Balance due" className="font-medium">
-            {money(invoice.status === 'cancelled' ? 0 : invoice.balanceDue)}
-          </Row>
-        </dl>
-
-        {invoice.quoteId && (
-          <Link
-            to={paths.quote(invoice.quoteId)}
-            className="flex items-center gap-2 rounded-lg bg-zinc-50 px-3 py-2.5 text-sm font-medium text-zinc-700 ring-1 ring-zinc-200 transition-colors ring-inset hover:bg-zinc-100 hover:text-zinc-950"
-          >
-            <FileText aria-hidden="true" className="size-4 text-zinc-500" />
-            View the quote this invoice came from
-          </Link>
-        )}
-      </CardContent>
+      {invoice.quoteId && (
+        <Link
+          to={paths.quote(invoice.quoteId)}
+          className="flex items-center gap-2 rounded-lg bg-zinc-50 px-3 py-2.5 text-sm font-medium text-zinc-700 ring-1 ring-zinc-200 transition-colors ring-inset hover:bg-zinc-100 hover:text-zinc-950"
+        >
+          <FileText aria-hidden="true" className="size-4 shrink-0 text-zinc-500" />
+          View the original quote
+        </Link>
+      )}
     </Card>
   );
 }

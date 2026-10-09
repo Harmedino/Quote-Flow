@@ -1,5 +1,4 @@
 import type { BusinessDto, InvoiceDto } from '@quoteflow/shared';
-import { Save } from 'lucide-react';
 import { useEffect, useId, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { paths } from '@/app/paths';
@@ -119,11 +118,10 @@ export function InvoiceEditor({
   const cancelTo = invoice ? paths.invoice(invoice.id) : paths.invoices;
   const actions = (
     <>
-      <Button type="submit" className="w-full" loading={saving}>
-        <Save aria-hidden="true" />
+      <Button type="submit" size="lg" className="w-full" loading={saving}>
         {invoice ? 'Save changes' : 'Save draft'}
       </Button>
-      <ButtonLink to={cancelTo} variant="secondary" className="w-full">
+      <ButtonLink to={cancelTo} variant="secondary" size="lg" className="w-full">
         Cancel
       </ButtonLink>
     </>
@@ -248,9 +246,9 @@ export function InvoiceEditor({
           </Card>
         </div>
 
-        <Card className="sticky top-8 hidden space-y-5 p-6 xl:block">
+        <Card className="sticky top-8 hidden space-y-4 p-5 xl:block">
           <div>
-            <h2 className="text-base font-semibold text-zinc-950">
+            <h2 className="text-sm font-semibold text-zinc-950">
               {invoice ? `Invoice ${invoice.invoiceNumber}` : 'New invoice'}
             </h2>
             <p className="mt-1 text-sm text-zinc-600">
@@ -263,7 +261,7 @@ export function InvoiceEditor({
             taxRate={taxRate}
             currency={currency}
           />
-          <div className="space-y-3 border-t border-zinc-200 pt-5">{actions}</div>
+          <div className="grid gap-2.5 pt-2">{actions}</div>
           <p className="text-xs text-pretty text-zinc-500">
             Saved as a draft. You can review it, then mark it as sent or share it with your
             customer.
