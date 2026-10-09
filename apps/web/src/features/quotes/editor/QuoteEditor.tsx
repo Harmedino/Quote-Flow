@@ -3,11 +3,15 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { paths } from '@/app/paths';
 import { Alert } from '@/components/ui/Alert';
-import { Card } from '@/components/ui/Card';
 import { DocumentTotalsSummary } from '@/features/documents/DocumentTotalsSummary';
 import { LineItemsEditor } from '@/features/documents/LineItemsEditor';
-import { type LineItemDraft, withoutBlankLineItems } from '@/features/documents/line-items';
+import {
+  draftTotals,
+  type LineItemDraft,
+  withoutBlankLineItems,
+} from '@/features/documents/line-items';
 import { useServicesQuery } from '@/features/services/use-services';
+import { formatMoney } from '@/lib/format';
 import { focusFirstInvalidField, getSubmitErrors } from '@/lib/forms';
 import {
   type QuoteFormValues,
@@ -22,6 +26,8 @@ import type { QuoteFlash } from '../quote-flash';
 import { useCreateQuote, useSendQuote, useUpdateQuote } from '../use-quotes';
 import { CustomerPicker } from './CustomerPicker';
 import { editorActions, type SaveIntent } from './editor-actions';
+import { editorSummaryLine, filledItemCount } from './editor-summary';
+import { EditorActionButtons } from './EditorActionButtons';
 import { EditorSection } from './EditorSection';
 import { MobileActionBar } from './MobileActionBar';
 import { PricingFields } from './PricingFields';
@@ -163,32 +169,29 @@ export function QuoteEditor({ business, initialValues, initialCustomer, quote }:
     }
   }
 
-  const summaryProps = {
-    items: values.items,
-    discount,
-    taxRate,
-    currency,
+  const totals = draftTotals(values.items, discount, taxRate);
+  const actionButtons = {
     actions,
     pendingIntent,
     onAction: (intent: SaveIntent) => void save(intent),
   };
 
   return (
-    <form
-      id={formId}
-      noValidate
-      onSubmit={(event) => event.preventDefault()}
-      className="pb-36 sm:pb-28 xl:pb-0"
-    >
+    <form id={formId} noValidate onSubmit={(event) => event.preventDefault()}>
       <UnsavedChangesGuard dirty={dirty} shouldBlock={() => dirty && !leaving.current} />
       {formError && (
         <Alert tone="danger" className="mb-6">
           {formError}
         </Alert>
       )}
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start">
         <div className="min-w-0 space-y-6">
-          <EditorSection title="Customer" headingId={`${formId}-customer`}>
+          <EditorSection
+            step={1}
+            title="Customer"
+            done={customer !== null}
+            headingId={`${formId}-customer`}
+          >
             <CustomerPicker
               inputId={`${formId}-customer-search`}
               customer={customer}
@@ -202,8 +205,10 @@ export function QuoteEditor({ business, initialValues, initialCustomer, quote }:
           </EditorSection>
 
           <EditorSection
+            step={2}
             title="Items"
             description="Pick from your services or type any item. Prices are per unit."
+            done={filledItemCount(values.items) > 0}
             headingId={`${formId}-items`}
           >
             <LineItemsEditor
@@ -215,21 +220,19 @@ export function QuoteEditor({ business, initialValues, initialCustomer, quote }:
             />
           </EditorSection>
 
-          <EditorSection title="Discount and tax" headingId={`${formId}-pricing`}>
+          <EditorSection step={3} title="Discount and tax" headingId={`${formId}-pricing`}>
             <PricingFields values={values} currency={currency} errors={errors} onChange={change} />
+            <div className="mt-6 rounded-xl bg-surface-muted p-4 xl:hidden">
+              <DocumentTotalsSummary
+                items={values.items}
+                discount={discount}
+                taxRate={taxRate}
+                currency={currency}
+              />
+            </div>
           </EditorSection>
 
-          <Card className="p-5 sm:p-6 xl:hidden">
-            <h2 className="mb-4 text-base font-semibold text-zinc-950">Summary</h2>
-            <DocumentTotalsSummary
-              items={values.items}
-              discount={discount}
-              taxRate={taxRate}
-              currency={currency}
-            />
-          </Card>
-
-          <EditorSection title="Dates and terms" headingId={`${formId}-details`}>
+          <EditorSection step={4} title="Dates and terms" headingId={`${formId}-details`}>
             <div className="space-y-5">
               <QuoteDatesFields values={values} errors={errors} onChange={change} />
               <QuoteNotesFields values={values} errors={errors} onChange={change} />
@@ -238,13 +241,29 @@ export function QuoteEditor({ business, initialValues, initialCustomer, quote }:
         </div>
 
         <QuoteSummaryPanel
-          {...summaryProps}
           title={quote ? `Quote ${quote.quoteNumber}` : 'New quote'}
           customer={customer}
+          items={values.items}
+          discount={discount}
+          taxRate={taxRate}
+          currency={currency}
+          note={
+            isDraft
+              ? 'Drafts stay private. Sending gives you a link to share on WhatsApp or anywhere else.'
+              : undefined
+          }
           className="sticky top-8 hidden xl:block"
-        />
+        >
+          <EditorActionButtons {...actionButtons} size="lg" className="w-full" />
+        </QuoteSummaryPanel>
       </div>
-      <MobileActionBar {...summaryProps} className="xl:hidden" />
+      <MobileActionBar
+        total={totals ? formatMoney(totals.total, currency) : null}
+        detail={editorSummaryLine(customer, values.items)}
+        className="xl:hidden"
+      >
+        <EditorActionButtons {...actionButtons} mainLast />
+      </MobileActionBar>
     </form>
   );
 }

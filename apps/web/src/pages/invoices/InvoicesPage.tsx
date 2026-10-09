@@ -26,6 +26,7 @@ import { cn } from '@/lib/cn';
 function NoInvoices() {
   return (
     <EmptyState
+      variant="dashed"
       icon={Receipt}
       title="No invoices yet"
       description="Invoices are created from accepted quotes in one click, or you can bill a customer directly with a new invoice."
@@ -47,6 +48,7 @@ function NoInvoices() {
 function NoMatches({ status, onClear }: { status: InvoiceStatus | null; onClear: () => void }) {
   return (
     <EmptyState
+      variant="dashed"
       icon={SearchX}
       title="No matching invoices"
       description={
@@ -82,17 +84,19 @@ export default function InvoicesPage() {
 
   let content;
   if (query.isPending) {
-    content = <InvoiceListSkeleton />;
+    content = (
+      <Card className="overflow-hidden">
+        <InvoiceListSkeleton />
+      </Card>
+    );
   } else if (query.isError) {
     content = (
-      <div className="p-5 sm:p-6">
-        <QueryError
-          title="We couldn’t load your invoices"
-          error={query.error}
-          onRetry={() => void query.refetch()}
-          retrying={query.isFetching}
-        />
-      </div>
+      <QueryError
+        title="We couldn’t load your invoices"
+        error={query.error}
+        onRetry={() => void query.refetch()}
+        retrying={query.isFetching}
+      />
     );
   } else if (query.data.data.length === 0) {
     content = filtered ? (
@@ -106,7 +110,9 @@ export default function InvoicesPage() {
         aria-busy={query.isPlaceholderData || undefined}
         className={cn('transition-opacity', query.isPlaceholderData && 'opacity-60')}
       >
-        <InvoiceList invoices={query.data.data} />
+        <Card className="overflow-hidden">
+          <InvoiceList invoices={query.data.data} />
+        </Card>
         <Pagination
           meta={query.data.meta}
           label="invoices"
@@ -130,20 +136,18 @@ export default function InvoicesPage() {
         }
       />
 
-      <div className="space-y-5">
+      <div className="space-y-4">
         <InvoiceStatusTabs value={params.status} onChange={(status) => update({ status })} />
-        <Card>
-          <ListToolbar>
-            <ListSearch
-              value={params.search}
-              onSearch={(search) => update({ search })}
-              label="Search invoices"
-              placeholder="Search number or customer"
-              className="w-full sm:max-w-sm"
-            />
-          </ListToolbar>
-          {content}
-        </Card>
+        <ListToolbar>
+          <ListSearch
+            value={params.search}
+            onSearch={(search) => update({ search })}
+            label="Search invoices"
+            placeholder="Search number or customer"
+            className="w-full sm:max-w-xs"
+          />
+        </ListToolbar>
+        {content}
       </div>
     </>
   );

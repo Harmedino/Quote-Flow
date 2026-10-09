@@ -5,6 +5,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { PanelCard } from '@/components/ui/PanelCard';
 import { getErrorMessage } from '@/lib/api-client';
 import { formatCalendarDate, formatMoney } from '@/lib/format';
+import { PAYMENT_METHOD_ICONS } from './payment-methods';
 import { useDeletePayment } from './use-invoices';
 
 /** Recorded payments, newest first by date, each removable after confirmation. */
@@ -27,36 +28,40 @@ export function InvoicePaymentsCard({ invoice }: { invoice: InvoiceDto }) {
         title="Payments"
         description={
           payments.length === 0
-            ? 'No payments recorded yet.'
+            ? 'Nothing recorded yet. When the customer pays you, record it here.'
             : `${money(invoice.amountPaid)} received in ${payments.length} ${payments.length === 1 ? 'payment' : 'payments'}.`
         }
-        className={payments.length > 0 ? 'pb-0' : undefined}
+        className={payments.length > 0 ? 'pb-1' : undefined}
       >
         {payments.length > 0 && (
-          <div className="-mx-5">
-            <ul className="divide-y divide-zinc-100 border-t border-zinc-100">
-              {payments.map((payment) => (
+          <ul className="-mx-5 divide-y divide-stone-100 border-t border-stone-100">
+            {payments.map((payment) => {
+              const Icon = PAYMENT_METHOD_ICONS[payment.method];
+              return (
                 <li key={payment.id} className="flex items-start gap-3 px-5 py-3.5">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-green-50 text-green-700">
+                    <Icon aria-hidden="true" className="size-4" />
+                  </span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-zinc-950 tabular-nums">
+                    <p className="text-sm font-semibold text-stone-900 tabular-nums">
                       {money(payment.amount)}
                     </p>
-                    <p className="mt-0.5 text-sm text-zinc-600">
+                    <p className="mt-0.5 text-xs text-stone-500">
                       {formatCalendarDate(payment.paidAt)} · {PAYMENT_METHOD_LABELS[payment.method]}
                     </p>
                     {payment.reference && (
-                      <p className="mt-0.5 truncate text-xs text-zinc-500">
+                      <p className="mt-0.5 truncate text-xs text-stone-500">
                         Ref. {payment.reference}
                       </p>
                     )}
                     {payment.note && (
-                      <p className="mt-0.5 text-xs text-pretty text-zinc-500">{payment.note}</p>
+                      <p className="mt-1 text-xs text-pretty text-stone-600">{payment.note}</p>
                     )}
                   </div>
                   <button
                     type="button"
                     onClick={() => setPendingDelete(payment)}
-                    className="-mr-2 inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-red-50 hover:text-red-700"
+                    className="-mr-2 inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-stone-500 transition-colors hover:bg-red-50 hover:text-red-700"
                   >
                     <Trash2 aria-hidden="true" className="size-4" />
                     <span className="sr-only">
@@ -65,9 +70,9 @@ export function InvoicePaymentsCard({ invoice }: { invoice: InvoiceDto }) {
                     </span>
                   </button>
                 </li>
-              ))}
-            </ul>
-          </div>
+              );
+            })}
+          </ul>
         )}
       </PanelCard>
       <ConfirmDialog

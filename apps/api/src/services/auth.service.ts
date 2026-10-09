@@ -1,6 +1,7 @@
 import type {
   AuthSessionDto,
   CurrentUserDto,
+  DemoQuoteDto,
   loginInputSchema,
   registerInputSchema,
 } from '@quoteflow/shared';
@@ -9,6 +10,7 @@ import type { z } from 'zod';
 import { isDuplicateKeyError } from '../db/errors';
 import { isDemoEmail } from '../demo/data/business';
 import { ensureDemoAccount } from '../demo/demo-account';
+import { openDemoQuote } from '../demo/open-quote';
 import {
   type BusinessDocument,
   BusinessModel,
@@ -45,6 +47,8 @@ export interface AuthService {
   login(input: LoginData, client: ClientInfo): Promise<SignedIn>;
   /** Signs in to the shared demo business, creating or refreshing it first. */
   demo(client: ClientInfo): Promise<SignedIn>;
+  /** A demo quote its customer can still answer, sending a new one when none is left. */
+  demoQuote(client: ClientInfo): Promise<DemoQuoteDto>;
   refresh(refreshToken: string | undefined, client: ClientInfo): Promise<SignedIn>;
   logout(refreshToken: string | undefined, client: ClientInfo): Promise<void>;
   logoutAll(auth: AuthContext, client: ClientInfo): Promise<void>;
@@ -192,6 +196,11 @@ export function createAuthService({ tokens, sessions, clock }: AuthServiceOption
         'Signed in to the demo',
       );
       return signIn(account, client);
+    },
+
+    async demoQuote(client) {
+      const account = await ensureDemoAccount(clock, client.log);
+      return { publicToken: await openDemoQuote(account, clock()) };
     },
 
     async refresh(refreshToken, client) {

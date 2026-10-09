@@ -1,0 +1,15 @@
+/* Answer buttons, the payment progress and the answer summary are filled with the business's
+   colour (BrandedPage sets the variables). Near-black ink, the default colour, would vanish on
+   the dark page, so there it turns lime like QuoteFlow's own main actions. The paper document
+   uses --doc-accent directly and stays as printed. */
+.doc-fills {
+  --doc-fill: var(--doc-accent);
+  --doc-on-fill: var(--doc-on-accent);
+}
+
+@media screen {
+  .dark .doc-fills[data-default-brand] {
+    --doc-fill: var(--color-highlight);
+    --doc-on-fill: var(--color-ink);
+  }
+}

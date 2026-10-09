@@ -2,6 +2,7 @@ import type { LineItemDto, ServiceDto } from '@quoteflow/shared';
 import { describe, expect, it } from 'vitest';
 import { matchServices, parseQuantityInput } from './line-item-inputs';
 import {
+  addServiceLineItem,
   applyServiceToDraft,
   draftLineAmount,
   draftTotals,
@@ -52,6 +53,18 @@ describe('line item drafts', () => {
       unitPrice: 2_500_000,
       quantity: 3,
     });
+  });
+
+  it('adds a service by filling the blank last row, or as a new row', () => {
+    const blank = newLineItemDraft();
+    const filled = addServiceLineItem([blank], service);
+    expect(filled).toHaveLength(1);
+    expect(filled[0]).toMatchObject({ key: blank.key, name: 'Deep cleaning' });
+
+    const added = addServiceLineItem(filled, service);
+    expect(added).toHaveLength(2);
+    expect(added[1]).toMatchObject({ name: 'Deep cleaning', quantity: 1, unitPrice: 2_500_000 });
+    expect(added[1]?.key).not.toBe(blank.key);
   });
 
   it('duplicates with a new key and round-trips API items', () => {

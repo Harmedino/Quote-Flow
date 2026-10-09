@@ -1,13 +1,20 @@
 import type { InvoiceStatus, PaymentMethod, QuoteStatus } from '@quoteflow/shared';
-import type { Discount } from '../../models';
+import type { Discount, Service } from '../../models';
 import type { DemoUserRole } from './business';
 import type { DemoCustomerKey } from './customers';
-import type { DemoServiceKey } from './services';
+import { DEMO_SERVICES, type DemoServiceKey } from './services';
+
+/** A one-off item typed straight onto the document. */
+export interface TypedItemPlan {
+  name: string;
+  description?: string;
+  unit?: string;
+  unitPrice: number;
+  quantity: number;
+}
 
 /** A catalogue service, or a one-off item typed straight onto the document. */
-export type ItemPlan =
-  | { service: DemoServiceKey; quantity: number }
-  | { name: string; description?: string; unit?: string; unitPrice: number; quantity: number };
+export type ItemPlan = { service: DemoServiceKey; quantity: number } | TypedItemPlan;
 
 export interface PaymentPlan {
   method: PaymentMethod;
@@ -42,51 +49,51 @@ export type StandaloneInvoicePlan = DocumentPlan & InvoicePlan;
 
 export const QUOTE_PLANS: QuotePlan[] = [
   {
-    customer: 'lakeside',
+    customer: 'palmView',
     daysAgo: 58,
     status: 'accepted',
     items: [
       { service: 'moveOutClean', quantity: 3 },
-      { service: 'interiorPainting', quantity: 1450 },
+      { service: 'interiorPainting', quantity: 135 },
     ],
     discount: { type: 'percentage', value: 5 },
     invoice: {
       status: 'paid',
       payments: [
-        { method: 'bank_transfer', daysAfterIssue: 2, share: 0.3, reference: 'PO-7781 deposit' },
+        { method: 'bank_transfer', daysAfterIssue: 2, share: 0.5, reference: 'PO-7781 deposit' },
         { method: 'bank_transfer', daysAfterIssue: 15, share: 'balance', reference: 'PO-7781' },
       ],
     },
   },
   {
-    customer: 'walsh',
+    customer: 'yetunde',
     daysAgo: 55,
     status: 'expired',
     items: [{ service: 'deepClean', quantity: 6 }],
   },
   {
-    customer: 'brightpath',
+    customer: 'smileCare',
     daysAgo: 50,
     status: 'accepted',
     items: [
-      { service: 'acTuneUp', quantity: 3 },
-      { service: 'ductCleaning', quantity: 14 },
+      { service: 'acService', quantity: 3 },
+      { service: 'solarCleaning', quantity: 14 },
     ],
     invoice: { status: 'overdue' },
   },
   {
-    customer: 'coleman',
+    customer: 'chinedu',
     daysAgo: 45,
     status: 'rejected',
     createdBy: 'staff',
     items: [
-      { service: 'exteriorPainting', quantity: 2100 },
-      { name: 'Pressure wash before painting', unit: 'job', unitPrice: 35_000, quantity: 1 },
+      { service: 'exteriorPainting', quantity: 195 },
+      { name: 'Pressure wash before painting', unit: 'job', unitPrice: 4_500_000, quantity: 1 },
     ],
-    rejectionReason: 'Went with a contractor who could start next week.',
+    rejectionReason: 'Went with a painter who could start next week.',
   },
   {
-    customer: 'summit',
+    customer: 'harbourPoint',
     daysAgo: 40,
     status: 'accepted',
     items: [
@@ -96,23 +103,23 @@ export const QUOTE_PLANS: QuotePlan[] = [
     invoice: { status: 'cancelled' },
   },
   {
-    customer: 'patel',
+    customer: 'segun',
     daysAgo: 36,
     status: 'expired',
-    items: [{ service: 'gutterCleaning', quantity: 180 }],
+    items: [{ service: 'tankCleaning', quantity: 2 }],
   },
   {
-    customer: 'greenleaf',
+    customer: 'ofadaCorner',
     daysAgo: 30,
     status: 'accepted',
     createdBy: 'staff',
     items: [
       { service: 'acCallOut', quantity: 1 },
       {
-        name: 'Replace condenser fan motor',
-        description: 'OEM-equivalent motor; includes removal and disposal of the old part.',
+        name: 'Replace AC fan motor',
+        description: 'Compatible replacement motor; includes removal and disposal of the old part.',
         unit: 'part',
-        unitPrice: 42_500,
+        unitPrice: 6_500_000,
         quantity: 1,
       },
       { service: 'handyman', quantity: 2 },
@@ -123,35 +130,35 @@ export const QUOTE_PLANS: QuotePlan[] = [
     },
   },
   {
-    customer: 'alvarez',
+    customer: 'bisi',
     daysAgo: 25,
     status: 'rejected',
-    items: [{ service: 'interiorPainting', quantity: 620 }],
-    rejectionReason: 'Decided to postpone the project until the spring.',
+    items: [{ service: 'interiorPainting', quantity: 58 }],
+    rejectionReason: 'Decided to wait until after the rainy season.',
   },
   {
-    customer: 'harper',
+    customer: 'adaeze',
     daysAgo: 16,
     status: 'accepted',
     items: [
       { service: 'deepClean', quantity: 5 },
-      { service: 'interiorPainting', quantity: 380 },
+      { service: 'interiorPainting', quantity: 35 },
     ],
-    discount: { type: 'fixed', value: 2_500 },
+    discount: { type: 'fixed', value: 500_000 },
     invoice: {
       status: 'partially_paid',
-      payments: [{ method: 'mobile_money', daysAfterIssue: 1, share: 0.4, reference: 'Deposit' }],
+      payments: [{ method: 'bank_transfer', daysAfterIssue: 1, share: 0.4, reference: 'Deposit' }],
     },
   },
   {
-    customer: 'okafor',
+    customer: 'grace',
     daysAgo: 13,
     status: 'accepted',
-    items: [{ service: 'acTuneUp', quantity: 2 }],
+    items: [{ service: 'acService', quantity: 2 }],
     invoice: { status: 'sent' },
   },
   {
-    customer: 'nguyen',
+    customer: 'tunde',
     daysAgo: 12,
     status: 'viewed',
     items: [
@@ -161,51 +168,54 @@ export const QUOTE_PLANS: QuotePlan[] = [
     discount: { type: 'percentage', value: 10 },
   },
   {
-    customer: 'patel',
+    customer: 'segun',
     daysAgo: 9,
     status: 'sent',
     createdBy: 'staff',
     items: [
-      { service: 'gutterCleaning', quantity: 180 },
+      { service: 'tankCleaning', quantity: 2 },
       { service: 'handyman', quantity: 1.5 },
     ],
   },
   {
-    customer: 'lakeside',
+    customer: 'palmView',
     daysAgo: 6,
     status: 'accepted',
     items: [{ service: 'standardClean', quantity: 12 }],
     discount: { type: 'percentage', value: 7.5 },
   },
   {
-    customer: 'bennett',
+    customer: 'musa',
     daysAgo: 4,
     status: 'viewed',
     items: [
       { service: 'handyman', quantity: 3 },
-      { name: 'Materials allowance', unit: 'lot', unitPrice: 8_500, quantity: 1 },
+      { name: 'Materials allowance', unit: 'lot', unitPrice: 2_500_000, quantity: 1 },
     ],
   },
   {
-    customer: 'greenleaf',
+    customer: 'ofadaCorner',
     daysAgo: 2,
     status: 'sent',
-    items: [{ service: 'ductCleaning', quantity: 10 }],
+    items: [
+      { service: 'exteriorPainting', quantity: 160 },
+      { service: 'acService', quantity: 4 },
+    ],
   },
   {
-    customer: 'brightpath',
+    customer: 'smileCare',
     daysAgo: 1,
     status: 'draft',
     items: [{ service: 'standardClean', quantity: 8 }],
     discount: { type: 'percentage', value: 10 },
   },
   {
-    customer: 'coleman',
+    customer: 'chinedu',
     daysAgo: 0,
     status: 'draft',
     createdBy: 'staff',
     items: [
-      { service: 'gutterCleaning', quantity: 140 },
+      { service: 'solarCleaning', quantity: 12 },
       { service: 'handyman', quantity: 1.5 },
     ],
   },
@@ -213,30 +223,50 @@ export const QUOTE_PLANS: QuotePlan[] = [
 
 export const STANDALONE_INVOICE_PLANS: StandaloneInvoicePlan[] = [
   {
-    customer: 'nguyen',
+    customer: 'tunde',
     daysAgo: 35,
     status: 'overdue',
     items: [
       { service: 'acCallOut', quantity: 1 },
-      { name: 'Refrigerant recharge (R-410A)', unit: 'lb', unitPrice: 9_500, quantity: 3 },
+      { name: 'Gas refill (R410A)', unit: 'kg', unitPrice: 1_200_000, quantity: 3 },
     ],
     payments: [{ method: 'cash', daysAfterIssue: 0, share: 0.25 }],
   },
   {
-    customer: 'bennett',
+    customer: 'musa',
     daysAgo: 18,
     status: 'paid',
     createdBy: 'staff',
     items: [
       { service: 'acCallOut', quantity: 1 },
-      { name: 'Capacitor replacement', unit: 'part', unitPrice: 14_500, quantity: 1 },
+      { name: 'Capacitor replacement', unit: 'part', unitPrice: 1_800_000, quantity: 1 },
     ],
     payments: [{ method: 'cash', daysAfterIssue: 0, share: 'balance' }],
   },
   {
-    customer: 'alvarez',
+    customer: 'bisi',
     daysAgo: 3,
     status: 'draft',
     items: [{ service: 'standardClean', quantity: 2 }],
   },
 ];
+
+/** A catalogue service's name, unit and price typed onto a document as a one-off item. */
+function typedIn(key: DemoServiceKey, quantity: number): TypedItemPlan {
+  const service: Pick<Service, 'name' | 'description' | 'unit' | 'price'> = DEMO_SERVICES[key];
+  const { name, description, unit, price } = service;
+  return { name, description, unit, unitPrice: price, quantity };
+}
+
+/**
+ * Sent when visitors have answered every open quote of the demo, so the website can always
+ * open one as the customer (see open-quote.ts). Its items are typed in rather than taken from
+ * the catalogue, which visitors may have changed since the demo was built.
+ */
+export const OPEN_QUOTE_PLAN: QuotePlan & { items: TypedItemPlan[] } = {
+  customer: 'adaeze',
+  daysAgo: 0,
+  status: 'sent',
+  items: [typedIn('deepClean', 4), typedIn('interiorPainting', 40), typedIn('handyman', 2)],
+  discount: { type: 'percentage', value: 5 },
+};

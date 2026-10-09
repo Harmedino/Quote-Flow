@@ -2,9 +2,8 @@ import { type PublicQuoteDto, canRespondToQuote } from '@quoteflow/shared';
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router';
 import { SalesDocument } from '@/components/documents/SalesDocument';
-import { brandColorVars } from '@/components/documents/brand-color';
 import { Badge } from '@/components/ui/Badge';
-import { ContactLinks } from '@/features/public-documents/ContactLinks';
+import { BrandedPage } from '@/features/public-documents/BrandedPage';
 import { PublicDocumentHeader } from '@/features/public-documents/PublicDocumentHeader';
 import {
   PublicDocumentError,
@@ -12,6 +11,7 @@ import {
   PublicLinkUnavailable,
 } from '@/features/public-documents/PublicDocumentStates';
 import { QuoteActionBar } from '@/features/public-documents/QuoteActionBar';
+import { QuoteSummary } from '@/features/public-documents/QuoteSummary';
 import {
   type QuoteDialog,
   QuoteAnswerDialogs,
@@ -69,6 +69,9 @@ function PublicQuoteView({ token, data }: { token: string; data: PublicQuoteDto 
   const total = formatMoney(quote.totals.total, quote.currency);
   const documentLabel = `Quote ${quote.quoteNumber}`;
   const status = CUSTOMER_QUOTE_STATUS[quote.status];
+  const validUntil = formatCalendarDate(quote.expiryDate);
+  const pdfUrl = publicPdfUrl('quote', token);
+  const pdfFileName = `${quote.quoteNumber}.pdf`;
 
   // After an answer, or a refused one, move to the banner so it is seen and announced.
   const announce = justAnswered || revised;
@@ -108,51 +111,67 @@ function PublicQuoteView({ token, data }: { token: string; data: PublicQuoteDto 
   }
 
   return (
-    <div style={brandColorVars(business.brandColor)} className="space-y-5">
+    <BrandedPage brandColor={business.brandColor}>
       <title>{`${documentLabel} from ${business.name}`}</title>
       {/* The token in the URL is the capability: never send it to other sites. */}
       <meta name="referrer" content="no-referrer" />
 
       <PublicDocumentHeader
-        eyebrow="Quote from"
-        businessName={business.name}
-        pdfUrl={publicPdfUrl('quote', token)}
-        pdfFileName={`${quote.quoteNumber}.pdf`}
-      />
-
-      {banner && (
-        <StatusBanner ref={bannerRef} banner={banner}>
-          {quote.status === 'rejected' && quote.rejectionReason && (
-            <p className="mb-4 rounded-lg bg-zinc-50 px-3 py-2 text-sm text-zinc-700 ring-1 ring-zinc-900/5 ring-inset">
-              <span className="font-medium">Your note:</span> {quote.rejectionReason}
-            </p>
-          )}
-          {banner.showContact && <ContactLinks business={business} documentLabel={documentLabel} />}
-        </StatusBanner>
-      )}
-
-      <SalesDocument
-        kind="quote"
-        number={quote.quoteNumber}
         business={business}
-        customer={quote.customer}
-        currency={quote.currency}
-        issueDate={quote.issueDate}
-        secondaryDate={{ label: 'Valid until', value: quote.expiryDate }}
-        items={quote.items}
-        discount={quote.discount}
-        taxRate={quote.taxRate}
-        totals={quote.totals}
-        notes={quote.notes}
-        terms={quote.terms}
-        status={<Badge tone={status.tone}>{status.label}</Badge>}
+        eyebrow="Quote from"
+        summary={`${documentLabel} · Valid until ${validUntil}`}
+        documentLabel={documentLabel}
+        pdfUrl={pdfUrl}
+        pdfFileName={pdfFileName}
       />
+
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-6">
+        <div className="min-w-0 space-y-5">
+          {banner && (
+            <StatusBanner ref={bannerRef} banner={banner}>
+              {quote.status === 'rejected' && quote.rejectionReason && (
+                <p className="rounded-2xl bg-stone-100 px-4 py-3 text-sm text-stone-700">
+                  <span className="font-medium text-stone-900">Your note:</span>{' '}
+                  {quote.rejectionReason}
+                </p>
+              )}
+            </StatusBanner>
+          )}
+
+          <SalesDocument
+            kind="quote"
+            number={quote.quoteNumber}
+            business={business}
+            customer={quote.customer}
+            currency={quote.currency}
+            issueDate={quote.issueDate}
+            secondaryDate={{ label: 'Valid until', value: quote.expiryDate }}
+            items={quote.items}
+            discount={quote.discount}
+            taxRate={quote.taxRate}
+            totals={quote.totals}
+            notes={quote.notes}
+            terms={quote.terms}
+            status={<Badge tone={status.tone}>{status.label}</Badge>}
+          />
+        </div>
+
+        <QuoteSummary
+          total={total}
+          validUntil={validUntil}
+          live={live}
+          pdfUrl={pdfUrl}
+          pdfFileName={pdfFileName}
+          onAccept={() => openDialog('accept')}
+          onDecline={() => openDialog('decline')}
+        />
+      </div>
 
       {live && (
         <>
           <QuoteActionBar
             total={total}
-            validUntil={formatCalendarDate(quote.expiryDate)}
+            validUntil={validUntil}
             onAccept={() => openDialog('accept')}
             onDecline={() => openDialog('decline')}
           />
@@ -171,7 +190,7 @@ function PublicQuoteView({ token, data }: { token: string; data: PublicQuoteDto 
           />
         </>
       )}
-    </div>
+    </BrandedPage>
   );
 }
 

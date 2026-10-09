@@ -8,7 +8,7 @@ import {
   toWhatsAppPhone,
 } from '@quoteflow/shared';
 import type { BadgeTone } from '@/components/ui/Badge';
-import { formatCalendarDate, formatDate, formatMoney } from '@/lib/format';
+import { formatCalendarDate, formatDate } from '@/lib/format';
 
 /** What customers read about a document's state: plain words, no internal jargon. */
 
@@ -18,8 +18,6 @@ export interface StatusBannerModel {
   tone: BannerTone;
   title: string;
   message: string;
-  /** Whether to offer ways to reach the business. */
-  showContact: boolean;
 }
 
 export interface FormatOptions {
@@ -64,7 +62,6 @@ export function quoteStatusBanner(
         tone: 'success',
         title: justAnswered ? 'Quote accepted. Thank you!' : 'Quote accepted',
         message: `You accepted this quote${answeredOn(quote.acceptedAt, options)}. ${business.name} will be in touch to arrange the next steps.`,
-        showContact: true,
       };
     case 'rejected':
       return {
@@ -73,14 +70,12 @@ export function quoteStatusBanner(
         message: justAnswered
           ? `Thanks for letting ${business.name} know. If anything changes, you can contact them for a new quote.`
           : `You declined this quote${answeredOn(quote.rejectedAt, options)}. Changed your mind? Contact ${business.name} for a new quote.`,
-        showContact: true,
       };
     case 'expired':
       return {
         tone: 'warning',
         title: 'This quote has expired',
         message: `It was valid until ${formatCalendarDate(quote.expiryDate, options)}. Please contact ${business.name} for an updated quote.`,
-        showContact: true,
       };
     default:
       return null;
@@ -92,10 +87,16 @@ export const QUOTE_REVISED_BANNER: StatusBannerModel = {
   tone: 'info',
   title: 'This quote was just updated',
   message: 'Please review the changes before answering.',
-  showContact: false,
 };
 
-/** Null while payment is simply due: the page's summary shows the amount and due date. */
+/** Whether the customer still has something to pay: the amount due is then the page's headline. */
+export function isAwaitingPayment({
+  status,
+}: Pick<PublicInvoiceDto['invoice'], 'status'>): boolean {
+  return status === 'sent' || status === 'partially_paid' || status === 'overdue';
+}
+
+/** Null while payment is simply due: the page's amount-due card shows the amount and due date. */
 export function invoiceStatusBanner(
   { invoice, business }: PublicInvoiceDto,
   options: FormatOptions = {},
@@ -107,21 +108,19 @@ export function invoiceStatusBanner(
         title: 'Paid in full',
         // paidAt is formatted in UTC like the calendar dates, so it never shifts a day.
         message: `Thank you! This invoice was paid${answeredOn(invoice.paidAt, { ...options, timeZone: 'UTC' })}.`,
-        showContact: false,
       };
     case 'overdue':
       return {
         tone: 'danger',
         title: 'Payment overdue',
-        message: `This invoice was due on ${formatCalendarDate(invoice.dueDate, options)}. ${formatMoney(invoice.balanceDue, invoice.currency, options.locale)} is outstanding. Please contact ${business.name} to arrange payment.`,
-        showContact: true,
+        // The amount and the date it was due are the headline of the page's amount-due card.
+        message: `Please contact ${business.name} to arrange payment.`,
       };
     case 'cancelled':
       return {
         tone: 'neutral',
         title: 'Invoice cancelled',
         message: `${business.name} has cancelled this invoice. No payment is due.`,
-        showContact: true,
       };
     default:
       return null;

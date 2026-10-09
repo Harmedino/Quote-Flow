@@ -20,6 +20,7 @@ import {
  *   POST /api/auth/logout-all    (bearer)             → 204 (every session revoked, cookie cleared)
  *   GET  /api/auth/demo                               → 200 DemoAvailabilityDto
  *   POST /api/auth/demo                               → 200 AuthSessionDto (+ refresh cookie); 404 when disabled
+ *   POST /api/auth/demo/quote                         → 200 DemoQuoteDto; 404 when disabled
  *   GET  /api/auth/me            (bearer)             → 200 CurrentUserDto
  *   PATCH /api/account           UpdateAccountInput   → 200 UserDto
  *   PUT  /api/account/password   ChangePasswordInput  → 204 (other sessions revoked)
@@ -88,4 +89,14 @@ export interface AuthSessionDto extends CurrentUserDto {
 /** Whether the deployment offers "Explore the demo" (DEMO_LOGIN_ENABLED on the API). */
 export interface DemoAvailabilityDto {
   available: boolean;
+}
+
+/**
+ * A quote of the demo business that its customer can still accept or decline, for the
+ * website's "Open a quote as the customer". The server sends a new one when visitors have
+ * answered all the others.
+ */
+export interface DemoQuoteDto {
+  /** The customer's link is /quote/<publicToken>. */
+  publicToken: string;
 }

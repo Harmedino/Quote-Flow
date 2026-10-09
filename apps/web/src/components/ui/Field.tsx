@@ -33,7 +33,7 @@ export function Field({
   const errorId = error ? `${controlId}-error` : undefined;
 
   const labelElement = (
-    <label htmlFor={controlId} className="block text-sm font-medium text-zinc-900">
+    <label htmlFor={controlId} className="block text-sm font-medium text-stone-800">
       {label}
       {required && (
         <span aria-hidden="true" className="ml-0.5 text-red-600">
@@ -64,7 +64,7 @@ export function Field({
         {children}
       </FieldControlContext>
       {hint && (
-        <p id={hintId} className="text-sm text-zinc-500">
+        <p id={hintId} className="text-sm text-stone-500">
           {hint}
         </p>
       )}

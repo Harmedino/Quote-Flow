@@ -7,7 +7,7 @@ export default function AccountSettingsPage() {
   return (
     <>
       <DocumentTitle title="Account settings" />
-      <div className="divide-y divide-zinc-200">
+      <div className="space-y-6">
         <ProfileSection />
         <ChangePasswordSection />
         <SessionsSection />

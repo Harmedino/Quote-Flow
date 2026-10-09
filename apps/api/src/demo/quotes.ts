@@ -1,4 +1,13 @@
-import { QuoteModel, type Quote, type QuoteDocument, toCustomerSnapshot } from '../models';
+import {
+  type BusinessDocument,
+  type CustomerDocument,
+  type LineItem,
+  QuoteModel,
+  type Quote,
+  type QuoteDocument,
+  type UserDocument,
+  toCustomerSnapshot,
+} from '../models';
 import { nextDocumentNumber } from '../services/numbering.service';
 import { generatePublicToken } from '../utils/tokens';
 import { QUOTE_PLANS, type QuotePlan } from './data/documents';
@@ -47,9 +56,20 @@ function quoteEvents(plan: QuotePlan, issueDate: Date, clock: SeedClock): QuoteE
   return events;
 }
 
-async function createQuote(tenant: DemoTenant, clock: SeedClock, plan: QuotePlan) {
-  const { business, users, customers, services } = tenant;
-  const customer = customers[plan.customer];
+/** The records a planned quote is built from: who it's from and for, and its items. */
+export interface QuoteParties {
+  business: BusinessDocument;
+  customer: CustomerDocument;
+  createdBy: UserDocument;
+  items: Omit<LineItem, 'amount'>[];
+}
+
+/** Saves one planned quote, dated relative to the seed clock. */
+export async function savePlannedQuote(
+  { business, customer, createdBy, items }: QuoteParties,
+  clock: SeedClock,
+  plan: QuotePlan,
+): Promise<QuoteDocument> {
   const issueDate = clock.daysAgo(plan.daysAgo);
   const expiryDate = addDays(issueDate, business.quoteValidityDays);
   assertCoherent(plan, expiryDate, clock.now);
@@ -61,7 +81,7 @@ async function createQuote(tenant: DemoTenant, clock: SeedClock, plan: QuotePlan
     customerId: customer._id,
     customer: toCustomerSnapshot(customer),
     currency: business.currency,
-    items: buildLineItems(plan.items, services),
+    items,
     discount: plan.discount ?? null,
     taxRate: business.defaultTaxRate,
     notes: business.defaultQuoteNotes,
@@ -69,12 +89,23 @@ async function createQuote(tenant: DemoTenant, clock: SeedClock, plan: QuotePlan
     issueDate,
     expiryDate,
     publicToken: generatePublicToken(),
-    createdBy: users[plan.createdBy ?? 'owner']._id,
+    createdBy: createdBy._id,
     createdAt: issueDate,
     rejectionReason: plan.rejectionReason,
     ...quoteEvents(plan, issueDate, clock),
   });
   return quote.save();
+}
+
+function createQuote(tenant: DemoTenant, clock: SeedClock, plan: QuotePlan) {
+  const { business, users, customers, services } = tenant;
+  const parties = {
+    business,
+    customer: customers[plan.customer],
+    createdBy: users[plan.createdBy ?? 'owner'],
+    items: buildLineItems(plan.items, services),
+  };
+  return savePlannedQuote(parties, clock, plan);
 }
 
 /** Creates the planned quotes oldest first, so their numbers follow their dates. */

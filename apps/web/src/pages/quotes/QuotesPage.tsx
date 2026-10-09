@@ -35,23 +35,28 @@ export default function QuotesPage() {
   }
 
   function renderContent() {
-    if (quotes.isPending) return <QuoteListSkeleton />;
+    if (quotes.isPending) {
+      return (
+        <Card className="overflow-hidden">
+          <QuoteListSkeleton />
+        </Card>
+      );
+    }
     if (quotes.isError) {
       return (
-        <div className="p-5 sm:p-6">
-          <QueryError
-            title="We couldn’t load your quotes"
-            error={quotes.error}
-            retrying={quotes.isFetching}
-            onRetry={() => void quotes.refetch()}
-          />
-        </div>
+        <QueryError
+          title="We couldn’t load your quotes"
+          error={quotes.error}
+          retrying={quotes.isFetching}
+          onRetry={() => void quotes.refetch()}
+        />
       );
     }
     const { data, meta } = quotes.data;
     if (meta.total === 0 && filtered) {
       return (
         <EmptyState
+          variant="dashed"
           icon={Search}
           title="No quotes found"
           description={
@@ -71,6 +76,7 @@ export default function QuotesPage() {
     if (meta.total === 0) {
       return (
         <EmptyState
+          variant="dashed"
           icon={FileText}
           title="No quotes yet"
           description="Build a professional quote from your services in under a minute, then share it by WhatsApp or link."
@@ -84,8 +90,13 @@ export default function QuotesPage() {
       );
     }
     return (
-      <div className={cn('transition-opacity', quotes.isPlaceholderData && 'opacity-60')}>
-        <QuoteListResults quotes={data} />
+      <div
+        aria-busy={quotes.isPlaceholderData || undefined}
+        className={cn('transition-opacity', quotes.isPlaceholderData && 'opacity-60')}
+      >
+        <Card className="overflow-hidden">
+          <QuoteListResults quotes={data} />
+        </Card>
         <Pagination
           meta={meta}
           label="quotes"
@@ -109,22 +120,20 @@ export default function QuotesPage() {
         }
       />
 
-      <div className="space-y-5">
+      <div className="space-y-4">
         <StatusTabs current={listParams.status} />
-        <Card>
-          <ListToolbar>
-            <ListSearch
-              value={listParams.search}
-              onSearch={(search) =>
-                setParams(writeQuoteListParams(params, { search }), { replace: true })
-              }
-              label="Search quotes"
-              placeholder="Search number or customer"
-              className="w-full sm:max-w-sm"
-            />
-          </ListToolbar>
-          {renderContent()}
-        </Card>
+        <ListToolbar>
+          <ListSearch
+            value={listParams.search}
+            onSearch={(search) =>
+              setParams(writeQuoteListParams(params, { search }), { replace: true })
+            }
+            label="Search quotes"
+            placeholder="Search number or customer"
+            className="w-full sm:max-w-xs"
+          />
+        </ListToolbar>
+        {renderContent()}
       </div>
     </>
   );

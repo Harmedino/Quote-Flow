@@ -41,6 +41,11 @@ export function createAuthController(
       sendData(res, session);
     },
 
+    demoQuote: async (req: Request, res: Response) => {
+      if (!demoLoginEnabled) throw notFound();
+      sendData(res, await auth.demoQuote(clientInfoOf(req)));
+    },
+
     /** A failed refresh leaves the cookie alone: a racing tab may just have received a newer one. */
     refresh: async (req: Request, res: Response) => {
       const { session, refreshToken } = await auth.refresh(

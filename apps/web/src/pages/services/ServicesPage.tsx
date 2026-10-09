@@ -2,13 +2,13 @@ import type { ServiceDto, ServiceInput } from '@quoteflow/shared';
 import { Plus, SearchX } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router';
+import { NEW_PARAM } from '@/app/paths';
 import { DocumentTitle } from '@/components/DocumentTitle';
 import { ListSearch } from '@/components/ListSearch';
 import { ListToolbar } from '@/components/ListToolbar';
 import { Pagination } from '@/components/Pagination';
 import { QueryError } from '@/components/QueryError';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -23,6 +23,7 @@ import type { ServiceListOptions } from '@/features/services/services-api';
 import { useDeleteService, useServicesQuery } from '@/features/services/use-services';
 import { getErrorMessage } from '@/lib/api-client';
 import { cn } from '@/lib/cn';
+import { useSearchFlag } from '@/lib/use-search-flag';
 import { ServiceList, ServiceListSkeleton } from './ServiceList';
 import { ServicesEmptyState } from './ServicesEmptyState';
 import { StatusFilter } from './StatusFilter';
@@ -67,6 +68,7 @@ export default function ServicesPage() {
 
   const openCreate = (initialValues?: Partial<ServiceInput>) =>
     setDialog({ mode: 'create', initialValues });
+  useSearchFlag(NEW_PARAM, () => openCreate());
   const closeDialog = () => setDialog({ mode: 'closed' });
   const filtered = Boolean(params.search) || params.status !== 'all';
 
@@ -74,14 +76,12 @@ export default function ServicesPage() {
     if (services.isPending) return <ServiceListSkeleton />;
     if (services.isError) {
       return (
-        <div className="p-5 sm:p-6">
-          <QueryError
-            title="Couldn’t load services"
-            error={services.error}
-            onRetry={() => void services.refetch()}
-            retrying={services.isRefetching}
-          />
-        </div>
+        <QueryError
+          title="Couldn’t load services"
+          error={services.error}
+          onRetry={() => void services.refetch()}
+          retrying={services.isRefetching}
+        />
       );
     }
     const { data, meta } = services.data;
@@ -91,6 +91,7 @@ export default function ServicesPage() {
     if (meta.total === 0) {
       return (
         <EmptyState
+          variant="dashed"
           icon={SearchX}
           title="No services found"
           description={
@@ -107,7 +108,10 @@ export default function ServicesPage() {
       );
     }
     return (
-      <div className={cn('transition-opacity', services.isPlaceholderData && 'opacity-60')}>
+      <div
+        aria-busy={services.isPlaceholderData || undefined}
+        className={cn('transition-opacity', services.isPlaceholderData && 'opacity-60')}
+      >
         <ServiceList
           services={data}
           onEdit={(service) => setDialog({ mode: 'edit', service })}
@@ -135,16 +139,16 @@ export default function ServicesPage() {
         }
       />
 
-      <Card>
+      <div className="space-y-4">
+        <StatusFilter value={params.status} onChange={(status) => update({ status })} />
         <ListToolbar>
           <ListSearch
             value={params.search}
             onSearch={(search) => update({ search }, true)}
             label="Search services"
             placeholder="Search name or description"
-            className="w-full sm:max-w-sm"
+            className="w-full sm:max-w-xs"
           />
-          <StatusFilter value={params.status} onChange={(status) => update({ status })} />
         </ListToolbar>
         <p className="sr-only" aria-live="polite">
           {services.data && !services.isPlaceholderData
@@ -152,7 +156,7 @@ export default function ServicesPage() {
             : ''}
         </p>
         {renderContent()}
-      </Card>
+      </div>
 
       <ServiceFormDialog
         open={dialog.mode !== 'closed'}

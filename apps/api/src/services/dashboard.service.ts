@@ -20,6 +20,7 @@ import {
 import { sessionExpired } from '../utils/app-error';
 import type { Clock } from '../utils/clock';
 import type { AuthContext } from './access-token.service';
+import { dashboardActivity } from './dashboard-activity';
 
 const LIST_SIZE = 5;
 
@@ -71,6 +72,7 @@ export function createDashboardService({ clock }: { clock: Clock }): DashboardSe
         totalQuotes,
         pendingQuotes,
         acceptedQuotes,
+        acceptedNotInvoiced,
         totalInvoiced,
         amountPaid,
         outstanding,
@@ -80,6 +82,7 @@ export function createDashboardService({ clock }: { clock: Clock }): DashboardSe
         recentInvoices,
         recentCustomers,
         upcomingInvoices,
+        activity,
       ] = await Promise.all([
         QuoteModel.countDocuments({ businessId }),
         QuoteModel.countDocuments({
@@ -88,6 +91,7 @@ export function createDashboardService({ clock }: { clock: Clock }): DashboardSe
           expiryDate: { $gte: startOfToday },
         }),
         QuoteModel.countDocuments({ businessId, status: 'accepted' }),
+        QuoteModel.countDocuments({ businessId, status: 'accepted', invoiceId: null }),
         sumInvoices(billed, 'totals.total'),
         sumInvoices(billed, 'amountPaid'),
         sumInvoices(unpaid, 'balanceDue'),
@@ -112,12 +116,19 @@ export function createDashboardService({ clock }: { clock: Clock }): DashboardSe
           .sort({ dueDate: 1, _id: 1 })
           .limit(LIST_SIZE)
           .lean<InvoiceListRecord[]>(),
+        dashboardActivity(businessId, currency, today),
       ]);
 
       return {
         currency,
-        quotes: { total: totalQuotes, pending: pendingQuotes, accepted: acceptedQuotes },
+        quotes: {
+          total: totalQuotes,
+          pending: pendingQuotes,
+          accepted: acceptedQuotes,
+          acceptedNotInvoiced,
+        },
         invoices: { totalInvoiced, amountPaid, outstanding, overdueCount, overdueAmount },
+        activity,
         recentQuotes: recentQuotes.map((quote) => toQuoteListItemDto(quote, today)),
         recentInvoices: recentInvoices.map((invoice) => toInvoiceListItemDto(invoice, today)),
         recentCustomers: recentCustomers.map(toCustomerDto),

@@ -1,7 +1,7 @@
 import { Plus, SearchX, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
-import { paths } from '@/app/paths';
+import { NEW_PARAM, paths } from '@/app/paths';
 import { DocumentTitle } from '@/components/DocumentTitle';
 import { ListSearch } from '@/components/ListSearch';
 import { ListToolbar } from '@/components/ListToolbar';
@@ -20,6 +20,7 @@ import {
 } from '@/features/customers/customer-list-params';
 import { useCustomersQuery } from '@/features/customers/use-customers';
 import { cn } from '@/lib/cn';
+import { useSearchFlag } from '@/lib/use-search-flag';
 import { CustomerList, CustomerListSkeleton } from './CustomerList';
 
 const PAGE_SIZE = 20;
@@ -29,6 +30,7 @@ export default function CustomersPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const params = readCustomerListParams(searchParams);
   const [dialogOpen, setDialogOpen] = useState(false);
+  useSearchFlag(NEW_PARAM, () => setDialogOpen(true));
 
   const query: CustomerListOptions = {
     page: params.page,
@@ -62,23 +64,28 @@ export default function CustomersPage() {
   );
 
   function renderContent() {
-    if (customers.isPending) return <CustomerListSkeleton />;
+    if (customers.isPending) {
+      return (
+        <Card className="overflow-hidden">
+          <CustomerListSkeleton />
+        </Card>
+      );
+    }
     if (customers.isError) {
       return (
-        <div className="p-5 sm:p-6">
-          <QueryError
-            title="Couldn’t load customers"
-            error={customers.error}
-            onRetry={() => void customers.refetch()}
-            retrying={customers.isRefetching}
-          />
-        </div>
+        <QueryError
+          title="Couldn’t load customers"
+          error={customers.error}
+          onRetry={() => void customers.refetch()}
+          retrying={customers.isRefetching}
+        />
       );
     }
     const { data, meta } = customers.data;
     if (meta.total === 0 && !filtered) {
       return (
         <EmptyState
+          variant="dashed"
           icon={Users}
           title="Add your first customer"
           description="Save a customer once and reuse their details on every quote and invoice."
@@ -89,6 +96,7 @@ export default function CustomersPage() {
     if (meta.total === 0) {
       return (
         <EmptyState
+          variant="dashed"
           icon={SearchX}
           title="No customers found"
           description={
@@ -105,8 +113,13 @@ export default function CustomersPage() {
       );
     }
     return (
-      <div className={cn('transition-opacity', customers.isPlaceholderData && 'opacity-60')}>
-        <CustomerList customers={data} />
+      <div
+        aria-busy={customers.isPlaceholderData || undefined}
+        className={cn('transition-opacity', customers.isPlaceholderData && 'opacity-60')}
+      >
+        <Card className="overflow-hidden">
+          <CustomerList customers={data} />
+        </Card>
         <Pagination meta={meta} label="customers" onPageChange={(page) => update({ page })} />
       </div>
     );
@@ -121,21 +134,21 @@ export default function CustomersPage() {
         actions={addButton}
       />
 
-      <Card>
+      <div className="space-y-4">
         <ListToolbar>
           <ListSearch
             value={params.search}
             onSearch={(search) => update({ search }, true)}
             label="Search customers"
-            placeholder="Search customers"
-            className="w-full sm:max-w-sm"
+            placeholder="Search name, phone or company"
+            className="w-full sm:max-w-xs"
           />
-          <label className="inline-flex items-center gap-2.5 text-sm font-medium text-zinc-700 select-none">
+          <label className="inline-flex items-center gap-2.5 text-sm font-medium text-stone-700 select-none">
             <input
               type="checkbox"
               checked={params.archived}
               onChange={(event) => update({ archived: event.target.checked })}
-              className="size-4 rounded border-zinc-400 accent-brand-600"
+              className="size-4 rounded border-stone-400 accent-brand-600"
             />
             Show archived
           </label>
@@ -146,7 +159,7 @@ export default function CustomersPage() {
             : ''}
         </p>
         {renderContent()}
-      </Card>
+      </div>
 
       <CustomerFormDialog
         open={dialogOpen}

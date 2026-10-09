@@ -2,9 +2,7 @@ import { Lock, Receipt } from 'lucide-react';
 import { useParams } from 'react-router';
 import { paths } from '@/app/paths';
 import { DocumentTitle } from '@/components/DocumentTitle';
-import { PageLoader } from '@/components/PageLoader';
-import { Alert } from '@/components/ui/Alert';
-import { Button } from '@/components/ui/Button';
+import { QueryError } from '@/components/QueryError';
 import { ButtonLink } from '@/components/ui/ButtonLink';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -13,48 +11,40 @@ import { useAuthenticatedSession } from '@/features/auth/use-session';
 import { invoiceFormValuesFromInvoice } from '@/features/invoices/invoice-form';
 import { InvoiceEditor } from '@/features/invoices/InvoiceEditor';
 import { useInvoiceQuery } from '@/features/invoices/use-invoices';
-import { getErrorMessage, isMissingRecordError } from '@/lib/api-client';
+import { EditorSkeleton } from '@/features/quotes/ui/EditorSkeleton';
+import { isMissingRecordError } from '@/lib/api-client';
 import { canEditInvoice } from '@quoteflow/shared';
 
 export default function EditInvoicePage() {
   const { invoiceId = '' } = useParams();
   const { business } = useAuthenticatedSession();
   const query = useInvoiceQuery(invoiceId);
-  const back = { to: paths.invoice(invoiceId), label: 'Invoice' };
+  const back = { to: paths.invoice(invoiceId), label: 'Back to invoice' };
 
-  if (query.isPending) return <PageLoader />;
-
-  if (query.isError) {
-    const missing = isMissingRecordError(query.error);
+  if (query.isPending || query.isError) {
     return (
       <>
         <DocumentTitle title="Edit invoice" />
         <PageHeader title="Edit invoice" back={{ to: paths.invoices, label: 'Invoices' }} />
-        <Card>
-          {missing ? (
+        {query.isPending ? (
+          <EditorSkeleton />
+        ) : isMissingRecordError(query.error) ? (
+          <Card>
             <EmptyState
               icon={Receipt}
               title="Invoice not found"
               description="It may have been deleted, or the link is incorrect."
               action={<ButtonLink to={paths.invoices}>Back to invoices</ButtonLink>}
             />
-          ) : (
-            <div className="p-5 sm:p-6">
-              <Alert tone="danger" title="We couldn’t load this invoice">
-                <p>{getErrorMessage(query.error)}</p>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="mt-3"
-                  loading={query.isFetching}
-                  onClick={() => void query.refetch()}
-                >
-                  Try again
-                </Button>
-              </Alert>
-            </div>
-          )}
-        </Card>
+          </Card>
+        ) : (
+          <QueryError
+            title="We couldn’t load this invoice"
+            error={query.error}
+            retrying={query.isFetching}
+            onRetry={() => void query.refetch()}
+          />
+        )}
       </>
     );
   }

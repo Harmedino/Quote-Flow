@@ -24,7 +24,7 @@ export interface AuthRateLimits {
   refresh: RateLimitSettings;
   /** Password changes per user (each one checks the current password). */
   changePassword: RateLimitSettings;
-  /** Demo sign-ins per IP address. */
+  /** Demo sign-ins and demo quote links per IP address. */
   demo: RateLimitSettings;
 }
 
@@ -120,7 +120,7 @@ export function createAuthRateLimiters(
     }),
     demo: createRateLimiter({
       ...base('demo'),
-      message: 'Too many demo sign-ins from this network. Please try again later.',
+      message: 'Too many demo requests from this network. Please try again later.',
     }),
   };
 }

@@ -1,7 +1,12 @@
 import type { PublicInvoiceDto, PublicQuoteDto } from '@quoteflow/shared';
 import { describe, expect, it } from 'vitest';
 import { buildPublicPdfUrl } from './public-api';
-import { businessContactLinks, invoiceStatusBanner, quoteStatusBanner } from './public-status';
+import {
+  businessContactLinks,
+  invoiceStatusBanner,
+  isAwaitingPayment,
+  quoteStatusBanner,
+} from './public-status';
 
 const business: PublicQuoteDto['business'] = {
   name: 'Sparkle Cleaning Co.',
@@ -80,13 +85,13 @@ describe('quoteStatusBanner', () => {
     );
   });
 
-  it('explains a declined and an expired quote and offers contact details', () => {
+  it('explains a declined and an expired quote', () => {
     const declined = quoteStatusBanner(
       quoteDto({ status: 'rejected', rejectedAt: '2026-10-08T10:00:00.000Z' }),
       false,
       en,
     );
-    expect(declined).toMatchObject({ tone: 'neutral', showContact: true });
+    expect(declined).toMatchObject({ tone: 'neutral' });
     expect(declined?.message).toContain('You declined this quote on Oct 8, 2026.');
 
     const expired = quoteStatusBanner(quoteDto({ status: 'expired' }), false, en);
@@ -113,13 +118,29 @@ describe('invoiceStatusBanner', () => {
       tone: 'success',
       message: 'Thank you! This invoice was paid on Oct 8, 2026.',
     });
-    expect(invoiceStatusBanner(invoiceDto({ status: 'overdue' }), en)?.message).toBe(
-      'This invoice was due on Oct 15, 2026. $100.00 is outstanding. Please contact Sparkle Cleaning Co. to arrange payment.',
-    );
+    expect(invoiceStatusBanner(invoiceDto({ status: 'overdue' }), en)).toEqual({
+      tone: 'danger',
+      title: 'Payment overdue',
+      message: 'Please contact Sparkle Cleaning Co. to arrange payment.',
+    });
     expect(invoiceStatusBanner(invoiceDto({ status: 'cancelled' }), en)).toMatchObject({
       tone: 'neutral',
       title: 'Invoice cancelled',
     });
+  });
+});
+
+describe('isAwaitingPayment', () => {
+  it('is true while something is left to pay, overdue included', () => {
+    expect(isAwaitingPayment({ status: 'sent' })).toBe(true);
+    expect(isAwaitingPayment({ status: 'partially_paid' })).toBe(true);
+    expect(isAwaitingPayment({ status: 'overdue' })).toBe(true);
+  });
+
+  it('is false once nothing is due', () => {
+    expect(isAwaitingPayment({ status: 'paid' })).toBe(false);
+    expect(isAwaitingPayment({ status: 'cancelled' })).toBe(false);
+    expect(isAwaitingPayment({ status: 'draft' })).toBe(false);
   });
 });
 

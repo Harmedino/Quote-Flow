@@ -1,4 +1,6 @@
-import '@fontsource-variable/inter';
+// Self-hosted variable fonts: no third-party request.
+import '@fontsource-variable/geist';
+import '@fontsource-variable/bricolage-grotesque';
 import './styles/index.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';

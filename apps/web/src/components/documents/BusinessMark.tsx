@@ -23,7 +23,7 @@ export function BusinessMark({ name, logoUrl, className }: BusinessMarkProps) {
         alt={`${name} logo`}
         onError={() => setFailedUrl(src)}
         className={cn(
-          'size-12 shrink-0 rounded-xl bg-white object-contain ring-1 ring-zinc-200 sm:size-14',
+          'size-12 shrink-0 rounded-xl border border-stone-200 bg-surface object-contain sm:size-14',
           className,
         )}
       />
@@ -34,7 +34,7 @@ export function BusinessMark({ name, logoUrl, className }: BusinessMarkProps) {
     <span
       aria-hidden="true"
       className={cn(
-        'flex size-12 shrink-0 items-center justify-center rounded-xl bg-(--doc-accent) text-lg font-semibold tracking-tight text-(--doc-on-accent) sm:size-14 sm:text-xl',
+        'flex size-12 shrink-0 items-center justify-center rounded-xl bg-(--doc-accent) font-display text-lg font-bold tracking-tight text-(--doc-on-accent) sm:size-14 sm:text-xl',
         className,
       )}
     >

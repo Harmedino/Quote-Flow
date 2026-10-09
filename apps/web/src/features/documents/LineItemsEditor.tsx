@@ -1,9 +1,14 @@
 import type { CurrencyCode, ServiceDto } from '@quoteflow/shared';
 import { CircleAlert, Plus } from 'lucide-react';
 import { useEffect, useRef } from 'react';
-import { Button } from '@/components/ui/Button';
 import { LineItemRow } from './LineItemRow';
-import { duplicateLineItemDraft, type LineItemDraft, newLineItemDraft } from './line-items';
+import {
+  addServiceLineItem,
+  duplicateLineItemDraft,
+  type LineItemDraft,
+  newLineItemDraft,
+} from './line-items';
+import { ServiceQuickAdd } from './ServiceQuickAdd';
 
 export interface LineItemsEditorProps {
   items: LineItemDraft[];
@@ -15,7 +20,7 @@ export interface LineItemsEditorProps {
   errors?: Record<string, string>;
 }
 
-const HEADER_CELL = 'text-xs font-medium tracking-wide text-zinc-500 uppercase';
+const HEADER_CELL = 'text-xs font-medium tracking-wide text-stone-500 uppercase';
 
 /** Editable line items for quotes and invoices, as a table on wide containers and cards on narrow ones. */
 export function LineItemsEditor({
@@ -73,7 +78,7 @@ export function LineItemsEditor({
     <div className="@container">
       <div
         aria-hidden="true"
-        className="hidden border-b border-zinc-200 pb-2 @2xl:grid @2xl:grid-cols-[minmax(0,1fr)_4.5rem_5rem_8rem_6.5rem_4rem] @2xl:gap-x-2"
+        className="hidden border-b border-stone-200 pb-2 @2xl:grid @2xl:grid-cols-[minmax(0,1fr)_4rem_4.5rem_9.5rem_7rem_4rem] @2xl:gap-x-2"
       >
         <span className={HEADER_CELL}>Item</span>
         <span className={`${HEADER_CELL} text-right`}>Qty</span>
@@ -108,10 +113,20 @@ export function LineItemsEditor({
           {errors.items}
         </p>
       )}
-      <Button ref={addButton} variant="secondary" className="mt-4" onClick={add}>
-        <Plus aria-hidden="true" />
+      <button
+        ref={addButton}
+        type="button"
+        onClick={add}
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-stone-300 py-3 text-sm font-medium text-stone-600 transition-colors hover:border-brand-400 hover:bg-brand-50 hover:text-brand-700"
+      >
+        <Plus aria-hidden="true" className="size-4" />
         Add item
-      </Button>
+      </button>
+      <ServiceQuickAdd
+        services={services}
+        currency={currency}
+        onAdd={(service) => onChange(addServiceLineItem(items, service))}
+      />
     </div>
   );
 }

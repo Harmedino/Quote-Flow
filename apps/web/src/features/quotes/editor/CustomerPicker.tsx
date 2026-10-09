@@ -67,13 +67,13 @@ function SelectedCustomerCard({
     <div>
       <div
         {...(lockedHint && error ? { tabIndex: -1, ...invalid } : {})}
-        className="rounded-xl border border-zinc-200 bg-zinc-50/60 p-4"
+        className="rounded-xl border border-brand-600 bg-brand-50 p-4 ring-1 ring-brand-600"
       >
         <div className="flex items-center gap-3">
           <Avatar name={customer.name} />
           <div className="min-w-0 flex-1 text-sm">
-            <p className="truncate font-semibold text-zinc-950">{customer.name}</p>
-            {customer.company && <p className="truncate text-zinc-600">{customer.company}</p>}
+            <p className="truncate font-semibold text-stone-900">{customer.name}</p>
+            {customer.company && <p className="truncate text-stone-600">{customer.company}</p>}
           </div>
           {!lockedHint && (
             <Button ref={changeButtonRef} variant="ghost" size="sm" onClick={onChange} {...invalid}>
@@ -82,17 +82,17 @@ function SelectedCustomerCard({
           )}
         </div>
         {details.length > 0 && (
-          <ul className="mt-3 flex flex-col gap-1.5 text-sm text-zinc-600 sm:flex-row sm:flex-wrap sm:gap-x-5 sm:pl-12">
+          <ul className="mt-3 flex flex-col gap-1.5 text-sm text-stone-600 sm:flex-row sm:flex-wrap sm:gap-x-5 sm:pl-13">
             {details.map(({ icon: Icon, text }) => (
               <li key={text} className="flex min-w-0 items-start gap-2">
-                <Icon aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-zinc-400" />
+                <Icon aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-stone-500" />
                 <span className="wrap-anywhere">{text}</span>
               </li>
             ))}
           </ul>
         )}
       </div>
-      {lockedHint && <p className="mt-2 text-sm text-zinc-500">{lockedHint}</p>}
+      {lockedHint && <p className="mt-2 text-sm text-stone-500">{lockedHint}</p>}
       {error && <PickerError id={errorId} message={error} />}
     </div>
   );
@@ -177,7 +177,7 @@ export function CustomerPicker({
           </label>
           <Search
             aria-hidden="true"
-            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-zinc-400"
+            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-stone-500"
           />
           <input
             ref={inputRef}
@@ -206,17 +206,17 @@ export function CustomerPicker({
             onKeyDown={listbox.onKeyDown}
           />
           {results.isFetching && (
-            <Spinner className="absolute top-1/2 right-3 size-4 -translate-y-1/2 text-zinc-400" />
+            <Spinner className="absolute top-1/2 right-3 size-4 -translate-y-1/2 text-stone-500" />
           )}
           <div
             hidden={!expanded}
-            className="absolute inset-x-0 top-full z-30 mt-1 overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-lg ring-1 ring-zinc-950/5"
+            className="absolute inset-x-0 top-full z-30 mt-1 overflow-hidden rounded-xl border border-stone-200 bg-surface shadow-[var(--shadow-elevated)]"
           >
             <ul
               id={listboxId}
               role="listbox"
               aria-label="Customers"
-              className="max-h-80 overflow-auto py-1"
+              className="max-h-80 overflow-auto p-1"
             >
               {options.map((option, index) => (
                 <li
@@ -228,16 +228,16 @@ export function CustomerPicker({
                   onClick={() => select(option)}
                   onMouseMove={() => listbox.setActiveIndex(index)}
                   className={cn(
-                    'flex cursor-pointer items-center gap-3 px-3 py-2.5',
+                    'flex cursor-pointer items-center gap-3 rounded-lg px-2.5 py-2',
                     index === listbox.activeIndex && 'bg-brand-50',
                   )}
                 >
                   <Avatar name={option.name} size="sm" />
                   <span className="min-w-0">
-                    <span className="block truncate text-sm font-medium text-zinc-950">
+                    <span className="block truncate text-sm font-medium text-stone-900">
                       {option.name}
                     </span>
-                    <span className="block truncate text-xs text-zinc-500">
+                    <span className="block truncate text-xs text-stone-500">
                       {customerSummaryLine(option) || 'No contact details'}
                     </span>
                   </span>
@@ -245,7 +245,7 @@ export function CustomerPicker({
               ))}
             </ul>
             {options.length === 0 && (
-              <p className="px-3 py-4 text-sm text-zinc-600">
+              <p className="px-3 py-4 text-sm text-stone-600">
                 {results.isPending
                   ? 'Loading customers…'
                   : search

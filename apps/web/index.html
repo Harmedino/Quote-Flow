@@ -7,9 +7,27 @@
       name="description"
       content="QuoteFlow helps service businesses create, send, track, and convert quotes into invoices."
     />
-    <meta name="theme-color" content="#ffffff" />
+    <meta name="theme-color" content="#0c1a14" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <title>QuoteFlow</title>
+    <script>
+      // Applies the theme before first paint so dark mode never flashes white.
+      // Mirrors lib/theme.ts: a saved choice wins, otherwise the system preference.
+      (function () {
+        var theme = null;
+        try {
+          theme = localStorage.getItem('quoteflow_theme');
+        } catch (_) {}
+        if (theme !== 'light' && theme !== 'dark') {
+          theme =
+            window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light';
+        }
+        document.documentElement.classList.toggle('dark', theme === 'dark');
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

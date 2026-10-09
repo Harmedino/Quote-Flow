@@ -21,12 +21,26 @@ export function ListSearch({ value, onSearch, label, placeholder, className }: L
   const [appliedValue, setAppliedValue] = useState(value);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounced = useDebouncedValue(text, 300);
+  const [seenDebounced, setSeenDebounced] = useState(debounced);
+  // The search last sent from here (or taken from outside). When `value` catches up with it, the
+  // text typed in the meantime stays; any other new value replaces the text.
+  const [expected, setExpected] = useState(value);
   const lastSent = useRef(value);
 
-  // Back/forward navigation or a "clear search" link changes the value from outside.
+  let latestExpected = expected;
+  if (debounced !== seenDebounced) {
+    // The effect below sends it.
+    setSeenDebounced(debounced);
+    latestExpected = debounced.trim();
+    setExpected(latestExpected);
+  }
   if (value !== appliedValue) {
     setAppliedValue(value);
-    if (value !== text.trim()) setText(value);
+    if (value !== latestExpected) {
+      // Back/forward navigation or a "Clear filters" button changed it from outside.
+      setExpected(value);
+      if (value !== text.trim()) setText(value);
+    }
   }
 
   useEffect(() => {
@@ -40,6 +54,12 @@ export function ListSearch({ value, onSearch, label, placeholder, className }: L
     }
   }
 
+  /** Applies a search straight away, from Enter or the clear button. */
+  function applyNow(search: string) {
+    setExpected(search);
+    apply(search);
+  }
+
   const applyDebounced = useEffectEvent(apply);
 
   useEffect(() => {
@@ -50,7 +70,7 @@ export function ListSearch({ value, onSearch, label, placeholder, className }: L
     <div role="search" className={cn('relative', className)}>
       <Search
         aria-hidden="true"
-        className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-zinc-500"
+        className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-stone-500"
       />
       <input
         ref={inputRef}
@@ -60,7 +80,7 @@ export function ListSearch({ value, onSearch, label, placeholder, className }: L
         value={text}
         onChange={(event) => setText(event.target.value)}
         onKeyDown={(event) => {
-          if (event.key === 'Enter') apply(text.trim());
+          if (event.key === 'Enter') applyNow(text.trim());
         }}
         autoComplete="off"
         spellCheck={false}
@@ -74,10 +94,10 @@ export function ListSearch({ value, onSearch, label, placeholder, className }: L
           type="button"
           onClick={() => {
             setText('');
-            apply('');
+            applyNow('');
             inputRef.current?.focus();
           }}
-          className="absolute top-1/2 right-1.5 inline-flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
+          className="absolute top-1/2 right-1.5 inline-flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-900"
         >
           <X aria-hidden="true" className="size-4" />
           <span className="sr-only">Clear search</span>

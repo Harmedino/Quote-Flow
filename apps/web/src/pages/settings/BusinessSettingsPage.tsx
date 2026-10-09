@@ -14,9 +14,9 @@ export default function BusinessSettingsPage() {
   return (
     <>
       <DocumentTitle title="Business settings" />
-      <div className="space-y-4 empty:hidden mb-8">
+      <div className="mb-6 space-y-3 empty:hidden">
         {!canEdit && (
-          <Alert tone="info" title="View only">
+          <Alert variant="banner" tone="info" title="View only.">
             Only the business owner can change these settings.
           </Alert>
         )}

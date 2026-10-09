@@ -8,93 +8,93 @@ export type CustomerSeed = Pick<
   archivedDaysAgo?: number;
 };
 
-const austin = (line1: string, postalCode: string) => ({
+/** A Lagos address the way it is written there: street, area, state. */
+const lagos = (line1: string, area: string) => ({
   line1,
-  city: 'Austin',
-  state: 'TX',
-  postalCode,
-  country: 'United States',
+  city: area,
+  state: 'Lagos',
+  country: 'Nigeria',
 });
 
 const customers = {
-  harper: {
-    name: 'Olivia Harper',
-    email: 'olivia.harper@example.com',
-    phone: '+1 512-555-0101',
-    address: austin('4108 Avenue F', '78751'),
-    notes: 'Prefers morning appointments. Two friendly dogs in the back yard.',
+  adaeze: {
+    name: 'Adaeze Okonkwo',
+    email: 'adaeze.okonkwo@example.com',
+    phone: '+234 802 555 0101',
+    address: lagos('5 Bourdillon Road', 'Ikoyi'),
+    notes: 'Prefers morning visits. Leave the gate pass with the estate security.',
   },
-  nguyen: {
-    name: 'Daniel Nguyen',
-    email: 'daniel.nguyen@example.net',
-    phone: '+1 512-555-0102',
-    address: austin('7605 Shoal Creek Blvd', '78757'),
+  tunde: {
+    name: 'Tunde Bakare',
+    email: 'tunde.bakare@example.net',
+    phone: '+234 803 555 0102',
+    address: lagos('18 Adebayo Doherty Road', 'Lekki Phase 1'),
   },
-  brightpath: {
-    name: 'Dr. Priya Raman',
-    company: 'Brightpath Dental Studio',
-    email: 'office@brightpath-dental.example',
-    phone: '+1 512-555-0103',
-    address: { ...austin('1500 W 34th St', '78703'), line2: 'Suite 200' },
+  smileCare: {
+    name: 'Dr. Ngozi Eze',
+    company: 'SmileCare Dental Clinic',
+    email: 'office@smilecare-dental.example',
+    phone: '+234 805 555 0103',
+    address: { ...lagos('22 Allen Avenue', 'Ikeja'), line2: 'Second floor' },
     notes:
-      'Commercial client. Work must be scheduled outside clinic hours (after 6pm or weekends).',
+      'Commercial client. Work must be scheduled outside clinic hours (after 6pm or on Sundays).',
   },
-  coleman: {
-    name: 'Marcus Coleman',
-    email: 'marcus.coleman@example.com',
-    phone: '+1 512-555-0104',
-    address: austin('2913 Cherry Lane', '78703'),
+  chinedu: {
+    name: 'Chinedu Obi',
+    email: 'chinedu.obi@example.com',
+    phone: '+234 806 555 0104',
+    address: lagos('9 Ogunlana Drive', 'Surulere'),
   },
-  lakeside: {
-    name: 'Rachel Kim',
-    company: 'Lakeside Property Management',
-    email: 'maintenance@lakeside-pm.example',
-    phone: '+1 512-555-0105',
-    address: { ...austin('600 Congress Ave', '78701'), line2: 'Floor 14' },
-    notes: 'Manages 40+ rental units. Send invoices to the maintenance inbox; PO number required.',
+  palmView: {
+    name: 'Kemi Adeyemi',
+    company: 'Palm View Estates',
+    email: 'maintenance@palmview-estates.example',
+    phone: '+234 807 555 0105',
+    address: { ...lagos('3 Ozumba Mbadiwe Avenue', 'Victoria Island'), line2: 'Floor 9' },
+    notes: 'Manages 40+ flats. Send invoices to the maintenance inbox; PO number required.',
   },
-  alvarez: {
-    name: 'Sofia Alvarez',
-    email: 'sofia.alvarez@example.org',
-    phone: '+1 512-555-0106',
-    address: austin('5402 Woodrow Ave', '78756'),
+  bisi: {
+    name: 'Bisi Ogunleye',
+    email: 'bisi.ogunleye@example.org',
+    phone: '+234 808 555 0106',
+    address: lagos('14 Isaac John Street', 'Ikeja GRA'),
   },
-  bennett: {
-    name: 'Thomas Bennett',
-    phone: '+1 512-555-0107',
-    address: austin('1810 Kenwood Ave', '78704'),
-    notes: 'No email — call or text.',
+  musa: {
+    name: 'Musa Ibrahim',
+    phone: '+234 809 555 0107',
+    address: lagos('7 Akerele Street', 'Surulere'),
+    notes: 'No email. Call or send a WhatsApp message.',
   },
-  greenleaf: {
-    name: 'Hannah Moore',
-    company: 'Greenleaf Café',
-    email: 'hannah@greenleaf-cafe.example',
-    phone: '+1 512-555-0108',
-    address: austin('1100 E 6th St', '78702'),
+  ofadaCorner: {
+    name: 'Amaka Nwankwo',
+    company: 'Ofada Corner Café',
+    email: 'amaka@ofadacorner.example',
+    phone: '+234 810 555 0108',
+    address: lagos('41 Herbert Macaulay Way', 'Yaba'),
   },
-  patel: {
-    name: 'Arjun Patel',
-    email: 'arjun.patel@example.com',
-    address: austin('3207 Bonnie Rd', '78703'),
+  segun: {
+    name: 'Segun Alade',
+    email: 'segun.alade@example.com',
+    address: lagos('12 Glover Road', 'Ikoyi'),
   },
-  okafor: {
+  grace: {
     name: 'Grace Okafor',
     email: 'grace.okafor@example.net',
-    phone: '+1 512-555-0110',
-    address: austin('9100 Brodie Ln', '78748'),
+    phone: '+234 811 555 0110',
+    address: lagos('25 Bode Thomas Street', 'Surulere'),
   },
-  summit: {
-    name: 'Jason Reed',
-    company: 'Summit Realty Group',
-    email: 'jreed@summit-realty.example',
-    phone: '+1 512-555-0111',
-    address: austin('3800 N Lamar Blvd', '78756'),
+  harbourPoint: {
+    name: 'Ifeanyi Okeke',
+    company: 'Harbour Point Realty',
+    email: 'ifeanyi@harbourpoint.example',
+    phone: '+234 812 555 0111',
+    address: lagos('10 Admiralty Road', 'Lekki Phase 1'),
   },
-  walsh: {
-    name: 'Emily Walsh',
-    email: 'emily.walsh@example.org',
-    phone: '+1 512-555-0112',
-    notes: 'Moved out of the service area.',
+  yetunde: {
+    name: 'Yetunde Bello',
+    email: 'yetunde.bello@example.org',
+    phone: '+234 813 555 0112',
+    notes: 'Moved to Abuja.',
     archivedDaysAgo: 20,
   },
 } satisfies Record<string, CustomerSeed>;

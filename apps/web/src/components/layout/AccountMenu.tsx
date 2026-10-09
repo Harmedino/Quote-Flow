@@ -17,16 +17,16 @@ const LINKS: readonly { label: string; to: string; icon: LucideIcon }[] = [
 ];
 
 const ITEM_CLASSES =
-  'flex h-9 w-full items-center gap-3 rounded-md px-2.5 text-sm font-medium text-zinc-700 outline-none hover:bg-zinc-100 hover:text-zinc-950 focus-visible:bg-zinc-100 focus-visible:text-zinc-950 aria-disabled:cursor-wait [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-zinc-500';
+  'flex h-9 w-full items-center gap-3 rounded-lg px-2.5 text-sm font-medium text-stone-700 outline-none hover:bg-stone-100 hover:text-stone-900 focus-visible:bg-stone-100 focus-visible:text-stone-900 aria-disabled:cursor-wait [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-stone-500';
 
 function menuItems(menu: HTMLElement | null): HTMLElement[] {
   return Array.from(menu?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? []);
 }
 
 /**
- * The signed-in user's menu in the sidebar footer, following the ARIA menu
- * button pattern: arrow keys move between items, Escape closes and returns
- * focus to the button, Tab or a click outside closes it.
+ * The business and signed-in user at the foot of the ink sidebar, opening a menu with the
+ * settings pages and sign out. It follows the ARIA menu button pattern: arrow keys move
+ * between items, Escape closes and returns focus to the button, Tab or a click outside closes it.
  */
 export function AccountMenu() {
   const session = useAuthenticatedSession();
@@ -117,10 +117,10 @@ export function AccountMenu() {
   }
 
   return (
-    <div ref={rootRef} className="relative">
+    <div ref={rootRef} className="relative border-t border-white/10 p-3">
       {open && (
-        <div className="absolute bottom-full left-0 z-40 mb-2 w-72 rounded-xl border border-zinc-200 bg-white p-1.5 shadow-lg">
-          <div className="border-b border-zinc-100 px-2.5 pt-2.5 pb-3">
+        <div className="absolute bottom-full left-3 z-40 mb-1 w-72 animate-fade-in-up rounded-xl border border-stone-200 bg-surface p-1.5 text-stone-900 shadow-[var(--shadow-elevated)]">
+          <div className="border-b border-stone-200 px-2.5 pt-2.5 pb-3">
             <AccountSummary session={session} />
           </div>
           <div
@@ -144,7 +144,7 @@ export function AccountMenu() {
                 {label}
               </Link>
             ))}
-            <div role="separator" className="mx-1 my-1.5 h-px bg-zinc-100" />
+            <div role="separator" className="mx-1 my-1.5 h-px bg-stone-200" />
             <button
               type="button"
               role="menuitem"
@@ -178,16 +178,16 @@ export function AccountMenu() {
         aria-controls={open ? menuId : undefined}
         onClick={() => (open ? closeMenu(false) : openMenu('first'))}
         onKeyDown={handleTriggerKeyDown}
-        className="flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors hover:bg-zinc-100 aria-expanded:bg-zinc-100"
+        className="flex w-full items-center gap-2.5 rounded-xl px-2 py-2 text-left transition-colors hover:bg-white/5 focus-visible:outline-highlight aria-expanded:bg-white/[0.09]"
       >
-        <Avatar name={session.user.name} />
+        <Avatar name={session.business.name} tone="highlight" size="md" />
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-medium text-zinc-950">
-            {session.user.name}
+          <span className="block truncate text-sm font-semibold text-white">
+            {session.business.name}
           </span>
-          <span className="block truncate text-xs text-zinc-500">{session.business.name}</span>
+          <span className="block truncate text-xs text-white/55">{session.user.name}</span>
         </span>
-        <ChevronsUpDown aria-hidden="true" className="size-4 shrink-0 text-zinc-400" />
+        <ChevronsUpDown aria-hidden="true" className="size-4 shrink-0 text-white/45" />
         <span className="sr-only">Account menu</span>
       </button>
     </div>

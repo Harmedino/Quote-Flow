@@ -29,14 +29,14 @@ export function FormActionBar({ dirty, saving, saved, error, onDiscard }: FormAc
   }
 
   return (
-    <div className="sticky bottom-3 z-20 mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-3 rounded-xl border border-zinc-200 bg-white/95 px-4 py-3 shadow-lg ring-1 ring-zinc-950/5 backdrop-blur-sm sm:bottom-4 sm:px-5">
+    <div className="sticky bottom-[calc(var(--spacing-tab-bar)+0.75rem)] z-20 mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-3 rounded-2xl border border-stone-200 bg-surface/95 px-4 py-3 shadow-[var(--shadow-elevated)] backdrop-blur-md sm:px-5 lg:bottom-4">
       <div className="min-w-0 flex-1 text-sm">
         {error && (
           <p role="alert" className="text-red-700">
             {error}
           </p>
         )}
-        <p role="status" className="flex items-center gap-2 text-zinc-600">
+        <p role="status" className="flex items-center gap-2 text-stone-600">
           {error ? null : dirty ? (
             <>
               <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-amber-500" />
@@ -44,7 +44,7 @@ export function FormActionBar({ dirty, saving, saved, error, onDiscard }: FormAc
             </>
           ) : saved ? (
             <>
-              <CircleCheck aria-hidden="true" className="size-4 shrink-0 text-emerald-600" />
+              <CircleCheck aria-hidden="true" className="size-4 shrink-0 text-emerald-700" />
               Changes saved
             </>
           ) : (

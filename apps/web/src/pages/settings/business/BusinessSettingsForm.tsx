@@ -92,7 +92,7 @@ export function BusinessSettingsForm({ business, canEdit }: BusinessSettingsForm
 
   return (
     <form id={form.id} noValidate onSubmit={handleSubmit}>
-      <fieldset disabled={!canEdit} className="min-w-0 divide-y divide-zinc-200">
+      <fieldset disabled={!canEdit} className="min-w-0 space-y-6">
         <legend className="sr-only">Business settings</legend>
 
         <SettingsSection
@@ -153,11 +153,12 @@ export function BusinessSettingsForm({ business, canEdit }: BusinessSettingsForm
 
         <SettingsSection
           title="Branding"
-          description="The accent color on your quotes and invoices."
+          description="The accent color on your quotes, invoices and the page your customers open."
         >
           <BrandColorField
             value={form.values.brandColor}
             savedValue={saved.values.brandColor}
+            businessName={form.values.name || saved.values.name}
             error={errors.brandColor}
             onChange={(value) => form.setValue('brandColor', value)}
           />

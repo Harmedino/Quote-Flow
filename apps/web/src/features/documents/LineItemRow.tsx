@@ -24,7 +24,7 @@ export interface LineItemRowProps {
 }
 
 /** Column labels are visible on narrow (stacked) rows and read by screen readers on wide ones. */
-const CELL_LABEL = 'mb-1 block text-xs font-medium text-zinc-600 @2xl:sr-only';
+const CELL_LABEL = 'mb-1 block text-xs font-medium text-stone-600 @2xl:sr-only';
 
 function Cell({
   label,
@@ -75,11 +75,11 @@ export function LineItemRow({
   const position = index + 1;
 
   const iconButton =
-    'flex size-9 items-center justify-center rounded-lg text-zinc-500 transition-colors @2xl:size-8';
+    'flex size-9 items-center justify-center rounded-lg text-stone-500 transition-colors @2xl:size-8';
 
   return (
-    <li className="rounded-xl border border-zinc-200 bg-white p-4 @2xl:rounded-none @2xl:border-0 @2xl:border-b @2xl:bg-transparent @2xl:px-0 @2xl:py-3">
-      <div className="grid grid-cols-4 gap-3 @2xl:grid-cols-[minmax(0,1fr)_4.5rem_5rem_8rem_6.5rem_4rem] @2xl:items-start @2xl:gap-x-2 @2xl:gap-y-2">
+    <li className="animate-fade-in-up rounded-xl border border-stone-200 bg-surface-muted p-4 @2xl:rounded-none @2xl:border-0 @2xl:border-b @2xl:border-stone-100 @2xl:bg-transparent @2xl:px-0 @2xl:py-3">
+      <div className="grid grid-cols-4 gap-3 @2xl:grid-cols-[minmax(0,1fr)_4rem_4.5rem_9.5rem_7rem_4rem] @2xl:items-start @2xl:gap-x-2 @2xl:gap-y-2">
         <Cell
           label={`Item ${position}`}
           htmlFor={id('name')}
@@ -175,13 +175,13 @@ export function LineItemRow({
           />
         </Cell>
 
-        <div className="col-span-4 flex items-center justify-between gap-3 border-t border-zinc-100 pt-3 @2xl:contents">
-          <p className="text-sm text-zinc-600 @2xl:flex @2xl:h-10 @2xl:items-center @2xl:justify-end">
+        <div className="col-span-4 flex items-center justify-between gap-3 border-t border-stone-200 pt-3 @2xl:contents">
+          <p className="text-sm text-stone-600 @2xl:flex @2xl:h-10 @2xl:items-center @2xl:justify-end">
             <span className="@2xl:sr-only">Amount </span>
             {amount === null ? (
-              <span className="text-zinc-400">—</span>
+              <span className="text-stone-500">—</span>
             ) : (
-              <span className="font-semibold text-zinc-950 tabular-nums">
+              <span className="font-semibold text-stone-900 tabular-nums">
                 {formatMoney(amount, currency)}
               </span>
             )}
@@ -192,7 +192,7 @@ export function LineItemRow({
               onClick={onDuplicate}
               aria-label={`Duplicate item ${position}`}
               title="Duplicate"
-              className={cn(iconButton, 'hover:bg-zinc-100 hover:text-zinc-900')}
+              className={cn(iconButton, 'hover:bg-stone-200/70 hover:text-stone-900')}
             >
               <Copy aria-hidden="true" className="size-4" />
             </button>

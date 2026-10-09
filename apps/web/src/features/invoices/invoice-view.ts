@@ -1,7 +1,5 @@
 import {
-  type BusinessDto,
   type InvoiceDto,
-  type PublicBusinessDto,
   buildInvoiceShareMessage,
   buildWhatsAppUrl,
   canCancelInvoice,
@@ -10,20 +8,8 @@ import {
   canRecordPayment,
   canSendInvoice,
 } from '@quoteflow/shared';
-import { formatCalendarDate, formatMoney } from '@/lib/format';
-
-/** What the customer sees about the business, for previewing the invoice as they will. */
-export function toPublicBusiness(business: BusinessDto): PublicBusinessDto {
-  return {
-    name: business.name,
-    logoUrl: business.logoUrl,
-    email: business.email,
-    phone: business.phone,
-    website: business.website,
-    address: business.address,
-    brandColor: business.brandColor,
-  };
-}
+import { dueLabel } from '@/features/dashboard/dashboard-format';
+import { formatCalendarDate, formatDate, formatMoney } from '@/lib/format';
 
 /** The customer-facing link; the token is the only credential it needs. */
 export function invoicePublicUrl(origin: string, publicToken: string): string {
@@ -69,4 +55,71 @@ export function buildInvoiceShareLinks(
     url,
   });
   return { url, message, whatsAppUrl: buildWhatsAppUrl(message, invoice.customer.phone) };
+}
+
+export interface InvoiceOutlook {
+  /** What the big figure is. */
+  label: string;
+  /** The big figure, in minor units. */
+  amount: number;
+  /** When it is due, or how it ended. */
+  line: string;
+  /** How much of the total is paid, 0 to 1; null while payments aren't tracked (draft, cancelled). */
+  paidShare: number | null;
+}
+
+/** The headline of an invoice page: what is still owed and when. `today` is 'YYYY-MM-DD'. */
+export function invoiceOutlook(
+  invoice: Pick<
+    InvoiceDto,
+    'status' | 'dueDate' | 'paidAt' | 'cancelledAt' | 'totals' | 'amountPaid' | 'balanceDue'
+  >,
+  today: string,
+  timeZone: string,
+): InvoiceOutlook {
+  const { total } = invoice.totals;
+  const due = formatCalendarDate(invoice.dueDate);
+  const paidShare = total > 0 ? Math.min(1, invoice.amountPaid / total) : 1;
+  switch (invoice.status) {
+    case 'cancelled':
+      return {
+        label: 'Cancelled',
+        amount: total,
+        line: invoice.cancelledAt
+          ? `Cancelled on ${formatDate(invoice.cancelledAt, { timeZone })} · nothing is owed`
+          : 'Nothing is owed',
+        paidShare: null,
+      };
+    case 'paid':
+      return {
+        label: 'Paid in full',
+        amount: total,
+        line: invoice.paidAt
+          ? `Last payment on ${formatCalendarDate(invoice.paidAt.slice(0, 10))}`
+          : 'Nothing left to pay',
+        paidShare: 1,
+      };
+    case 'draft':
+      // Payments are tracked once it is sent.
+      return {
+        label: 'Balance due',
+        amount: invoice.balanceDue,
+        line: `Not sent yet · due ${due}`,
+        paidShare: null,
+      };
+    case 'overdue':
+      return {
+        label: 'Balance due',
+        amount: invoice.balanceDue,
+        line: `${dueLabel(invoice.dueDate, today)} · was due ${due}`,
+        paidShare,
+      };
+    default:
+      return {
+        label: 'Balance due',
+        amount: invoice.balanceDue,
+        line: `${dueLabel(invoice.dueDate, today)} · ${due}`,
+        paidShare,
+      };
+  }
 }

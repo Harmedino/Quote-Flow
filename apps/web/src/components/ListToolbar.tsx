@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
 
-/** The search and filter row at the top of a list card. */
+/** The search and filter row above a list, on the page rather than inside the list's panel. */
 export function ListToolbar({ children }: { children: ReactNode }) {
   return (
-    <div className="flex flex-col gap-3 border-b border-zinc-200 p-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       {children}
     </div>
   );

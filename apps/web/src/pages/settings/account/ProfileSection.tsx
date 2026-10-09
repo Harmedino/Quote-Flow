@@ -3,6 +3,8 @@ import { useMutation } from '@tanstack/react-query';
 import { CircleCheck } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 import { Alert } from '@/components/ui/Alert';
+import { Avatar } from '@/components/ui/Avatar';
+import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Field } from '@/components/ui/Field';
 import { Input } from '@/components/ui/Input';
@@ -14,7 +16,7 @@ import { useForm } from '@/lib/use-form';
 import { SettingsSection } from '../SettingsSection';
 
 export function ProfileSection() {
-  const { user } = useAuthenticatedSession();
+  const { user, business } = useAuthenticatedSession();
   const form = useForm({ name: user.name });
   const save = useMutation({ mutationFn: updateAccount });
   const [saved, setSaved] = useState(false);
@@ -45,8 +47,18 @@ export function ProfileSection() {
   return (
     <SettingsSection
       title="Profile"
-      description="Your name appears on the quotes and invoices you send."
+      description="Your name as it shows in QuoteFlow. Customers see your business name."
     >
+      <div className="mb-6 flex items-center gap-4">
+        <Avatar name={user.name} size="lg" />
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+            <p className="truncate font-semibold text-stone-900">{user.name}</p>
+            <Badge tone="brand">{USER_ROLE_LABELS[user.role]}</Badge>
+          </div>
+          <p className="truncate text-sm text-stone-500">{business.name}</p>
+        </div>
+      </div>
       <form id={form.id} noValidate onSubmit={handleSubmit} className="space-y-5">
         {form.formError && <Alert tone="danger">{form.formError}</Alert>}
         <Field label="Your name" error={form.fieldErrors.name} required>
@@ -60,17 +72,13 @@ export function ProfileSection() {
           />
         </Field>
         <Field label="Email" hint="Changing your email address isn’t available yet.">
-          <Input value={user.email} readOnly className="bg-zinc-50 text-zinc-600" />
+          <Input value={user.email} readOnly className="bg-surface-muted text-stone-600" />
         </Field>
-        <div className="space-y-1.5">
-          <p className="text-sm font-medium text-zinc-900">Role</p>
-          <p className="text-sm text-zinc-600">{USER_ROLE_LABELS[user.role]}</p>
-        </div>
-        <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-3 border-t border-zinc-100 pt-5">
-          <p role="status" className="mr-auto flex items-center gap-2 text-sm text-zinc-600">
+        <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-3 border-t border-stone-100 pt-5">
+          <p role="status" className="mr-auto flex items-center gap-2 text-sm text-stone-600">
             {saved && !dirty && (
               <>
-                <CircleCheck aria-hidden="true" className="size-4 text-emerald-600" />
+                <CircleCheck aria-hidden="true" className="size-4 text-emerald-700" />
                 Profile updated
               </>
             )}

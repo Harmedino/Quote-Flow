@@ -17,6 +17,7 @@ export interface ButtonProps extends ComponentProps<'button'>, ButtonStyleProps 
 export function Button({
   variant,
   size,
+  shape,
   loading = false,
   disabled,
   'aria-disabled': ariaDisabled,
@@ -32,7 +33,7 @@ export function Button({
       disabled={disabled}
       aria-disabled={loading || ariaDisabled || undefined}
       aria-busy={loading || undefined}
-      className={buttonClasses({ variant, size, className })}
+      className={buttonClasses({ variant, size, shape, className })}
       onClick={(event) => {
         // Implicit form submission clicks the default button too, so this also blocks resubmits.
         if (loading) {
