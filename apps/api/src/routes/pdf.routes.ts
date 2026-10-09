@@ -1,4 +1,5 @@
 import { type RequestHandler, Router } from 'express';
+import { ipKeyGenerator } from 'express-rate-limit';
 import { createPdfController } from '../controllers/pdf.controller';
 import { authOf } from '../middleware/auth';
 import { noStore } from '../middleware/no-store';
@@ -9,7 +10,7 @@ import type { Logger } from '../utils/logger';
 
 /** Rendering is CPU-bound, so anonymous downloads get a tighter per-IP budget than page views. */
 export const PUBLIC_PDF_RATE_LIMIT: RateLimitSettings = { windowMs: 15 * 60 * 1000, limit: 30 };
-/** Per signed-in user, whatever addresses the requests come from. */
+/** Per user and network address, so signing in again does not reset it. */
 export const USER_PDF_RATE_LIMIT: RateLimitSettings = { windowMs: 15 * 60 * 1000, limit: 60 };
 
 export interface PdfRouterOptions {
@@ -30,11 +31,14 @@ export function createPdfRouter({ requireAuth, logger, clock }: PdfRouterOptions
     message: 'Too many downloads. Please wait a few minutes and try again.',
   });
 
+  // Not per user alone: every demo visitor signs in as the same owner, from their own address.
+  // Only renders count, so requests for missing documents cannot use up the budget.
   const userLimit = createRateLimiter({
     ...USER_PDF_RATE_LIMIT,
     logger,
     message: 'Too many downloads. Please wait a few minutes and try again.',
-    keyGenerator: (req) => authOf(req).userId,
+    keyGenerator: (req) => `${authOf(req).userId}|${ipKeyGenerator(req.ip ?? '')}`,
+    skipFailedRequests: true,
   });
 
   const router = Router();

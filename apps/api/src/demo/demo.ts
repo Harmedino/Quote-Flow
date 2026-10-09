@@ -1,5 +1,4 @@
 import type { InvoiceDocument } from '../models';
-import { DEMO_OWNER_EMAIL } from './data/business';
 import type { SeedClock } from './clock';
 import { createInvoices } from './invoices';
 import { createQuotes } from './quotes';
@@ -18,7 +17,7 @@ export async function replaceDemoBusiness(
   clock: SeedClock,
   passwordHash: string,
 ): Promise<SeededDemo> {
-  const replaced = await removeDemoBusiness(DEMO_OWNER_EMAIL);
+  const replaced = await removeDemoBusiness();
   const tenant = await createDemoTenant(clock, passwordHash);
   const quotes = await createQuotes(tenant, clock);
   const invoices = await createInvoices(tenant, clock, quotes);

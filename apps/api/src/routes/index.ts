@@ -42,7 +42,7 @@ export function createApiRouter({ env, logger, clock, authRateLimits }: ApiRoute
   const requireAuth = createRequireAuth(tokens, sessions);
   // Shared through MongoDB: each serverless instance would otherwise count on its own.
   const limiters = createAuthRateLimiters(authRateLimits, logger, (name) =>
-    createMongoRateLimitStore(`auth.${name}`, clock),
+    createMongoRateLimitStore({ name: `auth.${name}`, logger, clock }),
   );
 
   const router = Router();

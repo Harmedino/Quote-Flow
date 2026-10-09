@@ -1,13 +1,17 @@
 import type { Express } from 'express';
 import request from 'supertest';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { InvoiceModel, QuoteModel } from '../models';
-import { type SignedInClient, bearer, createAuthTestApp, registerOwner } from '../test/auth';
+import { renderDocumentPdf } from '../services/pdf/render';
+import { type SignedInClient, bearer, createAuthTestApp, login, registerOwner } from '../test/auth';
 import { TEST_DATABASE_URI, useTestDatabase } from '../test/database';
-import { errorOf } from '../test/helpers';
+import { createTestEnv, errorOf } from '../test/helpers';
 import { invoiceInput, paymentInput, quoteInput } from '../test/model-fixtures';
 import { generatePublicToken } from '../utils/tokens';
 import { USER_PDF_RATE_LIMIT } from './pdf.routes';
+
+// Renders for real unless a test stubs it: the rate-limit tests need many quick downloads.
+vi.mock('../services/pdf/render', { spy: true });
 
 type BinaryCallback = (error: Error | null, body: Buffer) => void;
 
@@ -127,21 +131,48 @@ describe.skipIf(!TEST_DATABASE_URI)('PDF routes (database)', () => {
     }
   });
 
-  it('limits business-side downloads per user', async () => {
-    const app = createAuthTestApp();
-    const owner = await registerOwner(app);
-    const other = await registerOwner(app);
-    const path = '/api/quotes/0123456789abcdef01234567/pdf';
-    const get = (accessToken: string) =>
-      request(app).get(path).set('Authorization', bearer(accessToken));
+  describe('per-user download limit', () => {
+    const MISSING_QUOTE = '/api/quotes/0123456789abcdef01234567/pdf';
+    const get = (app: Express, path: string, accessToken: string, ip = '203.0.113.10') =>
+      request(app).get(path).set('Authorization', bearer(accessToken)).set('X-Forwarded-For', ip);
+    // Behind one proxy, as on Vercel, so X-Forwarded-For sets the client's address.
+    const proxiedApp = () => createAuthTestApp({ env: createTestEnv({ TRUST_PROXY: '1' }) });
 
-    for (let attempt = 0; attempt < USER_PDF_RATE_LIMIT.limit; attempt += 1) {
-      await get(owner.session.accessToken).expect(404);
-    }
-    const limited = await get(owner.session.accessToken).expect(429);
+    beforeEach(() => {
+      vi.mocked(renderDocumentPdf).mockResolvedValue(Buffer.from('%PDF-1.7\n'));
+    });
+    afterEach(() => {
+      vi.mocked(renderDocumentPdf).mockRestore();
+    });
 
-    expect(errorOf(limited).code).toBe('RATE_LIMITED');
-    await get(other.session.accessToken).expect(404);
+    it('limits a user per address, even across sign-ins', async () => {
+      const app = proxiedApp();
+      const owner = await registerOwner(app);
+      const signedInAgain = await login(app, owner.input.email);
+      const { quote } = await createDocuments(owner);
+      const path = `/api/quotes/${quote.id}/pdf`;
+
+      for (let attempt = 0; attempt < USER_PDF_RATE_LIMIT.limit; attempt += 1) {
+        await get(app, path, owner.session.accessToken).expect(200);
+      }
+      const limited = await get(app, path, signedInAgain.session.accessToken).expect(429);
+
+      expect(errorOf(limited).code).toBe('RATE_LIMITED');
+      // Another address, as each demo visitor (all signed in as the same owner) has its own.
+      await get(app, path, signedInAgain.session.accessToken, '198.51.100.7').expect(200);
+    });
+
+    it('does not count requests for documents that do not exist', async () => {
+      const app = proxiedApp();
+      const owner = await registerOwner(app);
+      const { quote } = await createDocuments(owner);
+
+      for (let attempt = 0; attempt <= USER_PDF_RATE_LIMIT.limit; attempt += 1) {
+        await get(app, MISSING_QUOTE, owner.session.accessToken).expect(404);
+      }
+
+      await get(app, `/api/quotes/${quote.id}/pdf`, owner.session.accessToken).expect(200);
+    });
   });
 
   it('still lets the business download its own drafts', async () => {

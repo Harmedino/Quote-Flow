@@ -3,16 +3,27 @@ import type { Store } from 'express-rate-limit';
 import { isDuplicateKeyError } from '../db/errors';
 import { RateLimitCounterModel } from '../models';
 import { type Clock, systemClock } from '../utils/clock';
+import type { Logger } from '../utils/logger';
 
 const START_WINDOW_ATTEMPTS = 3;
+
+export interface MongoRateLimitStoreOptions {
+  /** Keeps each limiter's counters apart. */
+  name: string;
+  logger: Logger;
+  clock?: Clock;
+}
 
 /**
  * Rate-limit counters in MongoDB, so a limit holds across every API instance
  * (serverless functions included) instead of per process. Fixed windows.
- * Keys are stored hashed: they hold IP addresses and emails. `name` keeps
- * each limiter's counters apart.
+ * Keys are stored hashed: they hold IP addresses and emails.
  */
-export function createMongoRateLimitStore(name: string, clock: Clock = systemClock): Store {
+export function createMongoRateLimitStore({
+  name,
+  logger,
+  clock = systemClock,
+}: MongoRateLimitStoreOptions): Store {
   const prefix = `${name}:`;
   let windowMs = 60_000;
   const idOf = (key: string) =>
@@ -63,15 +74,25 @@ export function createMongoRateLimitStore(name: string, clock: Clock = systemClo
       throw new Error('Could not count a rate-limited request');
     },
 
+    // express-rate-limit runs this after the response is sent and does not catch a rejection,
+    // which would then crash the process. A lost decrement only over-counts the client by one.
     async decrement(key) {
-      await RateLimitCounterModel.updateOne(
-        { _id: idOf(key), resetAt: { $gt: clock() }, hits: { $gt: 0 } },
-        { $inc: { hits: -1 } },
-      );
+      try {
+        await RateLimitCounterModel.updateOne(
+          { _id: idOf(key), resetAt: { $gt: clock() }, hits: { $gt: 0 } },
+          { $inc: { hits: -1 } },
+        );
+      } catch (error) {
+        logger.warn({ err: error, limiter: name }, 'Could not decrement a rate-limit counter');
+      }
     },
 
     async resetKey(key) {
-      await RateLimitCounterModel.deleteOne({ _id: idOf(key) });
+      try {
+        await RateLimitCounterModel.deleteOne({ _id: idOf(key) });
+      } catch (error) {
+        logger.warn({ err: error, limiter: name }, 'Could not reset a rate-limit counter');
+      }
     },
   };
 }

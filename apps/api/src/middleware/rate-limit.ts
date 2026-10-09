@@ -20,6 +20,8 @@ export interface RateLimiterOptions extends RateLimitSettings {
   keyGenerator?: Options['keyGenerator'];
   /** Count only requests that fail (status 400 or above), e.g. failed sign-in attempts. */
   skipSuccessfulRequests?: boolean;
+  /** Count only requests that succeed (status below 400). */
+  skipFailedRequests?: boolean;
   /** Where counters live; process memory (i.e. per API instance) by default. */
   store?: Store;
 }
@@ -38,6 +40,7 @@ export function createRateLimiter({
   skip,
   keyGenerator,
   skipSuccessfulRequests = false,
+  skipFailedRequests = false,
   store,
 }: RateLimiterOptions): RateLimitRequestHandler {
   return rateLimit({
@@ -46,6 +49,7 @@ export function createRateLimiter({
     skip,
     keyGenerator,
     skipSuccessfulRequests,
+    skipFailedRequests,
     ...(store && { store }),
     standardHeaders: 'draft-8',
     legacyHeaders: false,

@@ -74,6 +74,16 @@ function createDocument(model: PdfDocumentModel): Doc {
   return doc;
 }
 
+/**
+ * `value` ready for wrapping at `options.width`, measured in the current font
+ * and size (see breakLongRuns). Only text given a width is changed.
+ */
+function wrappable(doc: Doc, value: string, options: PDFKit.Mixins.TextOptions): string {
+  const { width } = options;
+  if (width === undefined) return value;
+  return breakLongRuns(value, (run) => doc.widthOfString(run, options) > width);
+}
+
 function text(
   doc: Doc,
   value: string,
@@ -82,12 +92,15 @@ function text(
   options: PDFKit.Mixins.TextOptions & { font?: string; size?: number; color?: string } = {},
 ): number {
   const { font = PDF_FONTS.regular, size = 9.5, color = COLOR.body, ...rest } = options;
-  doc.font(font).fontSize(size).fillColor(color).text(breakLongRuns(value), x, y, rest);
+  doc.font(font).fontSize(size).fillColor(color);
+  doc.text(wrappable(doc, value, rest), x, y, rest);
   return doc.y;
 }
 
+/** Prepares `value` as text() does, so the height matches what text() then draws. */
 function heightOf(doc: Doc, value: string, font: string, size: number, width: number): number {
-  return doc.font(font).fontSize(size).heightOfString(breakLongRuns(value), { width });
+  doc.font(font).fontSize(size);
+  return doc.heightOfString(wrappable(doc, value, { width }), { width });
 }
 
 function drawStatusPill(doc: Doc, label: string, tone: PdfTone, right: number, y: number): number {

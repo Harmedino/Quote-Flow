@@ -13,7 +13,7 @@ import { replaceDemoBusiness } from './demo';
  * DEMO_LOGIN_ENABLED is set). It is created on first use and rebuilt once a
  * day, so visitors' edits don't accumulate and its dates stay relative to
  * today. Real businesses are never touched: the rebuild only removes the
- * business owned by the demo owner's email, and only if it is marked as the demo.
+ * business holding the demo users' emails, which sign-ups cannot use (see reset.ts).
  */
 
 const DEMO_REFRESH_MS = 24 * 60 * 60 * 1000;
@@ -34,7 +34,10 @@ async function findDemoAccount(): Promise<DemoAccount | undefined> {
   return business ? { user, business } : undefined;
 }
 
-async function rebuildDemoBusiness(clock: Clock): Promise<void> {
+const isFresh = (account: DemoAccount, clock: Clock) =>
+  clock().getTime() - account.business.updatedAt.getTime() < DEMO_REFRESH_MS;
+
+async function rebuildDemoBusiness(clock: Clock, log: Logger): Promise<void> {
   // Nobody signs in to the demo with a password, so it gets an unguessable one.
   const passwordHash = await hashPassword(randomBytes(32).toString('base64url'));
   try {
@@ -47,8 +50,12 @@ async function rebuildDemoBusiness(clock: Clock): Promise<void> {
       { timestamps: false },
     );
   } catch (error) {
-    // Another instance rebuilt it at the same moment; its demo is just as good.
+    // Most likely another instance rebuilt it at the same moment; its demo is just as good.
     if (!isDuplicateKeyError(error)) throw error;
+    log.warn(
+      { err: error, event: 'demo.rebuild_collided' },
+      'Another demo rebuild got there first',
+    );
   }
 }
 
@@ -56,11 +63,9 @@ let rebuilding: Promise<void> | undefined;
 
 export async function ensureDemoAccount(clock: Clock, log: Logger): Promise<DemoAccount> {
   const existing = await findDemoAccount();
-  const fresh =
-    existing && clock().getTime() - existing.business.updatedAt.getTime() < DEMO_REFRESH_MS;
-  if (existing && fresh) return existing;
+  if (existing && isFresh(existing, clock)) return existing;
 
-  rebuilding ??= rebuildDemoBusiness(clock).finally(() => {
+  rebuilding ??= rebuildDemoBusiness(clock, log).finally(() => {
     rebuilding = undefined;
   });
   await rebuilding;
@@ -68,5 +73,13 @@ export async function ensureDemoAccount(clock: Clock, log: Logger): Promise<Demo
 
   const account = await findDemoAccount();
   if (!account) throw new Error('The demo business could not be created');
+  // Only a finished rebuild stamps the business as fresh: this one is still being built
+  // elsewhere, or never will be finished (then the next visitor's sign-in rebuilds it).
+  if (!isFresh(account, clock)) {
+    log.warn(
+      { event: 'demo.incomplete', businessId: account.business.id },
+      'Signed a visitor in to a demo business that is not fully built',
+    );
+  }
   return account;
 }

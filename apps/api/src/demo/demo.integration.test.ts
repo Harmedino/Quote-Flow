@@ -10,10 +10,11 @@ import {
 } from '../models';
 import { nextDocumentNumber } from '../services/numbering.service';
 import { TEST_DATABASE_URI, useTestDatabase } from '../test/database';
-import { DEMO_BUSINESS } from './data/business';
+import { DEMO_BUSINESS, DEMO_USERS } from './data/business';
 import { QUOTE_PLANS, STANDALONE_INVOICE_PLANS } from './data/documents';
 import { createSeedClock } from './clock';
 import { replaceDemoBusiness } from './demo';
+import { removeDemoBusiness } from './reset';
 
 const SEED_TIMEOUT_MS = 60_000;
 
@@ -111,6 +112,48 @@ describe.skipIf(!TEST_DATABASE_URI)('demo seed (database)', () => {
       expect(await CustomerModel.countDocuments({ businessId: oldBusinessId })).toBe(0);
       expect(await QuoteModel.countDocuments({ businessId: oldBusinessId })).toBe(0);
       expect(await UserModel.countDocuments({ businessId: oldBusinessId })).toBe(0);
+    },
+    SEED_TIMEOUT_MS,
+  );
+
+  it(
+    'removes demo users left behind by a partial cleanup by hand',
+    async () => {
+      const { tenant } = await replaceDemoBusiness(createSeedClock(), 'placeholder-hash');
+      const oldBusinessId = tenant.business._id;
+      // The owner and the business were deleted, but not the staff user.
+      await UserModel.deleteOne({ _id: tenant.users.owner._id, businessId: oldBusinessId });
+      await BusinessModel.deleteOne({ _id: oldBusinessId });
+
+      const { tenant: rebuilt } = await replaceDemoBusiness(createSeedClock(), 'placeholder-hash');
+
+      const businessId = rebuilt.business._id;
+      expect(await UserModel.countDocuments({ businessId: oldBusinessId })).toBe(0);
+      expect(await CustomerModel.countDocuments({ businessId: oldBusinessId })).toBe(0);
+      expect(await UserModel.countDocuments({ businessId })).toBe(2);
+      expect(await QuoteModel.countDocuments({ businessId })).toBe(QUOTE_PLANS.length);
+    },
+    SEED_TIMEOUT_MS,
+  );
+
+  it(
+    'replaces a business holding a demo email even when it is not marked as the demo',
+    async () => {
+      await removeDemoBusiness();
+      // E.g. a demo from before the flag, saved since (which stores the default `false`).
+      const business = await BusinessModel.create({ name: 'Not The Demo', isDemo: false });
+      await UserModel.create({
+        ...DEMO_USERS.staff,
+        businessId: business._id,
+        passwordHash: 'placeholder',
+      });
+
+      const { tenant } = await replaceDemoBusiness(createSeedClock(), 'placeholder-hash');
+
+      expect(await BusinessModel.exists({ _id: business._id })).toBeNull();
+      expect(await UserModel.countDocuments({ businessId: business._id })).toBe(0);
+      expect(tenant.business.isDemo).toBe(true);
+      expect(await UserModel.countDocuments({ businessId: tenant.business._id })).toBe(2);
     },
     SEED_TIMEOUT_MS,
   );

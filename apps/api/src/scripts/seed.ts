@@ -6,8 +6,8 @@ import { InvalidSeedPasswordError, resolveDemoPassword } from '../demo/password'
 import { describeSeededTenant } from '../demo/summary';
 
 /**
- * Development seed (`pnpm seed`): replaces the demo business, found through its
- * owner's email, with a realistic data set. Other businesses are never touched.
+ * Development seed (`pnpm seed`): replaces the demo business, found through the
+ * demo users' emails, with a realistic data set. Other businesses are never touched.
  * The demo password is random per run unless SEED_DEMO_PASSWORD is set.
  */
 if (process.env.NODE_ENV?.trim() === 'production') {

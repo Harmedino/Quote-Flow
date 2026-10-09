@@ -1,18 +1,51 @@
 import type { Options } from 'express-rate-limit';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { RateLimitCounterModel } from '../models';
 import { createTestClock } from '../test/auth';
 import { TEST_DATABASE_URI, useTestDatabase } from '../test/database';
+import { createCapturingLogger, createSilentLogger } from '../test/helpers';
 import { createMongoRateLimitStore } from './mongo-rate-limit-store';
 
 const WINDOW_MS = 60_000;
 
 function setup(name = 'test.limiter') {
   const clock = createTestClock(new Date('2026-10-09T10:00:00.000Z'));
-  const store = createMongoRateLimitStore(name, clock.now);
+  const store = createMongoRateLimitStore({ name, logger: createSilentLogger(), clock: clock.now });
   void store.init?.({ windowMs: WINDOW_MS } as Options);
   return { clock, store };
 }
+
+describe('MongoDB rate-limit store', () => {
+  it('logs a failed decrement or reset instead of rejecting', async () => {
+    // express-rate-limit decrements after the response with nothing to catch a rejection.
+    const { logger, entries } = createCapturingLogger();
+    const store = createMongoRateLimitStore({ name: 'failing.limiter', logger });
+    const updateOne = vi
+      .spyOn(RateLimitCounterModel, 'updateOne')
+      .mockRejectedValueOnce(new Error('connection closed'));
+    const deleteOne = vi
+      .spyOn(RateLimitCounterModel, 'deleteOne')
+      .mockRejectedValueOnce(new Error('connection closed'));
+
+    try {
+      await expect(store.decrement('203.0.113.1')).resolves.toBeUndefined();
+      await expect(store.resetKey('203.0.113.1')).resolves.toBeUndefined();
+    } finally {
+      updateOne.mockRestore();
+      deleteOne.mockRestore();
+    }
+
+    const warning = {
+      level: 'warn',
+      limiter: 'failing.limiter',
+      err: { message: 'connection closed' },
+    };
+    expect(entries()).toMatchObject([
+      { ...warning, msg: 'Could not decrement a rate-limit counter' },
+      { ...warning, msg: 'Could not reset a rate-limit counter' },
+    ]);
+  });
+});
 
 describe.skipIf(!TEST_DATABASE_URI)('MongoDB rate-limit store (database)', () => {
   useTestDatabase();

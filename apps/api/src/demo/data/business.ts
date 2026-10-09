@@ -3,7 +3,7 @@ import type { Business, User } from '../../models';
 /** Sign-ups may not use this domain, so only the demo builder creates its accounts. */
 export const DEMO_EMAIL_DOMAIN = 'quoteflow.test';
 
-/** The demo business is found (and replaced) through its owner's email on the reserved domain. */
+/** Demo visitors sign in as this owner; only a business marked as the demo is used. */
 export const DEMO_OWNER_EMAIL = `demo@${DEMO_EMAIL_DOMAIN}`;
 
 /** Expects a normalised (trimmed, lower-case) email. */

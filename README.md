@@ -199,7 +199,7 @@ enforced in layers:
    calls bypass Mongoose middleware and must not be used for tenant data.
 3. **Immutable ownership.** `businessId` cannot be changed or removed by any update.
 4. **Explicit, greppable exceptions.** Deliberate cross-tenant lookups must opt out with
-   `skipTenantGuard: true`. Today the only one is the development seed finding the demo owner by
+   `skipTenantGuard: true`. Today the only one is the development seed finding the demo users by
    email; signing in by email (stage 2) and opening a public quote by token (stage 5) will be the
    others.
 5. **Strict queries.** Mongoose runs with `strictQuery: 'throw'`, so a misspelt filter key (e.g.
@@ -321,9 +321,10 @@ Sign-in arrives in stage 2; until then the demo data is visible through the data
 
 The demo password is random on every run and printed when the seed finishes, unless you set
 `SEED_DEMO_PASSWORD` (at least 8 characters, never printed back) in `.env` for stable demos. The
-seed is safe to re-run: it finds the demo business by its owner's email, deletes only that
-business's data (and only when the business is marked as the demo) and recreates it. Sign-ups on
-the `quoteflow.test` domain are refused, so nobody else can hold the demo emails. It refuses to run
+seed is safe to re-run: it finds the demo business through the demo users' emails, deletes only
+that business's data and recreates it. Sign-ups on the `quoteflow.test` domain are refused, so
+nobody else can hold the demo emails; a demo created before the demo marker existed, or an account
+that took a demo email before the domain was reserved, is replaced like any other. It refuses to run
 when `NODE_ENV=production`.
 
 ## Scripts
