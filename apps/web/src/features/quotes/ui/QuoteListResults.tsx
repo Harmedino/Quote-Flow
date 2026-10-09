@@ -13,60 +13,66 @@ const CELL = 'px-4 py-3.5 whitespace-nowrap';
 export function QuoteListResults({ quotes }: { quotes: QuoteListItemDto[] }) {
   return (
     <>
-      <table className="hidden w-full text-sm md:table">
-        <thead className="border-b border-zinc-200 bg-zinc-50/80">
-          <tr>
-            <th scope="col" className={cn(HEAD, 'pl-6')}>
-              Quote
-            </th>
-            <th scope="col" className={HEAD}>
-              Customer
-            </th>
-            <th scope="col" className={HEAD}>
-              Issued
-            </th>
-            <th scope="col" className={HEAD}>
-              Valid until
-            </th>
-            <th scope="col" className={HEAD}>
-              Status
-            </th>
-            <th scope="col" className={cn(HEAD, 'pr-6 text-right')}>
-              Total
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-zinc-100">
-          {quotes.map((quote) => (
-            <tr key={quote.id} className="relative transition-colors hover:bg-zinc-50">
-              <td className={cn(CELL, 'pl-6 font-medium text-zinc-950')}>
-                <Link
-                  to={paths.quote(quote.id)}
-                  className="rounded-sm after:absolute after:inset-0 focus-visible:outline-2 focus-visible:outline-brand-600"
-                >
-                  {quote.quoteNumber}
-                </Link>
-              </td>
-              <td className={cn(CELL, 'max-w-64 truncate text-zinc-700')}>{quote.customerName}</td>
-              <td className={cn(CELL, 'text-zinc-600')}>{formatCalendarDate(quote.issueDate)}</td>
-              <td className={cn(CELL, 'text-zinc-600')}>{formatCalendarDate(quote.expiryDate)}</td>
-              <td className={CELL}>
-                <QuoteStatusBadge status={quote.status} />
-              </td>
-              <td className={cn(CELL, 'pr-6 text-right font-medium text-zinc-950 tabular-nums')}>
-                {formatMoney(quote.total, quote.currency)}
-              </td>
+      <div className="hidden overflow-x-auto md:block">
+        <table className="w-full text-sm">
+          <thead className="border-b border-zinc-200 bg-zinc-50/80">
+            <tr>
+              <th scope="col" className={cn(HEAD, 'pl-6')}>
+                Quote
+              </th>
+              <th scope="col" className={HEAD}>
+                Customer
+              </th>
+              <th scope="col" className={HEAD}>
+                Issued
+              </th>
+              <th scope="col" className={HEAD}>
+                Valid until
+              </th>
+              <th scope="col" className={HEAD}>
+                Status
+              </th>
+              <th scope="col" className={cn(HEAD, 'pr-6 text-right')}>
+                Total
+              </th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-zinc-100">
+            {quotes.map((quote) => (
+              <tr key={quote.id} className="relative transition-colors hover:bg-zinc-50">
+                <td className={cn(CELL, 'pl-6 font-medium text-zinc-950')}>
+                  <Link
+                    to={paths.quote(quote.id)}
+                    className="rounded-sm after:absolute after:inset-0 focus-visible:outline-2 focus-visible:outline-brand-600"
+                  >
+                    {quote.quoteNumber}
+                  </Link>
+                </td>
+                <td className={cn(CELL, 'max-w-64 truncate text-zinc-700')}>
+                  {quote.customerName}
+                </td>
+                <td className={cn(CELL, 'text-zinc-600')}>{formatCalendarDate(quote.issueDate)}</td>
+                <td className={cn(CELL, 'text-zinc-600')}>
+                  {formatCalendarDate(quote.expiryDate)}
+                </td>
+                <td className={CELL}>
+                  <QuoteStatusBadge status={quote.status} />
+                </td>
+                <td className={cn(CELL, 'pr-6 text-right font-medium text-zinc-950 tabular-nums')}>
+                  {formatMoney(quote.total, quote.currency)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       <ul className="divide-y divide-zinc-100 md:hidden">
         {quotes.map((quote) => (
           <li key={quote.id}>
             <Link
               to={paths.quote(quote.id)}
-              className="block px-4 py-4 transition-colors hover:bg-zinc-50 focus-visible:bg-zinc-50 focus-visible:outline-none"
+              className="block px-4 py-4 transition-colors hover:bg-zinc-50 focus-visible:bg-zinc-50 focus-visible:outline-offset-[-2px]"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">

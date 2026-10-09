@@ -1,7 +1,6 @@
 import { type PublicQuoteDto, canRespondToQuote } from '@quoteflow/shared';
 import { useEffect, useRef, useState } from 'react';
-import { useParams, useSearchParams } from 'react-router';
-import { PREVIEW_PARAM } from '@/app/paths';
+import { useLocation, useNavigate, useParams } from 'react-router';
 import { SalesDocument } from '@/components/documents/SalesDocument';
 import { brandColorVars } from '@/components/documents/brand-color';
 import { Badge } from '@/components/ui/Badge';
@@ -18,9 +17,11 @@ import {
   QuoteAnswerDialogs,
 } from '@/features/public-documents/QuoteAnswerDialogs';
 import { StatusBanner } from '@/features/public-documents/StatusBanner';
+import { PREVIEW_STATE, readPreviewFlag } from '@/features/public-documents/preview-flag';
 import { publicPdfUrl } from '@/features/public-documents/public-api';
 import {
   CUSTOMER_QUOTE_STATUS,
+  QUOTE_REVISED_BANNER,
   quoteStatusBanner,
 } from '@/features/public-documents/public-status';
 import {
@@ -35,40 +36,75 @@ function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
+/** Whether this tab is the business's own preview; see PREVIEW_STATE. */
+function usePreviewFlag(): boolean {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { preview, searchWithoutFlag } = readPreviewFlag(location);
+
+  useEffect(() => {
+    if (searchWithoutFlag === null) return;
+    void navigate(
+      { search: searchWithoutFlag, hash: location.hash },
+      { replace: true, preventScrollReset: true, state: PREVIEW_STATE },
+    );
+  }, [searchWithoutFlag, location.hash, navigate]);
+
+  return preview;
+}
+
 function PublicQuoteView({ token, data }: { token: string; data: PublicQuoteDto }) {
   const { business, quote } = data;
-  const answer = useAnswerQuote(token, quote.revision);
+  const answer = useAnswerQuote(token);
   const [dialog, setDialog] = useState<QuoteDialog>(null);
+  // The revision on screen when the dialog opened, which a refetch meanwhile must not change.
+  const [dialogRevision, setDialogRevision] = useState(quote.revision);
   const [reason, setReason] = useState('');
   const [justAnswered, setJustAnswered] = useState(false);
+  const [revised, setRevised] = useState(false);
   const bannerRef = useRef<HTMLElement>(null);
 
   const live = canRespondToQuote(quote.status);
-  const banner = quoteStatusBanner(data, justAnswered);
+  const banner = quoteStatusBanner(data, justAnswered) ?? (revised ? QUOTE_REVISED_BANNER : null);
   const total = formatMoney(quote.totals.total, quote.currency);
   const documentLabel = `Quote ${quote.quoteNumber}`;
   const status = CUSTOMER_QUOTE_STATUS[quote.status];
 
-  // After an answer, move to the outcome so it is seen and announced.
+  // After an answer, or a refused one, move to the banner so it is seen and announced.
+  const announce = justAnswered || revised;
   useEffect(() => {
-    if (!justAnswered) return;
+    if (!announce) return;
     window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
     bannerRef.current?.focus({ preventScroll: true });
-  }, [justAnswered]);
+  }, [announce]);
 
   function openDialog(next: Exclude<QuoteDialog, null>) {
     answer.reset();
-    if (next === 'decline') setReason('');
+    setDialogRevision(quote.revision);
+    setRevised(false);
+    // A reason typed before the quote was revised is kept for the second attempt.
+    if (next === 'decline' && !revised) setReason('');
     setDialog(next);
   }
 
   function submit(response: QuoteAnswer) {
-    answer.mutate(response, {
-      onSuccess: () => {
-        setDialog(null);
-        setJustAnswered(true);
+    answer.mutate(
+      { answer: response, revision: dialogRevision },
+      {
+        onSuccess: () => {
+          setDialog(null);
+          setJustAnswered(true);
+        },
+        onError: (error) => {
+          // The quote changed since the dialog opened and is being refetched: the customer
+          // reviews the new version and opens the dialog again to answer it.
+          if (isApiError(error) && error.code === 'CONFLICT') {
+            setDialog(null);
+            setRevised(true);
+          }
+        },
       },
-    });
+    );
   }
 
   return (
@@ -141,8 +177,8 @@ function PublicQuoteView({ token, data }: { token: string; data: PublicQuoteDto 
 
 export default function PublicQuotePage() {
   const { token = '' } = useParams();
-  const [searchParams] = useSearchParams();
-  const query = usePublicQuote(token, searchParams.get(PREVIEW_PARAM) === '1');
+  const preview = usePreviewFlag();
+  const query = usePublicQuote(token, preview);
 
   // A failed background refetch keeps showing the quote it already has.
   if (query.data) return <PublicQuoteView token={token} data={query.data} />;

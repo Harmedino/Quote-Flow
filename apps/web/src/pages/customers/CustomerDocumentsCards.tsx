@@ -87,7 +87,7 @@ function DocumentRow({
     <li>
       <Link
         to={to}
-        className="flex items-center justify-between gap-4 px-5 py-3.5 transition-colors hover:bg-zinc-50 sm:px-6"
+        className="flex items-center justify-between gap-4 px-5 py-3.5 transition-colors hover:bg-zinc-50 focus-visible:bg-zinc-50 focus-visible:outline-offset-[-2px] sm:px-6"
       >
         <div className="min-w-0">
           <p className="flex flex-wrap items-center gap-2">

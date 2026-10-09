@@ -84,57 +84,59 @@ export function ServiceList({ services, onEdit, onDelete }: ServiceListProps) {
 
   return (
     <>
-      <table className="hidden w-full text-left text-sm md:table">
-        <thead className="border-b border-zinc-200 bg-zinc-50/80 text-xs font-medium tracking-wide text-zinc-500 uppercase">
-          <tr>
-            <th scope="col" className="px-6 py-3 font-medium">
-              Service
-            </th>
-            <th scope="col" className="px-4 py-3 font-medium">
-              Unit
-            </th>
-            <th scope="col" className="px-4 py-3 text-right font-medium">
-              Price
-            </th>
-            <th scope="col" className="px-4 py-3 font-medium">
-              Status
-            </th>
-            <th scope="col" className="px-6 py-3">
-              <span className="sr-only">Actions</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-zinc-100">
-          {services.map((service) => (
-            <tr key={service.id} className="transition-colors hover:bg-zinc-50">
-              <td className="max-w-md px-6 py-3.5">
-                <button
-                  type="button"
-                  onClick={() => onEdit(service)}
-                  className="text-left font-medium text-zinc-950 hover:text-brand-700"
-                >
-                  {service.name}
-                </button>
-                {service.description && (
-                  <p className="mt-0.5 line-clamp-1 text-zinc-500">{service.description}</p>
-                )}
-              </td>
-              <td className="px-4 py-3.5 whitespace-nowrap text-zinc-600">
-                {service.unit ?? <span className="text-zinc-400">—</span>}
-              </td>
-              <td className="px-4 py-3.5 text-right font-medium whitespace-nowrap text-zinc-950 tabular-nums">
-                {price(service)}
-              </td>
-              <td className="px-4 py-3.5">
-                <ActiveSwitch service={service} />
-              </td>
-              <td className="px-6 py-2">
-                <ServiceActions service={service} onEdit={onEdit} onDelete={onDelete} />
-              </td>
+      <div className="hidden overflow-x-auto md:block">
+        <table className="w-full text-left text-sm">
+          <thead className="border-b border-zinc-200 bg-zinc-50/80 text-xs font-medium tracking-wide text-zinc-500 uppercase">
+            <tr>
+              <th scope="col" className="px-6 py-3 font-medium">
+                Service
+              </th>
+              <th scope="col" className="px-4 py-3 font-medium">
+                Unit
+              </th>
+              <th scope="col" className="px-4 py-3 text-right font-medium">
+                Price
+              </th>
+              <th scope="col" className="px-4 py-3 font-medium">
+                Status
+              </th>
+              <th scope="col" className="px-6 py-3">
+                <span className="sr-only">Actions</span>
+              </th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-zinc-100">
+            {services.map((service) => (
+              <tr key={service.id} className="transition-colors hover:bg-zinc-50">
+                <td className="max-w-md px-6 py-3.5">
+                  <button
+                    type="button"
+                    onClick={() => onEdit(service)}
+                    className="text-left font-medium text-zinc-950 hover:text-brand-700"
+                  >
+                    {service.name}
+                  </button>
+                  {service.description && (
+                    <p className="mt-0.5 line-clamp-1 text-zinc-500">{service.description}</p>
+                  )}
+                </td>
+                <td className="px-4 py-3.5 whitespace-nowrap text-zinc-600">
+                  {service.unit ?? <span className="text-zinc-400">—</span>}
+                </td>
+                <td className="px-4 py-3.5 text-right font-medium whitespace-nowrap text-zinc-950 tabular-nums">
+                  {price(service)}
+                </td>
+                <td className="px-4 py-3.5">
+                  <ActiveSwitch service={service} />
+                </td>
+                <td className="px-6 py-2">
+                  <ServiceActions service={service} onEdit={onEdit} onDelete={onDelete} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       <ul className="divide-y divide-zinc-100 md:hidden">
         {services.map((service) => (

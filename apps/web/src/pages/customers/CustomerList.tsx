@@ -19,61 +19,63 @@ export function CustomerList({ customers }: { customers: CustomerDto[] }) {
 
   return (
     <>
-      <table className="hidden w-full text-left text-sm md:table">
-        <thead className="border-b border-zinc-200 bg-zinc-50/80 text-xs font-medium tracking-wide text-zinc-500 uppercase">
-          <tr>
-            <th scope="col" className="px-6 py-3 font-medium">
-              Name
-            </th>
-            <th scope="col" className="px-4 py-3 font-medium">
-              Email
-            </th>
-            <th scope="col" className="px-4 py-3 font-medium">
-              Phone
-            </th>
-            <th scope="col" className="px-6 py-3 text-right font-medium">
-              Added
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-zinc-100">
-          {customers.map((customer) => (
-            <tr key={customer.id} className="group relative transition-colors hover:bg-zinc-50">
-              <td className="max-w-72 px-6 py-3.5">
-                <div className="flex items-center gap-2">
-                  {/* The link covers the whole row, so any part of it opens the customer. */}
-                  <Link
-                    to={paths.customer(customer.id)}
-                    className="truncate font-medium text-zinc-950 after:absolute after:inset-0 group-hover:text-brand-700"
-                  >
-                    {customer.name}
-                  </Link>
-                  {customer.archivedAt && <ArchivedBadge />}
-                </div>
-                {customer.company && (
-                  <p className="mt-0.5 truncate text-zinc-500">{customer.company}</p>
-                )}
-              </td>
-              <td className="max-w-64 truncate px-4 py-3.5 text-zinc-700">
-                {customer.email ?? <span className="text-zinc-400">—</span>}
-              </td>
-              <td className="px-4 py-3.5 whitespace-nowrap text-zinc-700">
-                {customer.phone ?? <span className="text-zinc-400">—</span>}
-              </td>
-              <td className="px-6 py-3.5 text-right whitespace-nowrap text-zinc-500">
-                {added(customer)}
-              </td>
+      <div className="hidden overflow-x-auto md:block">
+        <table className="w-full text-left text-sm">
+          <thead className="border-b border-zinc-200 bg-zinc-50/80 text-xs font-medium tracking-wide text-zinc-500 uppercase">
+            <tr>
+              <th scope="col" className="px-6 py-3 font-medium">
+                Name
+              </th>
+              <th scope="col" className="px-4 py-3 font-medium">
+                Email
+              </th>
+              <th scope="col" className="px-4 py-3 font-medium">
+                Phone
+              </th>
+              <th scope="col" className="px-6 py-3 text-right font-medium">
+                Added
+              </th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-zinc-100">
+            {customers.map((customer) => (
+              <tr key={customer.id} className="group relative transition-colors hover:bg-zinc-50">
+                <td className="max-w-72 px-6 py-3.5">
+                  <div className="flex items-center gap-2">
+                    {/* The link covers the whole row, so any part of it opens the customer. */}
+                    <Link
+                      to={paths.customer(customer.id)}
+                      className="truncate font-medium text-zinc-950 after:absolute after:inset-0 group-hover:text-brand-700"
+                    >
+                      {customer.name}
+                    </Link>
+                    {customer.archivedAt && <ArchivedBadge />}
+                  </div>
+                  {customer.company && (
+                    <p className="mt-0.5 truncate text-zinc-500">{customer.company}</p>
+                  )}
+                </td>
+                <td className="max-w-64 truncate px-4 py-3.5 text-zinc-700">
+                  {customer.email ?? <span className="text-zinc-400">—</span>}
+                </td>
+                <td className="px-4 py-3.5 whitespace-nowrap text-zinc-700">
+                  {customer.phone ?? <span className="text-zinc-400">—</span>}
+                </td>
+                <td className="px-6 py-3.5 text-right whitespace-nowrap text-zinc-500">
+                  {added(customer)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       <ul className="divide-y divide-zinc-100 md:hidden">
         {customers.map((customer) => (
           <li key={customer.id}>
             <Link
               to={paths.customer(customer.id)}
-              className="block px-4 py-4 transition-colors hover:bg-zinc-50 active:bg-zinc-100"
+              className="block px-4 py-4 transition-colors hover:bg-zinc-50 focus-visible:bg-zinc-50 focus-visible:outline-offset-[-2px] active:bg-zinc-100"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">

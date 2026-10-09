@@ -27,7 +27,7 @@ const CELL = 'px-4 py-3.5 text-sm whitespace-nowrap';
 export function InvoiceList({ invoices }: { invoices: InvoiceListItemDto[] }) {
   return (
     <>
-      <div className="hidden md:block">
+      <div className="hidden overflow-x-auto md:block">
         <table className="w-full">
           <thead className="border-b border-zinc-200 bg-zinc-50/80">
             <tr>
@@ -100,7 +100,7 @@ export function InvoiceList({ invoices }: { invoices: InvoiceListItemDto[] }) {
           <li key={invoice.id}>
             <Link
               to={paths.invoice(invoice.id)}
-              className="block px-4 py-4 transition-colors hover:bg-zinc-50 focus-visible:bg-zinc-50 focus-visible:outline-none"
+              className="block px-4 py-4 transition-colors hover:bg-zinc-50 focus-visible:bg-zinc-50 focus-visible:outline-offset-[-2px]"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">

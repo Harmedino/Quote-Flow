@@ -27,14 +27,31 @@ export interface CustomerPickerProps {
   error?: string;
   /** Id of the search input, so form errors can focus it. */
   inputId: string;
+  /** Set when the customer can no longer change: shown instead of the "Change" button. */
+  lockedHint?: string;
+}
+
+function PickerError({ id, message }: { id: string; message: string }) {
+  return (
+    <p id={id} className="mt-2 flex items-center gap-1.5 text-sm text-red-700">
+      <CircleAlert aria-hidden="true" className="size-4 shrink-0" />
+      {message}
+    </p>
+  );
 }
 
 function SelectedCustomerCard({
   customer,
+  lockedHint,
+  error,
+  errorId,
   onChange,
   changeButtonRef,
 }: {
   customer: SelectedCustomer;
+  lockedHint?: string;
+  error?: string;
+  errorId: string;
   onChange: () => void;
   changeButtonRef: Ref<HTMLButtonElement>;
 }) {
@@ -44,34 +61,51 @@ function SelectedCustomerCard({
     customer.phone && { icon: Phone, text: customer.phone },
     address && { icon: MapPin, text: address },
   ].filter((detail) => detail !== '' && detail !== null);
+  // Form errors focus the first invalid element: "Change", or the card itself while it is locked.
+  const invalid = error ? { 'aria-invalid': true, 'aria-describedby': errorId } : {};
   return (
-    <div className="rounded-xl border border-zinc-200 bg-zinc-50/60 p-4">
-      <div className="flex items-center gap-3">
-        <Avatar name={customer.name} />
-        <div className="min-w-0 flex-1 text-sm">
-          <p className="truncate font-semibold text-zinc-950">{customer.name}</p>
-          {customer.company && <p className="truncate text-zinc-600">{customer.company}</p>}
+    <div>
+      <div
+        {...(lockedHint && error ? { tabIndex: -1, ...invalid } : {})}
+        className="rounded-xl border border-zinc-200 bg-zinc-50/60 p-4"
+      >
+        <div className="flex items-center gap-3">
+          <Avatar name={customer.name} />
+          <div className="min-w-0 flex-1 text-sm">
+            <p className="truncate font-semibold text-zinc-950">{customer.name}</p>
+            {customer.company && <p className="truncate text-zinc-600">{customer.company}</p>}
+          </div>
+          {!lockedHint && (
+            <Button ref={changeButtonRef} variant="ghost" size="sm" onClick={onChange} {...invalid}>
+              Change
+            </Button>
+          )}
         </div>
-        <Button ref={changeButtonRef} variant="ghost" size="sm" onClick={onChange}>
-          Change
-        </Button>
+        {details.length > 0 && (
+          <ul className="mt-3 flex flex-col gap-1.5 text-sm text-zinc-600 sm:flex-row sm:flex-wrap sm:gap-x-5 sm:pl-12">
+            {details.map(({ icon: Icon, text }) => (
+              <li key={text} className="flex min-w-0 items-start gap-2">
+                <Icon aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-zinc-400" />
+                <span className="wrap-anywhere">{text}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
-      {details.length > 0 && (
-        <ul className="mt-3 flex flex-col gap-1.5 text-sm text-zinc-600 sm:flex-row sm:flex-wrap sm:gap-x-5 sm:pl-12">
-          {details.map(({ icon: Icon, text }) => (
-            <li key={text} className="flex min-w-0 items-start gap-2">
-              <Icon aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-zinc-400" />
-              <span className="wrap-anywhere">{text}</span>
-            </li>
-          ))}
-        </ul>
-      )}
+      {lockedHint && <p className="mt-2 text-sm text-zinc-500">{lockedHint}</p>}
+      {error && <PickerError id={errorId} message={error} />}
     </div>
   );
 }
 
 /** Searchable, keyboard-accessible customer combobox with inline customer creation. */
-export function CustomerPicker({ customer, onChange, error, inputId }: CustomerPickerProps) {
+export function CustomerPicker({
+  customer,
+  onChange,
+  error,
+  inputId,
+  lockedHint,
+}: CustomerPickerProps) {
   const [searching, setSearching] = useState(customer === null);
   const [text, setText] = useState('');
   const [open, setOpen] = useState(false);
@@ -120,6 +154,9 @@ export function CustomerPicker({ customer, onChange, error, inputId }: CustomerP
     return (
       <SelectedCustomerCard
         customer={customer}
+        lockedHint={lockedHint}
+        error={error}
+        errorId={errorId}
         changeButtonRef={changeButtonRef}
         onChange={() => {
           setSearching(true);
@@ -232,12 +269,7 @@ export function CustomerPicker({ customer, onChange, error, inputId }: CustomerP
           Keep {customer.name}
         </button>
       )}
-      {error && (
-        <p id={errorId} className="mt-2 flex items-center gap-1.5 text-sm text-red-700">
-          <CircleAlert aria-hidden="true" className="size-4 shrink-0" />
-          {error}
-        </p>
-      )}
+      {error && <PickerError id={errorId} message={error} />}
       <CustomerFormDialog
         open={creating}
         onClose={() => setCreating(false)}

@@ -87,6 +87,14 @@ export function quoteStatusBanner(
   }
 }
 
+/** Shown when an answer is refused because the business changed the quote after it was opened. */
+export const QUOTE_REVISED_BANNER: StatusBannerModel = {
+  tone: 'info',
+  title: 'This quote was just updated',
+  message: 'Please review the changes before answering.',
+  showContact: false,
+};
+
 /** Null while payment is simply due: the page's summary shows the amount and due date. */
 export function invoiceStatusBanner(
   { invoice, business }: PublicInvoiceDto,

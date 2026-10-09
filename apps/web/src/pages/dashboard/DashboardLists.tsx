@@ -52,7 +52,7 @@ function Row({ to, primary, secondary, amount, badge, leading }: RowProps) {
     <li>
       <Link
         to={to}
-        className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-zinc-50 focus-visible:bg-zinc-50 sm:px-6"
+        className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-zinc-50 focus-visible:bg-zinc-50 focus-visible:outline-offset-[-2px] sm:px-6"
       >
         {leading}
         <div className="min-w-0 flex-1">
