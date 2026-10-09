@@ -1,16 +1,29 @@
-import type { PublicInvoiceDto, PublicQuoteDto, RejectQuoteInput } from '@quoteflow/shared';
+import type {
+  AcceptQuoteInput,
+  PublicInvoiceDto,
+  PublicQuoteDto,
+  RejectQuoteInput,
+} from '@quoteflow/shared';
 import { request, resolveApiBaseUrl } from '@/lib/api-client';
 
 /** Customer-facing endpoints: no account, the token in the link is the capability. */
 
 const segment = (token: string) => encodeURIComponent(token);
 
-export function getPublicQuote(token: string, signal?: AbortSignal): Promise<PublicQuoteDto> {
-  return request(`/public/quotes/${segment(token)}`, { signal });
+/** `preview` is the business opening its own link, which the API does not count as a view. */
+export function getPublicQuote(
+  token: string,
+  signal?: AbortSignal,
+  preview = false,
+): Promise<PublicQuoteDto> {
+  return request(`/public/quotes/${segment(token)}`, {
+    signal,
+    query: preview ? { preview: 1 } : undefined,
+  });
 }
 
-export function acceptPublicQuote(token: string): Promise<PublicQuoteDto> {
-  return request(`/public/quotes/${segment(token)}/accept`, { method: 'POST' });
+export function acceptPublicQuote(token: string, input: AcceptQuoteInput): Promise<PublicQuoteDto> {
+  return request(`/public/quotes/${segment(token)}/accept`, { method: 'POST', body: input });
 }
 
 export function rejectPublicQuote(token: string, input: RejectQuoteInput): Promise<PublicQuoteDto> {

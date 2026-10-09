@@ -1,4 +1,9 @@
-import { type Options, type RateLimitRequestHandler, rateLimit } from 'express-rate-limit';
+import {
+  type Options,
+  type RateLimitRequestHandler,
+  type Store,
+  rateLimit,
+} from 'express-rate-limit';
 import { AppError } from '../utils/app-error';
 import type { Logger } from '../utils/logger';
 
@@ -15,6 +20,10 @@ export interface RateLimiterOptions extends RateLimitSettings {
   keyGenerator?: Options['keyGenerator'];
   /** Count only requests that fail (status 400 or above), e.g. failed sign-in attempts. */
   skipSuccessfulRequests?: boolean;
+  /** Count only requests that succeed (status below 400). */
+  skipFailedRequests?: boolean;
+  /** Where counters live; process memory (i.e. per API instance) by default. */
+  store?: Store;
 }
 
 export const GLOBAL_RATE_LIMIT: RateLimitSettings = { windowMs: 15 * 60 * 1000, limit: 300 };
@@ -22,7 +31,6 @@ export const GLOBAL_RATE_LIMIT: RateLimitSettings = { windowMs: 15 * 60 * 1000, 
 /**
  * Builds a rate limiter that reports violations through the central error
  * handler, so clients always receive the standard RATE_LIMITED envelope.
- * Counters live in process memory, i.e. they are per API instance.
  */
 export function createRateLimiter({
   windowMs,
@@ -32,6 +40,8 @@ export function createRateLimiter({
   skip,
   keyGenerator,
   skipSuccessfulRequests = false,
+  skipFailedRequests = false,
+  store,
 }: RateLimiterOptions): RateLimitRequestHandler {
   return rateLimit({
     windowMs,
@@ -39,6 +49,8 @@ export function createRateLimiter({
     skip,
     keyGenerator,
     skipSuccessfulRequests,
+    skipFailedRequests,
+    ...(store && { store }),
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     handler: (_req, _res, next) => {

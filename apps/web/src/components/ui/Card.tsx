@@ -4,7 +4,8 @@ import { cn } from '@/lib/cn';
 export function Card({ className, ...props }: ComponentProps<'div'>) {
   return (
     <div
-      className={cn('rounded-xl border border-zinc-200 bg-white shadow-xs', className)}
+      // min-w-0 keeps long, unwrappable content (truncated rows, tables) from widening a grid or flex column.
+      className={cn('min-w-0 rounded-xl border border-zinc-200 bg-white shadow-xs', className)}
       {...props}
     />
   );

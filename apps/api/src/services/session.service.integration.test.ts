@@ -1,6 +1,6 @@
 import { Types } from 'mongoose';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { SessionModel } from '../models';
+import { RetiredRefreshTokenModel, SessionModel } from '../models';
 import { createTestClock } from '../test/auth';
 import { TEST_DATABASE_URI, recordCommands, useTestDatabase } from '../test/database';
 import { hashToken } from '../utils/tokens';
@@ -81,6 +81,52 @@ describe.skipIf(!TEST_DATABASE_URI)('session service (database)', () => {
     clock.advance(1);
     expect(await sessions.rotate(first)).toMatchObject({ status: 'reused' });
     expect(await sessions.rotate(second.refreshToken)).toEqual({ status: 'invalid' });
+  });
+
+  it('revokes the session when any earlier token is replayed, however many rotations ago', async () => {
+    const { sessions, owner, clock } = setup();
+    const { refreshToken: stolen } = await sessions.start(owner, undefined);
+    // The thief refreshes twice; the victim's copy is now two rotations old.
+    const first = await sessions.rotate(stolen);
+    if (first.status !== 'rotated') throw new Error('expected a rotation');
+    clock.advance(15 * 60_000);
+    const second = await sessions.rotate(first.refreshToken);
+    if (second.status !== 'rotated') throw new Error('expected a rotation');
+
+    const retired = await RetiredRefreshTokenModel.findOne({
+      businessId: owner.businessId,
+      tokenHash: hashToken(stolen),
+    }).lean();
+    expect(retired).toMatchObject({
+      sessionId: second.session._id,
+      expiresAt: first.session.expiresAt,
+    });
+
+    clock.advance(60_000);
+    expect(await sessions.rotate(stolen)).toMatchObject({ status: 'reused' });
+    expect(await sessions.rotate(second.refreshToken)).toEqual({ status: 'invalid' });
+    expect(await SessionModel.findOne({ businessId: owner.businessId }).lean()).toMatchObject({
+      revokedReason: 'reuse_detected',
+    });
+  });
+
+  it('reports whether a session is active and revokes a single one', async () => {
+    const { sessions, owner, clock } = setup();
+    const kept = await sessions.start(owner, undefined);
+    const ended = await sessions.start(owner, undefined);
+    const ref = (sessionId: string) => ({ ...owner, sessionId });
+
+    expect(await sessions.revokeOne(ref(ended.session.id), 'logout_all')).toBe(1);
+    expect(await sessions.revokeOne(ref(ended.session.id), 'logout_all')).toBe(0);
+    expect(await sessions.isActive(ref(ended.session.id))).toBe(false);
+    expect(await sessions.isActive(ref(kept.session.id))).toBe(true);
+    // Another user's id or business never matches.
+    expect(await sessions.isActive({ ...ref(kept.session.id), userId: new Types.ObjectId() })).toBe(
+      false,
+    );
+
+    clock.advance(31 * 24 * 60 * 60 * 1000);
+    expect(await sessions.isActive(ref(kept.session.id))).toBe(false);
   });
 
   it('revokes a session by its current or just-rotated token, once', async () => {

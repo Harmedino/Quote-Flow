@@ -76,6 +76,15 @@ export function getErrorMessage(error: unknown): string {
   return FRIENDLY_MESSAGES[error.code];
 }
 
+/**
+ * Whether loading one record by the id in the URL failed because there is no
+ * such record in this business. A malformed id is rejected as a validation
+ * error before the lookup, and means the same to the person following the link.
+ */
+export function isMissingRecordError(error: unknown): boolean {
+  return isApiError(error) && (error.code === 'NOT_FOUND' || error.code === 'VALIDATION_ERROR');
+}
+
 /** Maps field paths (e.g. `items.0.quantity`) to their first error message. */
 export function getFieldErrors(error: unknown): Record<string, string> {
   const fieldErrors: Record<string, string> = {};

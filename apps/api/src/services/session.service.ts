@@ -1,5 +1,10 @@
 import type { Types } from 'mongoose';
-import { type SessionDocument, SessionModel, type SessionRevokedReason } from '../models';
+import {
+  RetiredRefreshTokenModel,
+  type SessionDocument,
+  SessionModel,
+  type SessionRevokedReason,
+} from '../models';
 import type { Clock } from '../utils/clock';
 import { SECURE_TOKEN_PATTERN, generateRefreshToken, hashToken } from '../utils/tokens';
 
@@ -30,10 +35,21 @@ export interface SessionOwner {
   businessId: Types.ObjectId | string;
 }
 
+/** One session of a user, as an access token names it. */
+export interface SessionRef extends SessionOwner {
+  sessionId: string;
+}
+
+type SessionKey = Pick<SessionDocument, '_id' | 'businessId'>;
+
 export interface SessionService {
   start(owner: SessionOwner, userAgent: string | undefined): Promise<StartedSession>;
   rotate(refreshToken: string): Promise<RotationOutcome>;
-  revoke(session: SessionDocument, reason: SessionRevokedReason): Promise<void>;
+  /** Whether the session is neither revoked nor expired. */
+  isActive(ref: SessionRef): Promise<boolean>;
+  revoke(session: SessionKey, reason: SessionRevokedReason): Promise<void>;
+  /** Revokes one session of a user; returns how many were revoked (0 or 1). */
+  revokeOne(ref: SessionRef, reason: SessionRevokedReason): Promise<number>;
   /** Revokes the session whose current or previous token this is; returns it, if it was active. */
   revokeByToken(
     refreshToken: string,
@@ -65,21 +81,41 @@ export function createSessionService({
   const isLive = (session: SessionDocument, now: Date) =>
     session.revokedAt === null && session.expiresAt > now;
 
-  async function revoke(session: SessionDocument, reason: SessionRevokedReason): Promise<void> {
+  async function revoke(session: SessionKey, reason: SessionRevokedReason): Promise<void> {
     await SessionModel.updateOne(
       { _id: session._id, businessId: session.businessId, revokedAt: null },
       { $set: { revokedAt: clock(), revokedReason: reason } },
     );
   }
 
-  /** A token that is no longer current: a racing tab inside the grace window, otherwise a replay. */
+  /** The live session a token older than the previous one was rotated out of, if any. */
+  async function findByRetiredToken(tokenHash: string, now: Date) {
+    // A deliberate cross-tenant lookup: the token is the only identity.
+    const retired = await RetiredRefreshTokenModel.findOne({ tokenHash }, null, {
+      skipTenantGuard: true,
+    }).lean();
+    if (!retired) return null;
+    const session = await SessionModel.findOne({
+      _id: retired.sessionId,
+      businessId: retired.businessId,
+    });
+    return session && isLive(session, now) ? session : null;
+  }
+
+  /**
+   * A token that is no longer current: the previous one inside the grace window
+   * is a racing tab; any other is a replay (e.g. a stolen cookie), which revokes the session.
+   */
   async function checkReplay(tokenHash: string, now: Date): Promise<RotationOutcome> {
-    const session = await findByTokenHash('previousTokenHash', tokenHash);
-    if (!session || !isLive(session, now)) return { status: 'invalid' };
+    const previousOf = await findByTokenHash('previousTokenHash', tokenHash);
+    if (previousOf) {
+      if (!isLive(previousOf, now)) return { status: 'invalid' };
+      const rotatedAgoMs = now.getTime() - (previousOf.rotatedAt?.getTime() ?? 0);
+      if (rotatedAgoMs <= REFRESH_REUSE_GRACE_MS) return { status: 'superseded' };
+    }
 
-    const rotatedAgoMs = now.getTime() - (session.rotatedAt?.getTime() ?? 0);
-    if (rotatedAgoMs <= REFRESH_REUSE_GRACE_MS) return { status: 'superseded' };
-
+    const session = previousOf ?? (await findByRetiredToken(tokenHash, now));
+    if (!session) return { status: 'invalid' };
     await revoke(session, 'reuse_detected');
     return { status: 'reused', session };
   }
@@ -124,10 +160,35 @@ export function createSessionService({
         { returnDocument: 'after' },
       );
       if (!rotated) return { status: 'superseded' };
+      await RetiredRefreshTokenModel.create({
+        businessId: rotated.businessId,
+        sessionId: rotated._id,
+        tokenHash,
+        expiresAt: rotated.expiresAt,
+      });
       return { status: 'rotated', session: rotated, refreshToken: nextToken };
     },
 
+    async isActive({ sessionId, userId, businessId }) {
+      const session = await SessionModel.exists({
+        _id: sessionId,
+        businessId,
+        userId,
+        revokedAt: null,
+        expiresAt: { $gt: clock() },
+      });
+      return session !== null;
+    },
+
     revoke,
+
+    async revokeOne({ sessionId, userId, businessId }, reason) {
+      const result = await SessionModel.updateOne(
+        { _id: sessionId, businessId, userId, revokedAt: null },
+        { $set: { revokedAt: clock(), revokedReason: reason } },
+      );
+      return result.modifiedCount;
+    },
 
     async revokeByToken(refreshToken, reason) {
       if (!SECURE_TOKEN_PATTERN.test(refreshToken)) return null;

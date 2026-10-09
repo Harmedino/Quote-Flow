@@ -53,8 +53,8 @@ export default function HomePage() {
         />
         <div className="mx-auto max-w-6xl px-4 pt-16 pb-20 sm:px-6 sm:pt-24 lg:pt-28">
           <div className="mx-auto max-w-3xl text-center">
-            <p className="inline-flex items-center rounded-full bg-white px-3 py-1 text-sm font-medium text-brand-700 ring-1 ring-brand-600/20 ring-inset">
-              For cleaners, plumbers, electricians, painters and more
+            <p className="inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-medium text-brand-700 ring-1 ring-brand-600/20 ring-inset sm:text-sm">
+              For cleaners, plumbers, electricians and more
             </p>
             <h1 className="mt-6 text-4xl font-semibold tracking-tight text-zinc-950 sm:text-6xl">
               <span className="block text-balance">Create quotes. Get approvals.</span>{' '}

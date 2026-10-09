@@ -1,7 +1,7 @@
 import { cn } from '@/lib/cn';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
-export type ButtonSize = 'sm' | 'md' | 'lg';
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'danger-ghost';
+export type ButtonSize = 'sm' | 'md' | 'lg' | 'icon';
 
 export interface ButtonStyleProps {
   variant?: ButtonVariant;
@@ -18,12 +18,17 @@ const VARIANTS: Record<ButtonVariant, string> = {
   ghost: 'text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 active:bg-zinc-200/70',
   danger:
     'bg-red-700 text-white shadow-xs hover:bg-red-800 active:bg-red-900 focus-visible:outline-red-700',
+  /** A quieter destructive action, e.g. "Delete draft" below the main actions. */
+  'danger-ghost':
+    'text-red-700 hover:bg-red-50 hover:text-red-800 active:bg-red-100 focus-visible:outline-red-700',
 };
 
 const SIZES: Record<ButtonSize, string> = {
   sm: 'h-8 px-3 text-sm [&_svg]:size-4',
   md: 'h-10 px-4 text-sm [&_svg]:size-4',
   lg: 'h-12 px-5 text-base [&_svg]:size-5',
+  /** A square button holding only an icon; give it an accessible name. */
+  icon: 'size-9 text-sm [&_svg]:size-4',
 };
 
 export function buttonClasses({

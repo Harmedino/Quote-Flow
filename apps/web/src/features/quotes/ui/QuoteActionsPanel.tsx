@@ -108,11 +108,7 @@ export function QuoteActionsPanel({ quote }: { quote: QuoteDto }) {
         Duplicate
       </Button>
       {canDeleteQuote(quote.status) && (
-        <Button
-          variant="ghost"
-          className={`${ACTION} text-red-700 hover:bg-red-50 hover:text-red-800`}
-          onClick={() => setConfirmingDelete(true)}
-        >
+        <Button variant="danger-ghost" className={ACTION} onClick={() => setConfirmingDelete(true)}>
           <Trash2 aria-hidden="true" />
           Delete draft
         </Button>

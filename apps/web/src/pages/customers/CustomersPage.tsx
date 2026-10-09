@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router';
 import { paths } from '@/app/paths';
 import { DocumentTitle } from '@/components/DocumentTitle';
 import { ListSearch } from '@/components/ListSearch';
+import { ListToolbar } from '@/components/ListToolbar';
 import { Pagination } from '@/components/Pagination';
 import { QueryError } from '@/components/QueryError';
 import { Button } from '@/components/ui/Button';
@@ -106,9 +107,7 @@ export default function CustomersPage() {
     return (
       <div className={cn('transition-opacity', customers.isPlaceholderData && 'opacity-60')}>
         <CustomerList customers={data} />
-        <div className="px-5 pb-4 sm:px-6">
-          <Pagination meta={meta} label="customers" onPageChange={(page) => update({ page })} />
-        </div>
+        <Pagination meta={meta} label="customers" onPageChange={(page) => update({ page })} />
       </div>
     );
   }
@@ -123,7 +122,7 @@ export default function CustomersPage() {
       />
 
       <Card>
-        <div className="flex flex-col gap-3 border-b border-zinc-200 p-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <ListToolbar>
           <ListSearch
             value={params.search}
             onSearch={(search) => update({ search }, true)}
@@ -140,7 +139,7 @@ export default function CustomersPage() {
             />
             Show archived
           </label>
-        </div>
+        </ListToolbar>
         <p className="sr-only" aria-live="polite">
           {customers.data && !customers.isPlaceholderData
             ? `${customers.data.meta.total} ${customers.data.meta.total === 1 ? 'customer' : 'customers'}`

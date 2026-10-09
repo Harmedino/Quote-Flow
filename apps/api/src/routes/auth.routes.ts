@@ -45,6 +45,7 @@ export function createAuthRouter({
     trustedOrigin,
     limiters.login,
     limiters.loginAccount,
+    limiters.loginEmail,
     validate(loginSchemas),
     controller.login,
   );

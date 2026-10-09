@@ -1,7 +1,13 @@
 import type { Business, User } from '../../models';
 
-/** The demo business is found (and replaced) through its owner's email on a reserved domain. */
-export const DEMO_OWNER_EMAIL = 'demo@quoteflow.test';
+/** Sign-ups may not use this domain, so only the demo builder creates its accounts. */
+export const DEMO_EMAIL_DOMAIN = 'quoteflow.test';
+
+/** Demo visitors sign in as this owner; only a business marked as the demo is used. */
+export const DEMO_OWNER_EMAIL = `demo@${DEMO_EMAIL_DOMAIN}`;
+
+/** Expects a normalised (trimmed, lower-case) email. */
+export const isDemoEmail = (email: string) => email.endsWith(`@${DEMO_EMAIL_DOMAIN}`);
 
 export const DEMO_BUSINESS = {
   name: 'Evergreen Home Services',
@@ -31,11 +37,12 @@ export const DEMO_BUSINESS = {
   defaultInvoiceNotes: 'Thank you for your business!',
   defaultInvoiceTerms:
     'Payment is due by the due date shown. We accept bank transfer, card and cash. Please include the invoice number as your payment reference.',
+  isDemo: true,
 } satisfies Omit<Business, 'createdAt' | 'updatedAt'>;
 
 export type DemoUserRole = 'owner' | 'staff';
 
 export const DEMO_USERS = {
   owner: { name: 'Maya Robinson', email: DEMO_OWNER_EMAIL, role: 'owner' },
-  staff: { name: 'Luis Ortega', email: 'staff@quoteflow.test', role: 'staff' },
+  staff: { name: 'Luis Ortega', email: `staff@${DEMO_EMAIL_DOMAIN}`, role: 'staff' },
 } as const satisfies Record<DemoUserRole, Pick<User, 'name' | 'email' | 'role'>>;

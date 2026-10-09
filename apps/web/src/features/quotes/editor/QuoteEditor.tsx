@@ -40,6 +40,10 @@ export interface QuoteEditorProps {
 
 const SERVICES_QUERY = { active: true, pageSize: 100 };
 
+/** Once sent, a quote keeps its customer (its link already went to them), as the API enforces. */
+const SENT_CUSTOMER_HINT =
+  'This quote has been sent, so its customer can’t change. Duplicate it to quote someone else.';
+
 /** Which errors an edit makes stale, by form field. */
 const ERROR_KEYS: Partial<Record<keyof QuoteFormValues, readonly string[]>> = {
   customerId: ['customerId'],
@@ -182,13 +186,14 @@ export function QuoteEditor({ business, initialValues, initialCustomer, quote }:
           {formError}
         </Alert>
       )}
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_18rem] xl:items-start">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start">
         <div className="min-w-0 space-y-6">
           <EditorSection title="Customer" headingId={`${formId}-customer`}>
             <CustomerPicker
               inputId={`${formId}-customer-search`}
               customer={customer}
               error={errors.customerId}
+              lockedHint={isDraft ? undefined : SENT_CUSTOMER_HINT}
               onChange={(next) => {
                 setCustomer(next);
                 change({ customerId: next.id });

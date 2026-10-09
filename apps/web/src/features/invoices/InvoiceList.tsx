@@ -23,11 +23,11 @@ function hasBalance(invoice: InvoiceListItemDto): boolean {
 const HEAD = 'px-4 py-3 text-left text-xs font-medium tracking-wide text-zinc-500 uppercase';
 const CELL = 'px-4 py-3.5 text-sm whitespace-nowrap';
 
-/** A table from `md` up; stacked cards on phones. Each row links to the invoice. */
+/** A table from `md` up and stacked rows below, inside the list card; each row links to the invoice. */
 export function InvoiceList({ invoices }: { invoices: InvoiceListItemDto[] }) {
   return (
     <>
-      <div className="hidden md:block">
+      <div className="hidden overflow-x-auto md:block">
         <table className="w-full">
           <thead className="border-b border-zinc-200 bg-zinc-50/80">
             <tr>
@@ -43,14 +43,14 @@ export function InvoiceList({ invoices }: { invoices: InvoiceListItemDto[] }) {
               <th scope="col" className={HEAD}>
                 Due
               </th>
+              <th scope="col" className={HEAD}>
+                Status
+              </th>
               <th scope="col" className={cn(HEAD, 'text-right')}>
                 Total
               </th>
-              <th scope="col" className={cn(HEAD, 'text-right')}>
+              <th scope="col" className={cn(HEAD, 'pr-6 text-right')}>
                 Balance due
-              </th>
-              <th scope="col" className={cn(HEAD, 'pr-6')}>
-                Status
               </th>
             </tr>
           </thead>
@@ -74,20 +74,20 @@ export function InvoiceList({ invoices }: { invoices: InvoiceListItemDto[] }) {
                 <td className={cn(CELL, 'text-zinc-600')}>
                   <DueDate invoice={invoice} />
                 </td>
+                <td className={CELL}>
+                  <InvoiceStatusBadge status={invoice.status} />
+                </td>
                 <td className={cn(CELL, 'text-right text-zinc-700 tabular-nums')}>
                   {formatMoney(invoice.total, invoice.currency)}
                 </td>
                 <td
                   className={cn(
                     CELL,
-                    'text-right tabular-nums',
+                    'pr-6 text-right tabular-nums',
                     hasBalance(invoice) ? 'font-medium text-zinc-950' : 'text-zinc-400',
                   )}
                 >
                   {formatMoney(invoice.balanceDue, invoice.currency)}
-                </td>
-                <td className={cn(CELL, 'pr-6')}>
-                  <InvoiceStatusBadge status={invoice.status} />
                 </td>
               </tr>
             ))}
@@ -100,7 +100,7 @@ export function InvoiceList({ invoices }: { invoices: InvoiceListItemDto[] }) {
           <li key={invoice.id}>
             <Link
               to={paths.invoice(invoice.id)}
-              className="block px-4 py-4 transition-colors hover:bg-zinc-50 focus-visible:bg-zinc-50 focus-visible:outline-none"
+              className="block px-4 py-4 transition-colors hover:bg-zinc-50 focus-visible:bg-zinc-50 focus-visible:outline-offset-[-2px]"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -139,7 +139,7 @@ export function InvoiceList({ invoices }: { invoices: InvoiceListItemDto[] }) {
 
 export function InvoiceListSkeleton() {
   return (
-    <div aria-hidden="true" className="divide-y divide-zinc-100">
+    <div role="status" aria-label="Loading invoices" className="divide-y divide-zinc-100">
       {Array.from({ length: 6 }, (_, index) => (
         <div key={index} className="flex items-center gap-4 px-4 py-4 md:px-6">
           <Skeleton className="h-4 w-20" />

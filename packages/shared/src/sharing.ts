@@ -5,12 +5,14 @@
 
 /**
  * Digits of an international phone number for wa.me, or null when the number
- * is too short to be one. wa.me needs the country code; local numbers
- * without it open the wrong chat, so the UI should say so.
+ * cannot be one. wa.me needs the country code; local numbers without it open
+ * the wrong chat, so the UI should say so. No country code starts with 0, so
+ * a leading 0 left after the 00 prefix is a local trunk prefix (0803 …).
  */
 export function toWhatsAppPhone(phone: string | null | undefined): string | null {
   if (!phone) return null;
   const digits = phone.replace(/\D/g, '').replace(/^00/, '');
+  if (digits.startsWith('0')) return null;
   return digits.length >= 8 && digits.length <= 15 ? digits : null;
 }
 

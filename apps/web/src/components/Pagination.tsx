@@ -8,6 +8,7 @@ export interface PaginationProps {
   label?: string;
 }
 
+/** The footer of a list card: the range shown and, when there is more than one page, Previous/Next. */
 export function Pagination({ meta, onPageChange, label = 'results' }: PaginationProps) {
   if (meta.total === 0) return null;
   const first = (meta.page - 1) * meta.pageSize + 1;
@@ -16,7 +17,7 @@ export function Pagination({ meta, onPageChange, label = 'results' }: Pagination
   return (
     <nav
       aria-label="Pagination"
-      className="flex items-center justify-between gap-4 border-t border-zinc-200 px-1 pt-4 text-sm text-zinc-600"
+      className="flex items-center justify-between gap-4 border-t border-zinc-200 px-4 py-3 text-sm text-zinc-600 sm:px-6"
     >
       <p>
         Showing <span className="font-medium text-zinc-900">{first}</span>–

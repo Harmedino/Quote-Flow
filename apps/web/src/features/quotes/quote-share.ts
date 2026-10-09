@@ -1,5 +1,16 @@
-import { buildQuoteShareMessage, buildWhatsAppUrl, toWhatsAppPhone } from '@quoteflow/shared';
+import {
+  type QuoteStatus,
+  buildQuoteShareMessage,
+  buildWhatsAppUrl,
+  canSendQuote,
+  toWhatsAppPhone,
+} from '@quoteflow/shared';
 import { paths } from '@/app/paths';
+
+/** Live quotes can be shared, and accepted ones re-shared; expired and rejected ones cannot. */
+export function canShareQuote(status: QuoteStatus): boolean {
+  return canSendQuote(status) || status === 'accepted';
+}
 
 export function publicQuoteUrl(origin: string, publicToken: string): string {
   return `${origin}${paths.publicQuote(publicToken)}`;

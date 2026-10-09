@@ -178,9 +178,13 @@ export function LineItemRow({
         <div className="col-span-4 flex items-center justify-between gap-3 border-t border-zinc-100 pt-3 @2xl:contents">
           <p className="text-sm text-zinc-600 @2xl:flex @2xl:h-10 @2xl:items-center @2xl:justify-end">
             <span className="@2xl:sr-only">Amount </span>
-            <span className="font-semibold text-zinc-950 tabular-nums">
-              {amount === null ? '—' : formatMoney(amount, currency)}
-            </span>
+            {amount === null ? (
+              <span className="text-zinc-400">—</span>
+            ) : (
+              <span className="font-semibold text-zinc-950 tabular-nums">
+                {formatMoney(amount, currency)}
+              </span>
+            )}
           </p>
           <div className="flex items-center justify-end gap-0.5 @2xl:h-10">
             <button

@@ -31,10 +31,14 @@ export const VIEW_RECORD_INTERVAL_MS = 60_000;
 const LIVE_STATUSES: QuoteStatus[] = ['sent', 'viewed'];
 
 type QuoteRecord = Quote & { _id: Types.ObjectId };
-export type QuoteResponse = { action: 'accept' } | { action: 'reject'; reason?: string };
+/** `revision` is the one the customer saw; a quote revised since then is not answered. */
+export type QuoteResponse = { revision: number } & (
+  { action: 'accept' } | { action: 'reject'; reason?: string }
+);
 
 export interface PublicDocumentService {
-  viewQuote(token: string): Promise<PublicQuoteDto>;
+  /** A preview is the business looking at its own link, so it is not recorded as a view. */
+  viewQuote(token: string, options?: { preview?: boolean }): Promise<PublicQuoteDto>;
   respondToQuote(token: string, response: QuoteResponse): Promise<PublicQuoteDto>;
   viewInvoice(token: string): Promise<PublicInvoiceDto>;
 }
@@ -101,9 +105,9 @@ export function createPublicDocumentService({ clock }: { clock: Clock }): Public
   }
 
   return {
-    async viewQuote(token) {
+    async viewQuote(token, { preview = false } = {}) {
       const { quote, business, now, today, status } = await loadQuote(token);
-      const viewed = canRespondToQuote(status) ? await recordView(quote, now) : quote;
+      const viewed = canRespondToQuote(status) && !preview ? await recordView(quote, now) : quote;
       return toPublicQuoteDto(viewed, business, today);
     },
 
@@ -119,12 +123,14 @@ export function createPublicDocumentService({ clock }: { clock: Clock }): Public
             ? { $set: { status: 'rejected', rejectedAt: now, rejectionReason: response.reason } }
             : { $set: { status: 'rejected', rejectedAt: now }, $unset: { rejectionReason: 1 } };
 
-      // Only a still-live, unexpired quote changes, so of two concurrent answers exactly one wins.
+      // Only a still-live, unexpired quote changes, so of two concurrent answers exactly one wins,
+      // and only in the revision the customer saw. Quotes stored without one are revision 0.
       const answered = await QuoteModel.findOneAndUpdate(
         {
           ...scope,
           status: { $in: LIVE_STATUSES },
           expiryDate: { $gte: isoDateToUtcDate(today) },
+          revision: response.revision === 0 ? { $in: [0, null] } : response.revision,
         },
         update,
         { returnDocument: 'after', allowAtomicUpdate: true },

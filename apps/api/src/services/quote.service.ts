@@ -264,6 +264,12 @@ export async function updateQuote(
   }
 
   const customerChanged = quote.customerId.toString() !== input.customerId;
+  // Its public link shows the customer's details and lets them answer, so it keeps its recipient.
+  if (customerChanged && quote.status !== 'draft') {
+    const message =
+      'This quote has already been sent to its customer. To quote someone else, duplicate it and change the customer on the copy.';
+    throw new AppError('CONFLICT', message, { details: [{ path: 'customerId', message }] });
+  }
   const [customer] = await Promise.all([
     customerChanged ? findQuotableCustomer(auth, input.customerId) : undefined,
     assertOwnServices(auth, input.items),
@@ -280,6 +286,8 @@ export async function updateQuote(
   if (input.terms !== undefined) quote.terms = emptyToUndefined(input.terms);
   if (input.issueDate) quote.issueDate = isoDateToUtcDate(input.issueDate);
   if (input.expiryDate) quote.expiryDate = isoDateToUtcDate(input.expiryDate);
+  // A customer looking at the previous version can no longer answer it.
+  quote.revision = (quote.revision ?? 0) + 1;
 
   // Revising an expired quote with a new validity period makes it live again.
   if (quote.status === 'expired' && toIsoDate(quote.expiryDate) >= today) {
@@ -312,6 +320,10 @@ export async function sendQuote(auth: AuthContext, id: string): Promise<QuoteDto
     throw conflict(SEND_REFUSALS[status] ?? 'This quote cannot be sent.');
   }
   if (quote.status === 'draft') {
+    // Drafts never count as expired, but once sent this one would reach the customer expired.
+    if (toIsoDate(quote.expiryDate) < today) {
+      throw conflict('This quote’s expiry date has passed. Update its expiry date to send it.');
+    }
     quote.status = 'sent';
     quote.sentAt = new Date();
     await quote.save();

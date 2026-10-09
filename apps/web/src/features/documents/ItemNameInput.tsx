@@ -62,7 +62,7 @@ export function ItemNameInput({
         aria-invalid={invalid || undefined}
         aria-describedby={describedBy}
         autoComplete="off"
-        placeholder={services.length > 0 ? 'Search services or type an item' : 'Item name'}
+        placeholder={services.length > 0 ? 'Search or type an item' : 'Item name'}
         className={cn(CONTROL_CLASSES, 'h-10')}
         value={value}
         onChange={(event) => {

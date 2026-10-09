@@ -37,6 +37,7 @@ function quoteDto(overrides: Partial<PublicQuoteDto['quote']>): PublicQuoteDto {
       acceptedAt: null,
       rejectedAt: null,
       rejectionReason: null,
+      revision: 0,
       ...overrides,
     },
   };

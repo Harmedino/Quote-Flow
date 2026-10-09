@@ -12,7 +12,7 @@ const WINDOW_MS = 60_000;
 function signInApp(limits: Parameters<typeof createAuthRateLimiters>[0]) {
   const limiters = createAuthRateLimiters(limits, createSilentLogger());
   const router = Router();
-  router.post('/login', limiters.login, limiters.loginAccount, (req, res) => {
+  router.post('/login', limiters.login, limiters.loginAccount, limiters.loginEmail, (req, res) => {
     const { password } = req.body as { password?: string };
     if (password !== 'right') throw unauthorized('Incorrect email or password.');
     res.status(200).json({ data: {} });
@@ -33,17 +33,25 @@ function signInApp(limits: Parameters<typeof createAuthRateLimiters>[0]) {
       res.status(204).end();
     },
   );
-  return createRouterTestApp(router);
+  const app = createRouterTestApp(router);
+  // Lets each request name its client address in X-Forwarded-For.
+  app.set('trust proxy', 1);
+  return app;
 }
 
-const attempt = (app: ReturnType<typeof signInApp>, email: string, password = 'wrong') =>
-  request(app).post('/login').send({ email, password });
+const attempt = (
+  app: ReturnType<typeof signInApp>,
+  email: string,
+  password = 'wrong',
+  ip = '203.0.113.1',
+) => request(app).post('/login').set('X-Forwarded-For', ip).send({ email, password });
 
 describe('auth rate limiters', () => {
   it('uses the documented defaults', () => {
     expect(AUTH_RATE_LIMITS).toEqual({
       login: { windowMs: 15 * 60_000, limit: 30 },
       loginAccount: { windowMs: 15 * 60_000, limit: 10 },
+      loginEmail: { windowMs: 60 * 60_000, limit: 50 },
       register: { windowMs: 60 * 60_000, limit: 10 },
       refresh: { windowMs: 15 * 60_000, limit: 120 },
       changePassword: { windowMs: 15 * 60_000, limit: 10 },
@@ -75,6 +83,17 @@ describe('auth rate limiters', () => {
     }
     await attempt(app, 'amina@example.com').expect(401);
     await attempt(app, 'amina@example.com').expect(429);
+  });
+
+  it('limits failed sign-ins per email across IP addresses', async () => {
+    const app = signInApp({ loginEmail: { windowMs: WINDOW_MS, limit: 3 } });
+
+    for (const ip of ['203.0.113.1', '203.0.113.2', '198.51.100.7']) {
+      await attempt(app, 'amina@example.com', 'wrong', ip).expect(401);
+    }
+    // Even the right password from a new address waits until the window ends.
+    await attempt(app, 'AMINA@example.com', 'right', '192.0.2.44').expect(429);
+    await attempt(app, 'luis@example.com', 'right', '192.0.2.44').expect(200);
   });
 
   it('limits failed sign-ins per IP across emails', async () => {

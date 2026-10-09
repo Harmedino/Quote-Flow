@@ -3,6 +3,8 @@ import { CounterModel } from './counter.model';
 import { CustomerModel } from './customer.model';
 import { InvoiceModel } from './invoice.model';
 import { QuoteModel } from './quote.model';
+import { RateLimitCounterModel } from './rate-limit-counter.model';
+import { RetiredRefreshTokenModel } from './retired-refresh-token.model';
 import { ServiceModel } from './service.model';
 import { SessionModel } from './session.model';
 import { UserModel } from './user.model';
@@ -12,6 +14,8 @@ export * from './counter.model';
 export * from './customer.model';
 export * from './invoice.model';
 export * from './quote.model';
+export * from './rate-limit-counter.model';
+export * from './retired-refresh-token.model';
 export * from './service.model';
 export * from './session.model';
 export * from './user.model';
@@ -33,6 +37,7 @@ export const TENANT_MODELS = [
   InvoiceModel,
   CounterModel,
   SessionModel,
+  RetiredRefreshTokenModel,
 ] as const;
 
-export const ALL_MODELS = [BusinessModel, ...TENANT_MODELS] as const;
+export const ALL_MODELS = [BusinessModel, ...TENANT_MODELS, RateLimitCounterModel] as const;

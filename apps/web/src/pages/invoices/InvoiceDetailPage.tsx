@@ -4,9 +4,8 @@ import { useParams } from 'react-router';
 import { paths } from '@/app/paths';
 import { DocumentTitle } from '@/components/DocumentTitle';
 import { SalesDocument } from '@/components/documents/SalesDocument';
+import { QueryError } from '@/components/QueryError';
 import { InvoiceStatusBadge } from '@/components/StatusBadge';
-import { Alert } from '@/components/ui/Alert';
-import { Button } from '@/components/ui/Button';
 import { ButtonLink } from '@/components/ui/ButtonLink';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -18,14 +17,14 @@ import { InvoicePaymentsCard } from '@/features/invoices/InvoicePaymentsCard';
 import { InvoiceSummaryCard } from '@/features/invoices/InvoiceSummaryCard';
 import { toPublicBusiness } from '@/features/invoices/invoice-view';
 import { useInvoiceQuery } from '@/features/invoices/use-invoices';
-import { getErrorMessage, isApiError } from '@/lib/api-client';
+import { isMissingRecordError } from '@/lib/api-client';
 import { formatMoney } from '@/lib/format';
 
 function DetailSkeleton() {
   return (
     <div aria-hidden="true" className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
       <Skeleton className="h-[36rem] rounded-xl" />
-      <div className="space-y-6">
+      <div className="space-y-4">
         <Skeleton className="h-64 rounded-xl" />
         <Skeleton className="h-48 rounded-xl" />
       </div>
@@ -53,7 +52,7 @@ export default function InvoiceDetailPage() {
   }
 
   if (query.isError) {
-    const missing = isApiError(query.error) && query.error.status === 404;
+    const missing = isMissingRecordError(query.error);
     return (
       <>
         <DocumentTitle title="Invoice" />
@@ -68,18 +67,12 @@ export default function InvoiceDetailPage() {
             />
           ) : (
             <div className="p-5 sm:p-6">
-              <Alert tone="danger" title="We couldn’t load this invoice">
-                <p>{getErrorMessage(query.error)}</p>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="mt-3"
-                  loading={query.isFetching}
-                  onClick={() => void query.refetch()}
-                >
-                  Try again
-                </Button>
-              </Alert>
+              <QueryError
+                title="We couldn’t load this invoice"
+                error={query.error}
+                retrying={query.isFetching}
+                onRetry={() => void query.refetch()}
+              />
             </div>
           )}
         </Card>
@@ -93,10 +86,11 @@ export default function InvoiceDetailPage() {
 
   return (
     <>
-      <DocumentTitle title={invoice.invoiceNumber} />
+      <DocumentTitle title={`Invoice ${invoice.invoiceNumber}`} />
       <PageHeader
-        title={invoice.invoiceNumber}
+        title={`Invoice ${invoice.invoiceNumber}`}
         description={`${invoice.customer.name} · ${formatMoney(invoice.totals.total, invoice.currency)}`}
+        badge={<InvoiceStatusBadge status={invoice.status} />}
         back={back}
       />
 
@@ -124,7 +118,7 @@ export default function InvoiceDetailPage() {
         </div>
         <aside
           aria-label="Invoice actions"
-          className="order-1 space-y-6 lg:sticky lg:top-6 lg:order-2"
+          className="order-1 space-y-4 lg:sticky lg:top-8 lg:order-2"
         >
           <InvoiceSummaryCard invoice={invoice} timeZone={business.timezone} />
           <InvoiceActionsCard invoice={invoice} businessName={business.name} today={today} />

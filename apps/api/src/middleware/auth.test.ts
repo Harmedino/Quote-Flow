@@ -22,7 +22,10 @@ const staff: AuthContext = { ...owner, role: 'staff' };
 function setup() {
   const clock = createTestClock();
   const tokens = createAccessTokenService({ secret: SECRET, ttlSeconds: 60, clock: clock.now });
-  const requireAuth = createRequireAuth(tokens);
+  const revokedSessions = new Set<string>();
+  const requireAuth = createRequireAuth(tokens, {
+    isActive: ({ sessionId }) => Promise.resolve(!revokedSessions.has(sessionId)),
+  });
 
   const router = Router();
   router.get('/me', requireAuth, (req, res) => {
@@ -37,7 +40,7 @@ function setup() {
   router.post('/unauthenticated-role-check', requireRole('owner'), (_req, res) => {
     sendData(res, { ok: true });
   });
-  return { app: createRouterTestApp(router), tokens, clock };
+  return { app: createRouterTestApp(router), tokens, clock, revokedSessions };
 }
 
 describe('requireAuth', () => {
@@ -95,6 +98,19 @@ describe('requireAuth', () => {
         message: 'Your session has expired. Please sign in again.',
       });
     }
+  });
+
+  it('responds 401 with error="invalid_token" once the session is revoked', async () => {
+    const { app, tokens, revokedSessions } = setup();
+    const { token } = await tokens.issue(owner);
+    await request(app).get('/me').set('Authorization', `Bearer ${token}`).expect(200);
+
+    revokedSessions.add(owner.sessionId);
+    const res = await request(app).get('/me').set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(401);
+    expect(res.headers['www-authenticate']).toBe('Bearer error="invalid_token"');
+    expect(errorOf(res).message).toBe('Your session has expired. Please sign in again.');
   });
 
   it('never authenticates from cookies', async () => {

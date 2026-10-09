@@ -9,6 +9,7 @@ import { Alert } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { ButtonLink } from '@/components/ui/ButtonLink';
+import { Card } from '@/components/ui/Card';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -19,7 +20,7 @@ import {
   useCustomerQuery,
   useRestoreCustomer,
 } from '@/features/customers/use-customers';
-import { getErrorMessage, isApiError } from '@/lib/api-client';
+import { getErrorMessage, isMissingRecordError } from '@/lib/api-client';
 import { CustomerContactCard, CustomerNotesCard } from './CustomerContactCard';
 import { CustomerInvoicesCard, CustomerQuotesCard } from './CustomerDocumentsCards';
 
@@ -29,20 +30,20 @@ export default function CustomerDetailPage() {
 
   if (customer.isPending) return <CustomerDetailSkeleton />;
   if (customer.isError) {
-    const missing =
-      isApiError(customer.error) &&
-      (customer.error.code === 'NOT_FOUND' || customer.error.code === 'VALIDATION_ERROR');
+    const missing = isMissingRecordError(customer.error);
     return (
       <>
         <DocumentTitle title="Customer" />
         <PageHeader title="Customer" back={{ to: paths.customers, label: 'Customers' }} />
         {missing ? (
-          <EmptyState
-            icon={UserRoundX}
-            title="Customer not found"
-            description="This customer doesn’t exist or belongs to another business."
-            action={<ButtonLink to={paths.customers}>Back to customers</ButtonLink>}
-          />
+          <Card>
+            <EmptyState
+              icon={UserRoundX}
+              title="Customer not found"
+              description="It may have been deleted, or the link is incorrect."
+              action={<ButtonLink to={paths.customers}>Back to customers</ButtonLink>}
+            />
+          </Card>
         ) : (
           <QueryError
             title="Couldn’t load this customer"
@@ -70,14 +71,8 @@ function CustomerDetail({ customer }: { customer: CustomerDto }) {
       <PageHeader
         title={customer.name}
         back={{ to: paths.customers, label: 'Customers' }}
-        description={
-          (customer.company || archived) && (
-            <span className="flex flex-wrap items-center gap-2">
-              {customer.company}
-              {archived && <Badge tone="neutral">Archived</Badge>}
-            </span>
-          )
-        }
+        description={customer.company ?? undefined}
+        badge={archived && <Badge tone="neutral">Archived</Badge>}
         actions={
           <>
             <Button variant="secondary" onClick={() => setEditing(true)}>

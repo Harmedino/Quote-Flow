@@ -87,17 +87,17 @@ function DocumentRow({
     <li>
       <Link
         to={to}
-        className="flex items-center justify-between gap-4 px-5 py-3.5 transition-colors hover:bg-zinc-50 sm:px-6"
+        className="flex items-center justify-between gap-4 px-5 py-3.5 transition-colors hover:bg-zinc-50 focus-visible:bg-zinc-50 focus-visible:outline-offset-[-2px] sm:px-6"
       >
         <div className="min-w-0">
           <p className="flex flex-wrap items-center gap-2">
-            <span className="font-medium text-zinc-950 tabular-nums">{number}</span>
+            <span className="text-sm font-medium text-zinc-950">{number}</span>
             {badge}
           </p>
-          <p className="mt-0.5 text-sm text-zinc-500">{meta}</p>
+          <p className="mt-0.5 text-xs text-zinc-500">{meta}</p>
         </div>
         <div className="shrink-0 text-right">
-          <p className="font-medium text-zinc-950 tabular-nums">{amount}</p>
+          <p className="text-sm font-medium text-zinc-950 tabular-nums">{amount}</p>
           {amountNote && <p className="mt-0.5 text-xs text-zinc-500">{amountNote}</p>}
         </div>
       </Link>

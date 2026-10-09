@@ -1,5 +1,5 @@
 import type { DashboardDto } from '@quoteflow/shared';
-import { FilePlus2 } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { paths } from '@/app/paths';
 import { DocumentTitle } from '@/components/DocumentTitle';
 import { QueryError } from '@/components/QueryError';
@@ -77,7 +77,7 @@ export default function DashboardPage() {
         description="An overview of your quotes, invoices and payments."
         actions={
           <ButtonLink to={paths.newQuote}>
-            <FilePlus2 aria-hidden="true" />
+            <Plus aria-hidden="true" />
             New quote
           </ButtonLink>
         }

@@ -1,16 +1,16 @@
 import { INVOICE_STATUS_LABELS, type InvoiceStatus } from '@quoteflow/shared';
-import { Plus, Receipt, Search, SearchX } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Plus, Receipt, SearchX } from 'lucide-react';
 import { useSearchParams } from 'react-router';
 import { paths } from '@/app/paths';
 import { DocumentTitle } from '@/components/DocumentTitle';
+import { ListSearch } from '@/components/ListSearch';
+import { ListToolbar } from '@/components/ListToolbar';
 import { Pagination } from '@/components/Pagination';
-import { Alert } from '@/components/ui/Alert';
+import { QueryError } from '@/components/QueryError';
 import { Button } from '@/components/ui/Button';
 import { ButtonLink } from '@/components/ui/ButtonLink';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { Input } from '@/components/ui/Input';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { InvoiceList, InvoiceListSkeleton } from '@/features/invoices/InvoiceList';
 import {
@@ -21,8 +21,7 @@ import {
 } from '@/features/invoices/invoice-list-params';
 import { InvoiceStatusTabs } from '@/features/invoices/InvoiceStatusTabs';
 import { useInvoicesQuery } from '@/features/invoices/use-invoices';
-import { getErrorMessage } from '@/lib/api-client';
-import { useDebouncedValue } from '@/lib/use-debounced-value';
+import { cn } from '@/lib/cn';
 
 function NoInvoices() {
   return (
@@ -67,8 +66,6 @@ function NoMatches({ status, onClear }: { status: InvoiceStatus | null; onClear:
 export default function InvoicesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const params = readInvoiceListParams(searchParams);
-  const [searchText, setSearchText] = useState(params.search);
-  const debouncedSearch = useDebouncedValue(searchText.trim());
 
   const update = (changes: Partial<InvoiceListParams>) => {
     setSearchParams(toInvoiceListSearchParams({ ...params, page: 1, ...changes }), {
@@ -76,17 +73,10 @@ export default function InvoicesPage() {
     });
   };
 
-  // The URL follows the search box once typing pauses.
-  useEffect(() => {
-    if (debouncedSearch !== params.search) update({ search: debouncedSearch });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only a settled search should write the URL
-  }, [debouncedSearch]);
-
   const query = useInvoicesQuery(toInvoiceListQuery(params));
   const filtered = params.status !== null || params.search !== '';
 
   function clearFilters() {
-    setSearchText('');
     update({ status: null, search: '' });
   }
 
@@ -96,18 +86,12 @@ export default function InvoicesPage() {
   } else if (query.isError) {
     content = (
       <div className="p-5 sm:p-6">
-        <Alert tone="danger" title="We couldn’t load your invoices">
-          <p>{getErrorMessage(query.error)}</p>
-          <Button
-            variant="secondary"
-            size="sm"
-            className="mt-3"
-            onClick={() => void query.refetch()}
-            loading={query.isFetching}
-          >
-            Try again
-          </Button>
-        </Alert>
+        <QueryError
+          title="We couldn’t load your invoices"
+          error={query.error}
+          onRetry={() => void query.refetch()}
+          retrying={query.isFetching}
+        />
       </div>
     );
   } else if (query.data.data.length === 0) {
@@ -118,8 +102,16 @@ export default function InvoicesPage() {
     );
   } else {
     content = (
-      <div aria-busy={query.isPlaceholderData || undefined}>
+      <div
+        aria-busy={query.isPlaceholderData || undefined}
+        className={cn('transition-opacity', query.isPlaceholderData && 'opacity-60')}
+      >
         <InvoiceList invoices={query.data.data} />
+        <Pagination
+          meta={query.data.meta}
+          label="invoices"
+          onPageChange={(page) => update({ page })}
+        />
       </div>
     );
   }
@@ -138,35 +130,21 @@ export default function InvoicesPage() {
         }
       />
 
-      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div className="space-y-5">
         <InvoiceStatusTabs value={params.status} onChange={(status) => update({ status })} />
-        <div className="relative lg:w-72">
-          <Search
-            aria-hidden="true"
-            className="pointer-events-none absolute top-1/2 left-3 z-10 size-4 -translate-y-1/2 text-zinc-400"
-          />
-          <Input
-            type="search"
-            aria-label="Search invoices"
-            placeholder="Search number or customer"
-            className="pl-9"
-            value={searchText}
-            onChange={(event) => setSearchText(event.target.value)}
-          />
-        </div>
+        <Card>
+          <ListToolbar>
+            <ListSearch
+              value={params.search}
+              onSearch={(search) => update({ search })}
+              label="Search invoices"
+              placeholder="Search number or customer"
+              className="w-full sm:max-w-sm"
+            />
+          </ListToolbar>
+          {content}
+        </Card>
       </div>
-
-      <Card className="overflow-hidden">{content}</Card>
-
-      {query.data && query.data.data.length > 0 && (
-        <div className="mt-4">
-          <Pagination
-            meta={query.data.meta}
-            label="invoices"
-            onPageChange={(page) => update({ page })}
-          />
-        </div>
-      )}
     </>
   );
 }

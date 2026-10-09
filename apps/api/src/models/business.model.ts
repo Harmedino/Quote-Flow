@@ -48,6 +48,8 @@ export interface Business extends Timestamps {
   defaultQuoteTerms?: string;
   defaultInvoiceNotes?: string;
   defaultInvoiceTerms?: string;
+  /** Marks the shared "Explore the demo" business. Set only by the demo builder, never by a request. */
+  isDemo: boolean;
 }
 
 export type BusinessDocument = HydratedDocument<Business>;
@@ -118,6 +120,7 @@ const businessSchema = new Schema<Business>(
     defaultQuoteTerms: longText(TEXT_LIMITS.terms),
     defaultInvoiceNotes: longText(TEXT_LIMITS.notes),
     defaultInvoiceTerms: longText(TEXT_LIMITS.terms),
+    isDemo: { type: Boolean, required: true, default: false },
   },
   { timestamps: true },
 );

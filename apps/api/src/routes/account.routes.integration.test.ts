@@ -121,6 +121,11 @@ describe.skipIf(!TEST_DATABASE_URI)('account routes (database)', () => {
       expect(res.headers['cache-control']).toBe('no-store');
       await refresh(app, current.refreshToken).expect(200);
       await refresh(app, otherDevice.refreshToken).expect(401);
+      // The other device's access token stops working at once, too.
+      await request(app)
+        .get('/api/auth/me')
+        .set('Authorization', bearer(otherDevice.session.accessToken))
+        .expect(401);
       expect(
         await SessionModel.countDocuments({
           businessId: current.session.business.id,

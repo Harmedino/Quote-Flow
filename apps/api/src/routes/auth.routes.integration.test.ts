@@ -68,7 +68,8 @@ describe.skipIf(!TEST_DATABASE_URI)('auth routes (database)', () => {
       expect(new Date(createdAt).toISOString()).toBe(createdAt);
       expect(session.business).toMatchObject({
         name: 'Sparkle Cleaning Co.',
-        email,
+        // Customers see the business email, so the sign-in email is not published by default.
+        email: null,
         currency: 'NGN',
         timezone: 'Africa/Lagos',
         address: {},
@@ -146,14 +147,31 @@ describe.skipIf(!TEST_DATABASE_URI)('auth routes (database)', () => {
 
     it('creates exactly one account when the same email registers twice at once', async () => {
       const app = createAuthTestApp();
-      const input = registrationInput();
+      const input = registrationInput({ businessName: `Twin Sign-ups ${uniqueEmail()}` });
 
       const results = await Promise.all(
         [1, 2].map(() => request(app).post('/api/auth/register').send(input)),
       );
 
       expect(results.map((res) => res.status).sort()).toEqual([201, 409]);
-      expect(await BusinessModel.countDocuments({ email: input.email })).toBe(1);
+      expect(await BusinessModel.countDocuments({ name: input.businessName })).toBe(1);
+    });
+
+    it('reserves the demo email domain', async () => {
+      const app = createAuthTestApp();
+      const businessesBefore = await BusinessModel.countDocuments();
+
+      for (const email of ['demo@quoteflow.test', ' Staff@QuoteFlow.test ', 'x@quoteflow.test']) {
+        const res = await request(app)
+          .post('/api/auth/register')
+          .send(registrationInput({ email }));
+
+        expect(res.status).toBe(400);
+        expect(errorOf(res).details).toEqual([
+          { path: 'email', message: 'This email address is reserved' },
+        ]);
+      }
+      expect(await BusinessModel.countDocuments()).toBe(businessesBefore);
     });
 
     it('reports every invalid field', async () => {
@@ -402,6 +420,22 @@ describe.skipIf(!TEST_DATABASE_URI)('auth routes (database)', () => {
       await refresh(app, refreshToken).expect(401);
     });
 
+    it('ends access at once, not when the access token expires', async () => {
+      const app = createAuthTestApp();
+      const { refreshToken, session } = await registerOwner(app);
+      const me = () =>
+        request(app).get('/api/auth/me').set('Authorization', bearer(session.accessToken));
+      await me().expect(200);
+
+      await request(app)
+        .post('/api/auth/logout')
+        .set('Cookie', refreshCookieHeader(refreshToken))
+        .expect(204);
+
+      const res = await me().expect(401);
+      expect(res.headers['www-authenticate']).toBe('Bearer error="invalid_token"');
+    });
+
     it.each([
       ['no cookie', undefined],
       ['an unknown token', 'A'.repeat(43)],
@@ -493,6 +527,20 @@ describe.skipIf(!TEST_DATABASE_URI)('auth routes (database)', () => {
       expect(errorOf(limited).code).toBe('RATE_LIMITED');
       expect(limited.headers['retry-after']).toBeDefined();
     });
+
+    it('counts failed sign-ins across API instances', async () => {
+      const authRateLimits = { loginAccount: { windowMs: 60_000, limit: 2 } };
+      const [first, second] = [1, 2].map(() => createAuthTestApp({ authRateLimits }));
+      if (!first || !second) throw new Error('expected two app instances');
+      const email = uniqueEmail('shared');
+      const attempt = (app: typeof first) =>
+        request(app).post('/api/auth/login').send({ email, password: 'wrong' });
+
+      await attempt(first).expect(401);
+      await attempt(second).expect(401);
+      await attempt(first).expect(429);
+      await attempt(second).expect(429);
+    });
   });
 
   describe('POST /api/auth/logout-all', () => {
@@ -511,7 +559,11 @@ describe.skipIf(!TEST_DATABASE_URI)('auth routes (database)', () => {
       await refresh(app, first.refreshToken).expect(401);
       await refresh(app, second.refreshToken).expect(401);
       expect(await sessionOf(first.refreshToken)).toMatchObject({ revokedReason: 'logout_all' });
+      const me = (accessToken: string) =>
+        request(app).get('/api/auth/me').set('Authorization', bearer(accessToken));
+      await me(first.session.accessToken).expect(401);
       // Other users of the business are not affected.
+      await me(colleague.session.accessToken).expect(200);
       await refresh(app, colleague.refreshToken).expect(200);
     });
 

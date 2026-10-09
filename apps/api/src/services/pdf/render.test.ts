@@ -1,7 +1,8 @@
 import { inflateSync } from 'node:zlib';
-import { describe, expect, it } from 'vitest';
+import PDFDocument from 'pdfkit';
+import { describe, expect, it, vi } from 'vitest';
 import type { PdfDocumentModel } from './document-model';
-import { formatPdfMoney, pdfFileName } from './format';
+import { breakLongRuns, formatPdfMoney, pdfFileName } from './format';
 import { renderDocumentPdf } from './render';
 
 const LONG_DESCRIPTION =
@@ -98,6 +99,72 @@ describe('renderDocumentPdf', () => {
     expect(pdf.subarray(0, 5).toString('latin1')).toBe('%PDF-');
     expect(pdf.toString('latin1').match(/\/Type \/Page\b/g)).toHaveLength(1);
   });
+
+  it('wraps text without spaces in linear time', async () => {
+    // Re-measuring the rest of an unbroken word for every line took seconds per document.
+    const measure = vi.spyOn(PDFDocument.prototype, 'widthOfString');
+    const drawn = vi.spyOn(PDFDocument.prototype, 'text');
+    const measuredHeights = vi.spyOn(PDFDocument.prototype, 'heightOfString');
+    const unbroken = 'W'.repeat(5_000);
+    try {
+      const pdf = await renderDocumentPdf(
+        sampleModel({
+          items: [{ ...sampleModel().items[0]!, name: 'N'.repeat(200), description: unbroken }],
+          notes: unbroken,
+          terms: unbroken,
+        }),
+      );
+      expect(pdf.subarray(0, 5).toString('latin1')).toBe('%PDF-');
+      const measured = measure.mock.calls.reduce((sum, [text]) => sum + String(text).length, 0);
+      expect(measured).toBeLessThan(30 * unbroken.length);
+
+      const drawnText = drawn.mock.calls.map(([text]) => String(text));
+      const brokenUp = drawnText.filter((text) => text.replaceAll('\u200B', '') === unbroken);
+      expect(brokenUp).toHaveLength(3);
+      for (const text of brokenUp) expect(text).toContain('\u200B');
+      // Row heights are measured on exactly the text that is then drawn.
+      for (const [text] of measuredHeights.mock.calls) expect(drawnText).toContain(text);
+    } finally {
+      measure.mockRestore();
+      drawn.mockRestore();
+      measuredHeights.mockRestore();
+    }
+  });
+
+  it('leaves links and emails that fit their line exactly as written', async () => {
+    // A break opportunity reads as a space in the PDF's text, which cuts the link a viewer detects.
+    const drawn = vi.spyOn(PDFDocument.prototype, 'text');
+    const email = 'accounts.receivable@evergreen-homeservices.com';
+    const website = 'https://www.evergreen-home-services.example/contact';
+    const paymentLink = 'https://paystack.com/pay/evergreen-home-services-deposit-invoice-0042';
+    try {
+      await renderDocumentPdf(
+        sampleModel({
+          business: { ...sampleModel().business, email, website },
+          customer: {
+            ...sampleModel().customer,
+            email: 'jane.doe.procurement@okafor-holdings.example',
+          },
+          notes: `Pay online: ${paymentLink}`,
+          terms: `Questions? Write to ${email}.`,
+        }),
+      );
+
+      const drawnText = drawn.mock.calls.map(([text]) => String(text));
+      expect(drawnText).toEqual(
+        expect.arrayContaining([
+          email,
+          website,
+          'jane.doe.procurement@okafor-holdings.example',
+          `Pay online: ${paymentLink}`,
+          `Questions? Write to ${email}.`,
+        ]),
+      );
+      expect(drawnText.join('')).not.toContain('\u200B');
+    } finally {
+      drawn.mockRestore();
+    }
+  });
 });
 
 describe('pdf formatting', () => {
@@ -106,6 +173,27 @@ describe('pdf formatting', () => {
     expect(formatPdfMoney(1_000, 'GHS')).toBe('GH₵10.00');
     expect(formatPdfMoney(1_250, 'KWD')).toBe('KWD\u00a01.250');
     expect(formatPdfMoney(1_234_500, 'USD')).toBe('$12,345.00');
+  });
+
+  it('adds invisible break opportunities only to long runs too wide for the line', () => {
+    const measured: string[] = [];
+    const isTooWide = (run: string) => {
+      measured.push(run);
+      return !run.startsWith('https://');
+    };
+    const url = 'https://buy.stripe.com/test_eVa3cK8zU0Xc6Ck144abcd';
+
+    expect(breakLongRuns(`Pay ${url} today`, isTooWide)).toBe(`Pay ${url} today`);
+    expect(breakLongRuns('W'.repeat(40), isTooWide)).toBe('W'.repeat(40));
+    expect(breakLongRuns(`${'W'.repeat(100)} end`, isTooWide)).toBe(
+      `${'W'.repeat(40)}\u200B${'W'.repeat(40)}\u200B${'W'.repeat(20)} end`,
+    );
+    // Short runs are never measured.
+    expect(measured).toEqual([url, 'W'.repeat(100)]);
+    // A combining mark stays with its base character.
+    expect(breakLongRuns(`${'a'.repeat(39)}ọ̀${'b'.repeat(5)}`, isTooWide)).toBe(
+      `${'a'.repeat(39)}ọ̀\u200B${'b'.repeat(5)}`,
+    );
   });
 
   it('sanitises the attachment file name', () => {

@@ -17,9 +17,11 @@ export const SESSION_USER_AGENT_MAX_LENGTH = 256;
 
 /**
  * One signed-in browser or device. The refresh token is rotated on every
- * refresh; only SHA-256 hashes of the current and the previous token are kept,
- * the latter to recognise a replayed (possibly stolen) token. Revoked sessions
- * stay until they expire, so a replay of their tokens is still recognised.
+ * refresh; only SHA-256 hashes are kept: the current and the previous token
+ * here (the previous one to tell a racing tab from a replay), and every earlier
+ * one as a RetiredRefreshToken, so any replayed (possibly stolen) token is
+ * recognised. Revoked sessions stay until they expire, so a replay of their
+ * tokens is still recognised.
  */
 export interface Session extends TenantOwned, Timestamps {
   userId: Types.ObjectId;

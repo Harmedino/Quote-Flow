@@ -13,7 +13,7 @@ import { useAuthenticatedSession } from '@/features/auth/use-session';
 import { invoiceFormValuesFromInvoice } from '@/features/invoices/invoice-form';
 import { InvoiceEditor } from '@/features/invoices/InvoiceEditor';
 import { useInvoiceQuery } from '@/features/invoices/use-invoices';
-import { getErrorMessage, isApiError } from '@/lib/api-client';
+import { getErrorMessage, isMissingRecordError } from '@/lib/api-client';
 import { canEditInvoice } from '@quoteflow/shared';
 
 export default function EditInvoicePage() {
@@ -25,7 +25,7 @@ export default function EditInvoicePage() {
   if (query.isPending) return <PageLoader />;
 
   if (query.isError) {
-    const missing = isApiError(query.error) && query.error.status === 404;
+    const missing = isMissingRecordError(query.error);
     return (
       <>
         <DocumentTitle title="Edit invoice" />
