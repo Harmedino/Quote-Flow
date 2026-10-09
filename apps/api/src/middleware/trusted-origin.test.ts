@@ -39,6 +39,26 @@ describe('createTrustedOriginCheck', () => {
     await post(headers).expect(204);
   });
 
+  it("allows the API's own origin without listing it (web app and API on one host)", async () => {
+    await post({
+      Host: 'quote-flow-git-preview.vercel.app',
+      Origin: 'http://quote-flow-git-preview.vercel.app',
+    }).expect(204);
+  });
+
+  it.each([
+    [
+      'its own host on another scheme',
+      { Host: 'quote-flow.example', Origin: 'https://quote-flow.example' },
+    ],
+    [
+      'an Origin that differs from its own host',
+      { Host: 'quote-flow.example', Origin: 'http://evil.example' },
+    ],
+  ])('rejects %s', async (_label, headers) => {
+    await post(headers).expect(403);
+  });
+
   it.each([
     ['another Origin', { Origin: 'https://evil.example' }],
     ['an allowed host on another scheme', { Origin: 'http://app.example.com' }],

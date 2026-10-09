@@ -15,11 +15,11 @@ Lead / customer → Create quote → Send quote → Customer views public link
       → Customer accepts or rejects → Convert to invoice → Track payment → Job completed
 ```
 
-> **Project status — Stage 1 (foundation) complete.** The monorepo, API and web foundations, the
-> multi-tenant data model, the development seed and CI are in place. Product features (sign-up,
-> quote builder, public quote page, invoicing screens, dashboard, PDFs, WhatsApp sharing) are built
-> in the stages listed under [Roadmap](#roadmap). Feature pages in the web app are deliberate
-> placeholders until then.
+> **Project status — MVP complete.** Sign-up and sessions, business settings, customers,
+> services, the quote builder, WhatsApp sharing, public quote acceptance, invoices and payments,
+> the dashboard and PDF documents all work end to end. Not built yet: password reset by email,
+> logo upload, team invitations and online payments. Parts of the sections below still describe
+> the stage-1 foundation and are being updated.
 
 ---
 
@@ -37,6 +37,7 @@ Lead / customer → Create quote → Send quote → Customer views public link
 - [Scripts](#scripts)
 - [Testing](#testing)
 - [Building for production](#building-for-production)
+- [Deploying to Vercel](#deploying-to-vercel)
 - [Deployment considerations](#deployment-considerations)
 - [Roadmap](#roadmap)
 
@@ -389,6 +390,42 @@ pnpm --filter @quoteflow/api deploy --prod --legacy ./deploy/api
 Copy `deploy/api` to the server and, from that directory, run
 `node --enable-source-maps dist/scripts/sync-indexes.js` (or `npm run db:indexes:prod`), then
 `node --enable-source-maps dist/server.js` (or `npm start`).
+
+## Deploying to Vercel
+
+The repository deploys to Vercel as one project: the web app is served as static files and the
+whole REST API runs as a single Vercel Function (`api/index.mjs`, which wraps the API bundle).
+`vercel.json` holds the install, build and routing configuration.
+
+1. **Create the database (MongoDB Atlas, free tier is fine).**
+   - Create a cluster, then under _Database Access_ add a database user with a strong password.
+   - Under _Network Access_ allow `0.0.0.0/0` (Vercel Functions do not have fixed IP addresses).
+   - Under _Connect → Drivers_ copy the connection string and add the database name before the
+     `?`, e.g. `mongodb+srv://quoteflow:<password>@cluster0.abcde.mongodb.net/quoteflow?retryWrites=true&w=majority`.
+2. **Configure the Vercel project** (_Settings → General_):
+   - _Root Directory_: leave empty (the repository root, where `vercel.json` lives).
+   - _Framework Preset_: Other. _Node.js Version_: 22.x or newer.
+3. **Add environment variables** (_Settings → Environment Variables_, for Production and Preview):
+
+   | Variable      | Value                                                                                      |
+   | ------------- | ------------------------------------------------------------------------------------------ |
+   | `NODE_ENV`    | `production`                                                                               |
+   | `MONGODB_URI` | the Atlas connection string from step 1                                                    |
+   | `JWT_SECRET`  | output of `node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"` |
+   | `CORS_ORIGIN` | your production URL, e.g. `https://quote-flow.vercel.app`                                  |
+   | `APP_URL`     | the same production URL                                                                    |
+   | `TRUST_PROXY` | `1`                                                                                        |
+
+4. **Redeploy.** The first API request after a deploy connects to the database and creates any
+   missing indexes. Check `https://<your-app>/api/health`: it should return
+   `{"data":{"status":"ok",…}}`. If it returns 503, the function logs (_Deployments → Functions_)
+   name the missing or invalid variable.
+5. **Optional demo data.** From your computer, load the demo business into the same database:
+   `MONGODB_URI="<atlas connection string>" SEED_DEMO_PASSWORD="<a password>" pnpm seed`.
+
+Notes: preview deployments work without listing their URLs, because the web app and API share
+an origin. They use the same database unless you set a different `MONGODB_URI` for the Preview
+environment. Rate-limit counters live in each function instance, so limits are approximate.
 
 ## Deployment considerations
 

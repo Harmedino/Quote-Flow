@@ -1,14 +1,15 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 /**
  * PDF documents embed Inter (SIL OFL) because the standard PDF fonts only
  * cover Latin-1: currency symbols such as ₦ ₹ ₵ ₱ and many customer names
- * would not render. The files are resolved through the `inter-ui` package
- * rather than a path into src/, so the esbuild bundle and the `pnpm deploy`
- * artefact find them in node_modules. WOFF (not WOFF2) because fontkit cannot
- * subset composite glyphs from WOFF2 files.
+ * would not render. The production build copies the files to dist/fonts next
+ * to the bundle (serverless platforms only ship files they can see); from
+ * source they are resolved through the `inter-ui` package. WOFF (not WOFF2)
+ * because fontkit cannot subset composite glyphs from WOFF2 files.
  */
 export const PDF_FONTS = {
   regular: 'Inter-Regular',
@@ -21,6 +22,8 @@ export type PdfFontName = (typeof PDF_FONTS)[keyof typeof PDF_FONTS];
 let cache: ReadonlyMap<PdfFontName, Buffer> | null = null;
 
 function fontDirectory(): string {
+  const bundled = fileURLToPath(new URL('./fonts/', import.meta.url));
+  if (existsSync(bundled)) return bundled;
   const require = createRequire(import.meta.url);
   return join(dirname(require.resolve('inter-ui/package.json')), 'Inter (web)');
 }
