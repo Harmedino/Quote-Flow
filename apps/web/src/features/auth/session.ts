@@ -1,5 +1,6 @@
 import { isApiError, setAuthHandler } from '@/lib/api-client';
 import * as authApi from './auth-api';
+import { hasSessionHint, syncSessionHint } from './session-hint';
 import { type SessionSnapshot, sessionStore } from './session-store';
 
 const REFRESH_LOCK_NAME = 'quoteflow-auth-refresh';
@@ -7,8 +8,9 @@ const AUTH_CHANNEL_NAME = 'quoteflow-auth';
 const SIGNED_OUT_MESSAGE = 'signed-out';
 /**
  * Without Web Locks two tabs can present the same refresh cookie at once. The
- * API rejects the loser without revoking the session for a short grace period,
- * so after a moment the loser retries with the cookie the winner received.
+ * API hands both the same new token, unless the session has rotated again since
+ * (or was rotated before successor tokens existed): then the loser is rejected
+ * without revoking anything, and retries after a moment with the cookie the winner received.
  */
 const REFRESH_RACE_RETRY_DELAY_MS = 300;
 
@@ -107,6 +109,19 @@ export function ensureSession(): Promise<SessionSnapshot> {
   return bootstrap;
 }
 
+/**
+ * Like {@link ensureSession}, for pages meant for signed-out visitors. Without the sign-in
+ * hint this browser has most likely never signed in, so the cookie check (and its 401) is
+ * skipped and the session stays unknown. Protected routes still check the cookie, so a
+ * missing hint never locks anyone out.
+ */
+export function ensureSessionIfHinted(): Promise<SessionSnapshot> {
+  const snapshot = sessionStore.getSnapshot();
+  return snapshot.status === 'unknown' && !hasSessionHint()
+    ? Promise.resolve(snapshot)
+    : ensureSession();
+}
+
 let authChannel: BroadcastChannel | null = null;
 
 function endSignedOut(): void {
@@ -140,9 +155,12 @@ export async function signOutEverywhere(): Promise<void> {
   endSignedOut();
 }
 
-/** Connects the session to the API client and to other tabs. Call once at startup. */
+/** Connects the session to the API client, other tabs and the sign-in hint. Call once. */
 export function installSession(): void {
   setAuthHandler({ getAccessToken: () => sessionStore.getAccessToken(), renewSession });
+  // Covers every way a session starts or ends: sign-in, refresh, sign-out here or in another
+  // tab, and a refused refresh.
+  sessionStore.subscribe(() => syncSessionHint(sessionStore.getSnapshot()));
 
   if (typeof BroadcastChannel === 'function' && !authChannel) {
     authChannel = new BroadcastChannel(AUTH_CHANNEL_NAME);

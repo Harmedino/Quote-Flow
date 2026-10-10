@@ -46,12 +46,14 @@ import {
   toLineItemContent,
 } from './invoice-content';
 import { nextDocumentNumber } from './numbering.service';
+import { releaseQuote } from './quote-conversion.service';
 
 export type InvoiceInputData = z.output<typeof invoiceInputSchema>;
 export type InvoiceListData = z.output<typeof invoiceListQuerySchema>;
 export type RecordPaymentData = z.output<typeof recordPaymentInputSchema>;
 
 const INVOICE_NOT_FOUND = 'Invoice not found.';
+const ONLY_DRAFTS_DELETED = 'Only draft invoices can be deleted. Cancel the invoice instead.';
 
 /** The caller's business and its current calendar date, which decides what is overdue. */
 interface Tenant {
@@ -228,12 +230,24 @@ export async function updateInvoice(
   return toInvoiceDto(invoice, tenant.today);
 }
 
+/** Deleting a draft converted from a quote frees the quote to be converted again. */
 export async function deleteInvoice(auth: AuthContext, id: string): Promise<void> {
   const { tenant, invoice, status } = await loadInvoice(auth, id);
-  if (!canDeleteInvoice(status)) {
-    throw conflict('Only draft invoices can be deleted. Cancel the invoice instead.');
+  if (!canDeleteInvoice(status)) throw conflict(ONLY_DRAFTS_DELETED);
+  // Still a draft when deleted, so an invoice sent meanwhile keeps its quote converted.
+  const { deletedCount } = await InvoiceModel.deleteOne({
+    _id: invoice._id,
+    businessId: tenant.businessId,
+    status: 'draft',
+  });
+  if (deletedCount === 0) {
+    // Deleted by a concurrent request, or sent meanwhile.
+    if (!(await InvoiceModel.exists({ _id: invoice._id, businessId: tenant.businessId }))) {
+      throw notFound(INVOICE_NOT_FOUND);
+    }
+    throw conflict(ONLY_DRAFTS_DELETED);
   }
-  await InvoiceModel.deleteOne({ _id: invoice._id, businessId: tenant.businessId });
+  if (invoice.quoteId) await releaseQuote(tenant.businessId, invoice.quoteId, invoice._id);
 }
 
 /** Marks a draft as sent. Re-sending an invoice that is already out is a no-op. */

@@ -18,7 +18,7 @@ import {
   registrationInput,
   uniqueEmail,
 } from '../test/auth';
-import { TEST_DATABASE_URI, supportsAtomicIncrements, useTestDatabase } from '../test/database';
+import { TEST_DATABASE_URI, useTestDatabase } from '../test/database';
 import { TEST_ORIGIN, createCapturingLogger, dataOf, errorOf } from '../test/helpers';
 import { hashToken } from '../utils/tokens';
 
@@ -236,7 +236,7 @@ describe.skipIf(!TEST_DATABASE_URI)('auth routes (database)', () => {
   });
 
   describe('POST /api/auth/refresh', () => {
-    it('rotates the refresh token; the old one stops working', async () => {
+    it('rotates the refresh token', async () => {
       const clock = createTestClock();
       const app = createAuthTestApp({ clock: clock.now });
       const { session, refreshToken } = await registerOwner(app);
@@ -257,11 +257,6 @@ describe.skipIf(!TEST_DATABASE_URI)('auth routes (database)', () => {
         httpOnly: true,
       });
       expect(cookie?.value).not.toBe(refreshToken);
-
-      const stale = await refresh(app, refreshToken);
-      expect(stale.status).toBe(401);
-      expect(errorOf(stale)).toMatchObject(SESSION_EXPIRED);
-      expect(refreshCookieOf(stale)).toBeUndefined();
 
       await refresh(app, cookie?.value ?? '').expect(200);
     });
@@ -291,6 +286,8 @@ describe.skipIf(!TEST_DATABASE_URI)('auth routes (database)', () => {
       const replay = await refresh(app, stolen);
 
       expect(replay.status).toBe(401);
+      expect(errorOf(replay)).toMatchObject(SESSION_EXPIRED);
+      expect(refreshCookieOf(replay)).toBeUndefined();
       expect(await sessionOf(current)).toMatchObject({ revokedReason: 'reuse_detected' });
       // The legitimate holder's newer token is dead too: the session is gone.
       await refresh(app, current).expect(401);
@@ -309,38 +306,36 @@ describe.skipIf(!TEST_DATABASE_URI)('auth routes (database)', () => {
       expect(output).not.toContain(current);
     });
 
-    it('rejects a just-rotated token inside the grace window without revoking the session', async () => {
+    it('signs a page that reloaded mid-refresh back in with the same new token', async () => {
       const clock = createTestClock();
       const app = createAuthTestApp({ clock: clock.now });
-      const { refreshToken } = await registerOwner(app);
+      const { session, refreshToken } = await registerOwner(app);
+      // The browser never stored this response's cookie, so it still sends the old token.
       const current = refreshCookieOf(await refresh(app, refreshToken).expect(200))?.value ?? '';
       clock.advance(REFRESH_REUSE_GRACE_MS - 1_000);
 
-      const racingTab = await refresh(app, refreshToken);
+      const retry = await refresh(app, refreshToken);
 
-      expect(racingTab.status).toBe(401);
-      expect(refreshCookieOf(racingTab)).toBeUndefined();
+      expect(retry.status).toBe(200);
+      expect(refreshCookieOf(retry)?.value).toBe(current);
+      expect(decodeJwt(dataOf<AuthSessionDto>(retry).accessToken).sid).toBe(
+        decodeJwt(session.accessToken).sid,
+      );
       expect(await sessionOf(current)).toMatchObject({ revokedAt: null });
       await refresh(app, current).expect(200);
     });
 
-    it('lets only one of two concurrent refreshes with the same token succeed', async (context) => {
-      context.skip(
-        !(await supportsAtomicIncrements()),
-        'This MongoDB stand-in does not apply concurrent updates to one document atomically; run against MongoDB to cover this.',
-      );
+    it('gives two concurrent refreshes with the same token the same new token', async () => {
       const app = createAuthTestApp();
       const { refreshToken } = await registerOwner(app);
 
       const results = await Promise.all([refresh(app, refreshToken), refresh(app, refreshToken)]);
 
-      expect(results.map((res) => res.status).sort()).toEqual([200, 401]);
-      const winner = results.find((res) => res.status === 200);
-      expect(
-        await sessionOf(refreshCookieOf(winner ?? { headers: {} })?.value ?? ''),
-      ).toMatchObject({
-        revokedAt: null,
-      });
+      expect(results.map((res) => res.status)).toEqual([200, 200]);
+      const [first, second] = results.map((res) => refreshCookieOf(res)?.value ?? '');
+      expect(second).toBe(first);
+      expect(await sessionOf(first ?? '')).toMatchObject({ revokedAt: null });
+      await refresh(app, first ?? '').expect(200);
     });
 
     it('signs the new access token with the role the user has now', async () => {

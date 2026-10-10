@@ -26,7 +26,12 @@ export interface RateLimiterOptions extends RateLimitSettings {
   store?: Store;
 }
 
-export const GLOBAL_RATE_LIMIT: RateLimitSettings = { windowMs: 15 * 60 * 1000, limit: 300 };
+/**
+ * Generous on purpose: one person working normally sends hundreds of requests, and an
+ * office or mobile carrier puts many people behind one IP. Sign-in, public pages and
+ * PDFs have stricter limits of their own.
+ */
+export const GLOBAL_RATE_LIMIT: RateLimitSettings = { windowMs: 15 * 60 * 1000, limit: 1000 };
 
 /**
  * Builds a rate limiter that reports violations through the central error

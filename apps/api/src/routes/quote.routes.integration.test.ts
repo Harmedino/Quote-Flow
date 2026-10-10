@@ -201,6 +201,28 @@ describe.skipIf(!TEST_DATABASE_URI)('quote routes (database)', () => {
     expect((await createQuote(second)).quoteNumber).toBe('SPK-0001');
   });
 
+  it('accepts service ids in upper case, as invoices do', async () => {
+    const tenant = await createTenant();
+    const items = [
+      {
+        serviceId: tenant.serviceId.toUpperCase(),
+        name: 'Deep cleaning',
+        quantity: 1,
+        unitPrice: 1,
+      },
+    ];
+
+    const created = await createQuote(tenant, { items });
+    expect(created.items[0]?.serviceId).toBe(tenant.serviceId);
+
+    const updated = await request(app)
+      .put(`/api/quotes/${created.id}`)
+      .set('Authorization', auth(tenant))
+      .send(quoteInput(tenant, { items }))
+      .expect(200);
+    expect(dataOf<QuoteDto>(updated).items[0]?.serviceId).toBe(tenant.serviceId);
+  });
+
   it('rejects invalid input, archived customers and foreign services', async () => {
     const tenant = await createTenant();
     const other = await createTenant();
