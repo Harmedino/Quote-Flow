@@ -3,12 +3,22 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { RetiredRefreshTokenModel, SessionModel } from '../models';
 import { createTestClock } from '../test/auth';
 import { TEST_DATABASE_URI, recordCommands, useTestDatabase } from '../test/database';
-import { hashToken } from '../utils/tokens';
-import { REFRESH_REUSE_GRACE_MS, createSessionService } from './session.service';
+import { createRefreshTokenSuccessor, generateRefreshToken, hashToken } from '../utils/tokens';
+import {
+  REFRESH_REUSE_GRACE_MS,
+  type RotationOutcome,
+  createSessionService,
+} from './session.service';
+
+const SECRET = 'session-service-test-secret-0123456789abcdef';
 
 function setup() {
   const clock = createTestClock();
-  const sessions = createSessionService({ refreshTokenTtlDays: 30, clock: clock.now });
+  const sessions = createSessionService({
+    refreshTokenTtlDays: 30,
+    secret: SECRET,
+    clock: clock.now,
+  });
   const owner = { userId: new Types.ObjectId(), businessId: new Types.ObjectId() };
   return { clock, sessions, owner };
 }
@@ -16,6 +26,14 @@ function setup() {
 afterEach(() => {
   vi.restoreAllMocks();
 });
+
+function rotatedToken(outcome: RotationOutcome): string {
+  if (outcome.status !== 'rotated') throw new Error(`expected a rotation, got ${outcome.status}`);
+  return outcome.refreshToken;
+}
+
+const retiredCount = (businessId: Types.ObjectId, token: string) =>
+  RetiredRefreshTokenModel.countDocuments({ businessId, tokenHash: hashToken(token) });
 
 describe.skipIf(!TEST_DATABASE_URI)('session service (database)', () => {
   useTestDatabase();
@@ -41,10 +59,10 @@ describe.skipIf(!TEST_DATABASE_URI)('session service (database)', () => {
     expect(JSON.stringify(stored)).not.toContain(refreshToken);
   });
 
-  it('loses a refresh race safely: the stale rotation finds nothing to swap', async () => {
+  it('hands the loser of a refresh race the token the winner rotated to', async () => {
     const { sessions, owner } = setup();
     const { refreshToken } = await sessions.start(owner, undefined);
-    let racingOutcome: Awaited<ReturnType<typeof sessions.rotate>> | undefined;
+    let racingOutcome: RotationOutcome | undefined;
 
     // Another request rotates the same token between this request's lookup and its swap.
     const findOneAndUpdate = SessionModel.findOneAndUpdate.bind(SessionModel);
@@ -58,29 +76,130 @@ describe.skipIf(!TEST_DATABASE_URI)('session service (database)', () => {
 
     const outcome = await sessions.rotate(refreshToken);
 
-    expect(racingOutcome?.status).toBe('rotated');
-    expect(outcome).toEqual({ status: 'superseded' });
-    if (racingOutcome?.status !== 'rotated') throw new Error('expected the racing rotation to win');
+    if (!racingOutcome) throw new Error('expected the racing rotation to run');
+    const winnerToken = rotatedToken(racingOutcome);
+    expect(rotatedToken(outcome)).toBe(winnerToken);
     const stored = await SessionModel.findOne({ businessId: owner.businessId }).lean();
     expect(stored).toMatchObject({
-      tokenHash: hashToken(racingOutcome.refreshToken),
+      tokenHash: hashToken(winnerToken),
       previousTokenHash: hashToken(refreshToken),
       revokedAt: null,
     });
+    expect(await retiredCount(owner.businessId, refreshToken)).toBe(1);
   });
 
-  it('only treats the immediately previous token as a race inside the grace window', async () => {
+  it('gives two concurrent rotations of one token the same new token', async () => {
+    const { sessions, owner } = setup();
+    const { refreshToken } = await sessions.start(owner, undefined);
+
+    const outcomes = await Promise.all([
+      sessions.rotate(refreshToken),
+      sessions.rotate(refreshToken),
+    ]);
+
+    const [first, second] = outcomes.map(rotatedToken);
+    expect(second).toBe(first);
+    expect(await SessionModel.findOne({ businessId: owner.businessId }).lean()).toMatchObject({
+      tokenHash: hashToken(first ?? ''),
+      revokedAt: null,
+    });
+    expect(await retiredCount(owner.businessId, refreshToken)).toBe(1);
+    expect(rotatedToken(await sessions.rotate(first ?? ''))).not.toBe(first);
+  });
+
+  it('hands a page that reloaded mid-refresh the same new token, without rotating again', async () => {
+    const { sessions, owner, clock } = setup();
+    const { session, refreshToken: first } = await sessions.start(owner, undefined);
+    // The response carrying `second` never reached the browser, which still holds `first`.
+    const second = rotatedToken(await sessions.rotate(first));
+    const rotatedAt = clock.now();
+    clock.advance(5_000);
+
+    const retry = await sessions.rotate(first);
+
+    expect(retry).toMatchObject({ status: 'rotated', refreshToken: second });
+    if (retry.status === 'rotated') expect(retry.session.id).toBe(session.id);
+    expect(await SessionModel.findOne({ businessId: owner.businessId }).lean()).toMatchObject({
+      tokenHash: hashToken(second),
+      previousTokenHash: hashToken(first),
+      rotatedAt,
+      revokedAt: null,
+    });
+    expect(await retiredCount(owner.businessId, first)).toBe(1);
+
+    const third = rotatedToken(await sessions.rotate(second));
+    expect(third).not.toBe(second);
+    // `first` is now two rotations old: a replay, however soon it comes.
+    expect(await sessions.rotate(first)).toMatchObject({ status: 'reused' });
+    expect(await sessions.rotate(third)).toEqual({ status: 'invalid' });
+  });
+
+  it('refuses a retry inside the grace window once the session has been revoked', async () => {
+    const { sessions, owner, clock } = setup();
+    const { session, refreshToken: first } = await sessions.start(owner, undefined);
+    await sessions.rotate(first);
+    await sessions.revoke(session, 'logout');
+    clock.advance(5_000);
+
+    expect(await sessions.rotate(first)).toEqual({ status: 'invalid' });
+  });
+
+  it('refuses the loser of a refresh race when the session was revoked meanwhile', async () => {
+    const { sessions, owner } = setup();
+    const { session, refreshToken } = await sessions.start(owner, undefined);
+
+    // Another request rotates the token, then the session is signed out, before this swap runs.
+    const findOneAndUpdate = SessionModel.findOneAndUpdate.bind(SessionModel);
+    vi.spyOn(SessionModel, 'findOneAndUpdate').mockImplementationOnce(((
+      ...args: Parameters<typeof findOneAndUpdate>
+    ) =>
+      sessions
+        .rotate(refreshToken)
+        .then(() => sessions.revoke(session, 'logout'))
+        .then(() => findOneAndUpdate(...args))) as unknown as typeof SessionModel.findOneAndUpdate);
+
+    expect(await sessions.rotate(refreshToken)).toEqual({ status: 'invalid' });
+  });
+
+  it('derives each new token from the presented one under the secret', async () => {
+    const { sessions, owner } = setup();
+    const { refreshToken } = await sessions.start(owner, undefined);
+
+    const next = rotatedToken(await sessions.rotate(refreshToken));
+
+    expect(next).toBe(createRefreshTokenSuccessor(SECRET)(refreshToken));
+    expect(next).not.toBe(createRefreshTokenSuccessor(`${SECRET}-other`)(refreshToken));
+  });
+
+  it('rejects a retry, without revoking, once the session has moved past its successor', async () => {
+    const { sessions, owner } = setup();
+    const { refreshToken: first } = await sessions.start(owner, undefined);
+    rotatedToken(await sessions.rotate(first));
+    // As a rotation made before successors were derived left it: a random current token.
+    const current = generateRefreshToken();
+    await SessionModel.updateOne(
+      { businessId: owner.businessId },
+      { $set: { tokenHash: hashToken(current) } },
+    );
+
+    expect(await sessions.rotate(first)).toEqual({ status: 'superseded' });
+    expect(await sessions.rotate(current)).toMatchObject({ status: 'rotated' });
+  });
+
+  it('only treats the immediately previous token as a retry inside the grace window', async () => {
     const { sessions, owner, clock } = setup();
     const { refreshToken: first } = await sessions.start(owner, undefined);
-    const second = await sessions.rotate(first);
-    if (second.status !== 'rotated') throw new Error('expected a rotation');
+    const second = rotatedToken(await sessions.rotate(first));
 
     clock.advance(REFRESH_REUSE_GRACE_MS);
-    expect(await sessions.rotate(first)).toEqual({ status: 'superseded' });
+    expect(await sessions.rotate(first)).toMatchObject({ status: 'rotated', refreshToken: second });
 
     clock.advance(1);
     expect(await sessions.rotate(first)).toMatchObject({ status: 'reused' });
-    expect(await sessions.rotate(second.refreshToken)).toEqual({ status: 'invalid' });
+    expect(await sessions.rotate(second)).toEqual({ status: 'invalid' });
+    expect(await SessionModel.findOne({ businessId: owner.businessId }).lean()).toMatchObject({
+      revokedReason: 'reuse_detected',
+    });
   });
 
   it('revokes the session when any earlier token is replayed, however many rotations ago', async () => {

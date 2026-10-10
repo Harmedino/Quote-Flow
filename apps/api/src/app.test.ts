@@ -284,6 +284,16 @@ describe('createApp', () => {
       await request(app).get('/api/missing').set('X-Forwarded-For', '203.0.113.1').expect(429);
     });
 
+    it('allows each client 1000 API requests per 15 minutes by default', async () => {
+      const app = createApp({ env: createTestEnv(), logger: createSilentLogger() });
+
+      const res = await request(app).get('/api/missing').expect(404);
+
+      const policy = res.headers['ratelimit-policy'];
+      expect(policy).toContain('q=1000;');
+      expect(policy).toContain('w=900;');
+    });
+
     it('never rate-limits health checks', async () => {
       const app = buildLimitedApp();
       for (let attempt = 0; attempt < 5; attempt += 1) {
