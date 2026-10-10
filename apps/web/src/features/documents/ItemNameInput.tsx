@@ -79,7 +79,7 @@ export function ItemNameInput({
         role="listbox"
         aria-label="Services"
         hidden={!expanded}
-        className="absolute inset-x-0 top-full z-30 mt-1 max-h-72 overflow-auto rounded-lg border border-zinc-200 bg-white py-1 shadow-lg ring-1 ring-zinc-950/5"
+        className="absolute top-full left-0 z-30 mt-1 max-h-72 w-max max-w-[min(26rem,calc(100vw-2rem))] min-w-full overflow-auto rounded-xl border border-stone-200 bg-surface p-1 shadow-[var(--shadow-elevated)]"
       >
         {suggestions.map((service, index) => (
           <li
@@ -92,12 +92,12 @@ export function ItemNameInput({
             onClick={() => select(service)}
             onMouseMove={() => listbox.setActiveIndex(index)}
             className={cn(
-              'flex cursor-pointer items-baseline justify-between gap-3 px-3 py-2 text-sm',
-              index === listbox.activeIndex ? 'bg-brand-50 text-brand-900' : 'text-zinc-900',
+              'flex cursor-pointer items-baseline justify-between gap-3 rounded-lg px-2.5 py-2 text-sm',
+              index === listbox.activeIndex ? 'bg-brand-50 text-brand-800' : 'text-stone-900',
             )}
           >
             <span className="min-w-0 truncate font-medium">{service.name}</span>
-            <span className="shrink-0 text-zinc-500 tabular-nums">
+            <span className="shrink-0 text-stone-500 tabular-nums">
               {formatMoney(service.price, currency)}
               {service.unit ? ` / ${service.unit}` : ''}
             </span>

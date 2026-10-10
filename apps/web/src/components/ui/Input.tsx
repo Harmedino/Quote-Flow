@@ -21,7 +21,7 @@ export function Input({ className, suffix, ...props }: InputProps) {
       <input className={cn(CONTROL_CLASSES, 'h-10 pr-14', className)} {...controlProps} />
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-zinc-500"
+        className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-stone-500"
       >
         {suffix}
       </span>

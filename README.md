@@ -306,8 +306,8 @@ The API refuses to start in production while any declared index is missing.
 pnpm seed
 ```
 
-The seed creates **Evergreen Home Services**, a home-services company (cleaning, AC servicing,
-painting, handyman work) in USD, with:
+The seed creates **Lagoon Home Services**, a home-services company in Lagos (cleaning, AC
+servicing, solar panel and water tank cleaning, painting, handyman work) in naira, with:
 
 - an owner (`demo@quoteflow.test`) and a staff user (`staff@quoteflow.test`)
 - 12 customers (one archived) and 11 services (one inactive)
@@ -316,7 +316,7 @@ painting, handyman work) in USD, with:
 - 9 invoices across every status — six converted from accepted quotes and three standalone — with
   some partially or fully paid and two overdue
 
-Documents are numbered with the demo business's own prefixes (`EHS-Q-0001`, `EHS-INV-0001`).
+Documents are numbered with the demo business's own prefixes (`LHS-Q-0001`, `LHS-INV-0001`).
 Sign-in arrives in stage 2; until then the demo data is visible through the database.
 
 The demo password is random on every run and printed when the seed finishes, unless you set

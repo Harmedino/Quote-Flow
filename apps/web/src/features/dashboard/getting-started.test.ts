@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { gettingStartedChecklist, hasBusinessDetails } from './getting-started';
 
 const emptyBusiness = { email: null, phone: null, address: {} };
-const emptyDashboard = { quotes: { total: 0, pending: 0, accepted: 0 }, recentCustomers: [] };
+const emptyDashboard = {
+  quotes: { total: 0, pending: 0, accepted: 0, acceptedNotInvoiced: 0 },
+  recentCustomers: [],
+};
 
 describe('gettingStartedChecklist', () => {
   it('leaves every step open for a new business', () => {
@@ -19,7 +22,7 @@ describe('gettingStartedChecklist', () => {
     const items = gettingStartedChecklist(
       { email: 'hi@example.com', phone: null, address: { city: 'Lagos' } },
       {
-        quotes: { total: 1, pending: 1, accepted: 0 },
+        quotes: { total: 1, pending: 1, accepted: 0, acceptedNotInvoiced: 0 },
         recentCustomers: [
           {
             id: 'c1',

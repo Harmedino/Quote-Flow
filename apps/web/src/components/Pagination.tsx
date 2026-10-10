@@ -8,7 +8,7 @@ export interface PaginationProps {
   label?: string;
 }
 
-/** The footer of a list card: the range shown and, when there is more than one page, Previous/Next. */
+/** Below a list: the range shown and, when there is more than one page, Previous/Next. */
 export function Pagination({ meta, onPageChange, label = 'results' }: PaginationProps) {
   if (meta.total === 0) return null;
   const first = (meta.page - 1) * meta.pageSize + 1;
@@ -17,12 +17,14 @@ export function Pagination({ meta, onPageChange, label = 'results' }: Pagination
   return (
     <nav
       aria-label="Pagination"
-      className="flex items-center justify-between gap-4 border-t border-zinc-200 px-4 py-3 text-sm text-zinc-600 sm:px-6"
+      className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-sm text-stone-500"
     >
       <p>
-        Showing <span className="font-medium text-zinc-900">{first}</span>–
-        <span className="font-medium text-zinc-900">{last}</span> of{' '}
-        <span className="font-medium text-zinc-900">{meta.total}</span> {label}
+        Showing{' '}
+        <span className="font-medium text-stone-700 tabular-nums">
+          {first}–{last}
+        </span>{' '}
+        of <span className="font-medium text-stone-700 tabular-nums">{meta.total}</span> {label}
       </p>
       {meta.totalPages > 1 && (
         <div className="flex gap-2">

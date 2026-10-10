@@ -1,53 +1,41 @@
-import { Plus } from 'lucide-react';
-import { NavLink } from 'react-router';
+import { Link, NavLink } from 'react-router';
 import { paths } from '@/app/paths';
-import { ButtonLink } from '@/components/ui/ButtonLink';
 import { cn } from '@/lib/cn';
 import { type NavItem, PRIMARY_NAV_ITEMS, SETTINGS_NAV_ITEM } from './nav-items';
 
-interface AppNavigationProps {
-  /** Called when a destination is chosen, e.g. to close the mobile drawer. */
-  onNavigate?: () => void;
-}
-
-/** "New quote" action plus the app's primary navigation, shared by the sidebar and mobile drawer. */
-export function AppNavigation({ onNavigate }: AppNavigationProps) {
+/** The sidebar's navigation, on ink: the daily screens, then settings below a hairline. */
+export function AppNavigation() {
   return (
-    <div className="flex flex-1 flex-col gap-6">
-      <ButtonLink to={paths.newQuote} onClick={onNavigate} className="w-full">
-        <Plus aria-hidden="true" />
-        New quote
-      </ButtonLink>
-      <nav aria-label="Main" className="flex flex-1 flex-col">
-        <ul className="space-y-0.5">
-          {PRIMARY_NAV_ITEMS.map((item) => (
-            <li key={item.to}>
-              <AppNavLink item={item} onNavigate={onNavigate} />
-            </li>
-          ))}
-        </ul>
-        <ul className="mt-auto pt-6">
-          <li>
-            <AppNavLink item={SETTINGS_NAV_ITEM} onNavigate={onNavigate} />
+    <nav aria-label="Main" className="flex-1 overflow-y-auto px-3 py-4">
+      <ul className="space-y-0.5">
+        {PRIMARY_NAV_ITEMS.map((item) => (
+          <li key={item.to}>
+            <AppNavLink item={item} />
           </li>
-        </ul>
-      </nav>
-    </div>
+        ))}
+      </ul>
+      <ul className="mt-5 border-t border-white/10 pt-5">
+        <li>
+          <AppNavLink item={SETTINGS_NAV_ITEM} />
+        </li>
+      </ul>
+    </nav>
   );
 }
 
-function AppNavLink({ item, onNavigate }: { item: NavItem; onNavigate?: () => void }) {
+function AppNavLink({ item }: { item: NavItem }) {
   const Icon = item.icon;
   return (
     <NavLink
       to={item.to}
-      onClick={onNavigate}
       className={({ isActive }) =>
         cn(
-          'group flex h-9 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors',
+          'relative flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-highlight',
+          // The lime bar on the left marks the current page.
+          'before:absolute before:inset-y-2 before:left-0 before:w-[3px] before:rounded-full before:bg-highlight before:transition-opacity',
           isActive
-            ? 'bg-brand-50 text-brand-800'
-            : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950',
+            ? 'bg-white/[0.09] text-white before:opacity-100'
+            : 'text-white/65 before:opacity-0 hover:bg-white/5 hover:text-white',
         )
       }
     >
@@ -55,14 +43,37 @@ function AppNavLink({ item, onNavigate }: { item: NavItem; onNavigate?: () => vo
         <>
           <Icon
             aria-hidden="true"
-            className={cn(
-              'size-[18px] shrink-0',
-              isActive ? 'text-brand-600' : 'text-zinc-400 group-hover:text-zinc-600',
-            )}
+            className={cn('size-4 shrink-0', isActive && 'text-highlight')}
           />
           {item.label}
         </>
       )}
     </NavLink>
+  );
+}
+
+const CREATE_LINK =
+  'flex items-center justify-center rounded-lg px-2 py-2 text-xs font-semibold whitespace-nowrap transition-colors focus-visible:outline-highlight';
+
+/** The sidebar's standing shortcuts: start a quote (the lime one) or an invoice from anywhere. */
+export function CreateCard() {
+  return (
+    <div className="mx-3 mb-3 rounded-2xl border border-white/10 bg-white/[0.04] p-3.5">
+      <p className="text-[11px] font-semibold tracking-wider text-white/50 uppercase">Create</p>
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <Link
+          to={paths.newInvoice}
+          className={cn(CREATE_LINK, 'bg-white/10 text-white hover:bg-white/15')}
+        >
+          New invoice
+        </Link>
+        <Link
+          to={paths.newQuote}
+          className={cn(CREATE_LINK, 'bg-highlight text-ink hover:bg-highlight-soft')}
+        >
+          New quote
+        </Link>
+      </div>
+    </div>
   );
 }

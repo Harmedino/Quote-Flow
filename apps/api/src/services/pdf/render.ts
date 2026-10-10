@@ -1,3 +1,4 @@
+import { DEFAULT_BRAND_COLOR } from '@quoteflow/shared';
 import PDFDocument from 'pdfkit';
 import type { PdfDocumentModel, PdfTone } from './document-model';
 import { PDF_FONTS, loadPdfFonts } from './fonts';
@@ -48,7 +49,9 @@ const CELL_PADDING_Y = 8;
 const HEX_COLOR = /^#[0-9a-f]{6}$/i;
 
 function brandColorOf(model: PdfDocumentModel): string {
-  return HEX_COLOR.test(model.business.brandColor) ? model.business.brandColor : '#4f46e5';
+  return HEX_COLOR.test(model.business.brandColor)
+    ? model.business.brandColor
+    : DEFAULT_BRAND_COLOR;
 }
 
 function createDocument(model: PdfDocumentModel): Doc {

@@ -3,17 +3,28 @@ const segment = (value: string): string => encodeURIComponent(value);
 /** Query parameter marking the business's own preview of a public quote. */
 export const PREVIEW_PARAM = 'preview';
 
+/** Query parameter that opens a list page's "add" dialog straight away, e.g. `/customers?new=1`. */
+export const NEW_PARAM = 'new';
+
 /** Every in-app URL is built here so links never drift from the route table. */
 export const paths = {
   home: '/',
+  features: '/features',
+  solutions: '/solutions',
+  howItWorks: '/how-it-works',
+  pricing: '/pricing',
+  about: '/about',
+  demo: '/demo',
   login: '/login',
   register: '/register',
   forgotPassword: '/forgot-password',
 
   dashboard: '/dashboard',
   customers: '/customers',
+  newCustomer: `/customers?${NEW_PARAM}=1`,
   customer: (customerId: string) => `/customers/${segment(customerId)}`,
   services: '/services',
+  newService: `/services?${NEW_PARAM}=1`,
   quotes: '/quotes',
   newQuote: '/quotes/new',
   quote: (quoteId: string) => `/quotes/${segment(quoteId)}`,

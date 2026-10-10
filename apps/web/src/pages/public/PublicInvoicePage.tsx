@@ -1,9 +1,9 @@
 import type { PublicInvoiceDto } from '@quoteflow/shared';
 import { useParams } from 'react-router';
 import { SalesDocument } from '@/components/documents/SalesDocument';
-import { brandColorVars } from '@/components/documents/brand-color';
 import { Badge } from '@/components/ui/Badge';
-import { ContactLinks } from '@/features/public-documents/ContactLinks';
+import { BrandedPage } from '@/features/public-documents/BrandedPage';
+import { AmountDueCard, InvoiceSummaryFigure } from '@/features/public-documents/InvoiceAmount';
 import { PublicDocumentHeader } from '@/features/public-documents/PublicDocumentHeader';
 import {
   PublicDocumentError,
@@ -11,94 +11,70 @@ import {
   PublicLinkUnavailable,
 } from '@/features/public-documents/PublicDocumentStates';
 import { StatusBanner } from '@/features/public-documents/StatusBanner';
+import { SummaryAside } from '@/features/public-documents/SummaryAside';
 import { publicPdfUrl } from '@/features/public-documents/public-api';
 import {
   CUSTOMER_INVOICE_STATUS,
   invoiceStatusBanner,
+  isAwaitingPayment,
 } from '@/features/public-documents/public-status';
 import { usePublicInvoice } from '@/features/public-documents/use-public-documents';
 import { isApiError } from '@/lib/api-client';
-import { formatCalendarDate, formatMoney } from '@/lib/format';
-
-/** The figure a customer opening an unpaid invoice is looking for, at a glance. */
-function AmountDue({ data, documentLabel }: { data: PublicInvoiceDto; documentLabel: string }) {
-  const { invoice, business } = data;
-  const money = (amount: number) => formatMoney(amount, invoice.currency);
-  return (
-    <section
-      aria-label="Amount due"
-      className="animate-fade-in rounded-2xl bg-white p-5 shadow-sm ring-1 ring-zinc-900/5 sm:flex sm:items-end sm:justify-between sm:gap-6 sm:p-6 print:hidden"
-    >
-      <div>
-        <p className="text-sm font-medium text-zinc-500">Amount due</p>
-        <p className="mt-1 text-3xl font-semibold tracking-tight text-(--doc-accent-text) tabular-nums">
-          {money(invoice.balanceDue)}
-        </p>
-        <p className="mt-1 text-sm text-zinc-600">
-          Due {formatCalendarDate(invoice.dueDate)}
-          {invoice.amountPaid > 0 && ` · ${money(invoice.amountPaid)} already paid`}
-        </p>
-      </div>
-      <div className="mt-5 sm:mt-0">
-        <p className="mb-2 text-xs font-medium text-zinc-500 sm:text-right">
-          Questions about this invoice?
-        </p>
-        <ContactLinks
-          business={business}
-          documentLabel={documentLabel}
-          className="sm:justify-end"
-        />
-      </div>
-    </section>
-  );
-}
+import { formatCalendarDate } from '@/lib/format';
 
 function PublicInvoiceView({ token, data }: { token: string; data: PublicInvoiceDto }) {
   const { business, invoice } = data;
   const banner = invoiceStatusBanner(data);
   const documentLabel = `Invoice ${invoice.invoiceNumber}`;
   const status = CUSTOMER_INVOICE_STATUS[invoice.status];
-  const awaitingPayment = invoice.status === 'sent' || invoice.status === 'partially_paid';
+  const pdfUrl = publicPdfUrl('invoice', token);
+  const pdfFileName = `${invoice.invoiceNumber}.pdf`;
 
   return (
-    <div style={brandColorVars(business.brandColor)} className="space-y-5">
+    <BrandedPage brandColor={business.brandColor}>
       <title>{`${documentLabel} from ${business.name}`}</title>
       {/* The token in the URL is the capability: never send it to other sites. */}
       <meta name="referrer" content="no-referrer" />
 
       <PublicDocumentHeader
-        eyebrow="Invoice from"
-        businessName={business.name}
-        pdfUrl={publicPdfUrl('invoice', token)}
-        pdfFileName={`${invoice.invoiceNumber}.pdf`}
-      />
-
-      {banner && (
-        <StatusBanner banner={banner}>
-          {banner.showContact && <ContactLinks business={business} documentLabel={documentLabel} />}
-        </StatusBanner>
-      )}
-      {awaitingPayment && <AmountDue data={data} documentLabel={documentLabel} />}
-
-      <SalesDocument
-        kind="invoice"
-        number={invoice.invoiceNumber}
         business={business}
-        customer={invoice.customer}
-        currency={invoice.currency}
-        issueDate={invoice.issueDate}
-        secondaryDate={{ label: 'Due date', value: invoice.dueDate }}
-        items={invoice.items}
-        discount={invoice.discount}
-        taxRate={invoice.taxRate}
-        totals={invoice.totals}
-        amountPaid={invoice.amountPaid}
-        balanceDue={invoice.balanceDue}
-        notes={invoice.notes}
-        terms={invoice.terms}
-        status={<Badge tone={status.tone}>{status.label}</Badge>}
+        eyebrow="Invoice from"
+        summary={`${documentLabel} · Due ${formatCalendarDate(invoice.dueDate)}`}
+        documentLabel={documentLabel}
+        pdfUrl={pdfUrl}
+        pdfFileName={pdfFileName}
       />
-    </div>
+
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-6">
+        <div className="min-w-0 space-y-5">
+          {banner && <StatusBanner banner={banner} />}
+          {isAwaitingPayment(invoice) && <AmountDueCard invoice={invoice} />}
+
+          <SalesDocument
+            kind="invoice"
+            number={invoice.invoiceNumber}
+            business={business}
+            customer={invoice.customer}
+            currency={invoice.currency}
+            issueDate={invoice.issueDate}
+            secondaryDate={{ label: 'Due date', value: invoice.dueDate }}
+            items={invoice.items}
+            discount={invoice.discount}
+            taxRate={invoice.taxRate}
+            totals={invoice.totals}
+            amountPaid={invoice.amountPaid}
+            balanceDue={invoice.balanceDue}
+            notes={invoice.notes}
+            terms={invoice.terms}
+            status={<Badge tone={status.tone}>{status.label}</Badge>}
+          />
+        </div>
+
+        <SummaryAside label="Invoice summary" pdfUrl={pdfUrl} pdfFileName={pdfFileName}>
+          <InvoiceSummaryFigure invoice={invoice} />
+        </SummaryAside>
+      </div>
+    </BrandedPage>
   );
 }
 

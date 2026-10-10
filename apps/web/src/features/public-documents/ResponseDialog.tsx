@@ -8,7 +8,7 @@ import {
 } from 'react';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
-import { BRAND_FILL, INK_FILL } from './fills';
+import { BRAND_FILL, NEUTRAL_FILL } from './fills';
 
 export interface ResponseDialogProps {
   open: boolean;
@@ -16,8 +16,8 @@ export interface ResponseDialogProps {
   description: ReactNode;
   children?: ReactNode;
   confirmLabel: string;
-  /** 'brand' for the positive answer, 'ink' for a neutral one. */
-  confirmFill: 'brand' | 'ink';
+  /** 'brand' for the positive answer, 'neutral' for one that shouldn't look celebratory. */
+  confirmFill: 'brand' | 'neutral';
   pending: boolean;
   error: string | null;
   onConfirm: () => void;
@@ -86,13 +86,13 @@ export function ResponseDialog({
       aria-describedby={descriptionId}
       onCancel={handleCancel}
       onClick={handleBackdropClick}
-      className="mx-0 mt-auto mb-0 max-h-[calc(100dvh-2rem)] w-full max-w-none overflow-y-auto rounded-t-2xl border-0 bg-white p-0 text-zinc-900 shadow-xl backdrop:bg-zinc-950/50 sm:m-auto sm:w-[calc(100%-2rem)] sm:max-w-md sm:rounded-2xl"
+      className="mx-0 mt-auto mb-0 max-h-[calc(100dvh-2rem)] w-full max-w-none overflow-y-auto rounded-t-3xl border-0 bg-surface p-0 text-stone-900 shadow-[var(--shadow-elevated)] backdrop:bg-black/50 open:animate-fade-in-up sm:m-auto sm:w-[calc(100%-2rem)] sm:max-w-md sm:rounded-2xl sm:border sm:border-stone-200"
     >
       <div className="px-5 pt-6 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:p-6">
-        <h2 id={titleId} className="text-lg font-semibold text-zinc-950">
+        <h2 id={titleId} className="text-xl font-semibold text-stone-900">
           {title}
         </h2>
-        <div id={descriptionId} className="mt-2 text-sm/6 text-pretty text-zinc-600">
+        <div id={descriptionId} className="mt-2 text-sm/6 text-pretty text-stone-600">
           {description}
         </div>
         {children && <div className="mt-5">{children}</div>}
@@ -113,8 +113,8 @@ export function ResponseDialog({
           </Button>
           <Button
             size="lg"
-            style={confirmFill === 'brand' ? BRAND_FILL : INK_FILL}
-            className="hover:brightness-95 active:brightness-90"
+            style={confirmFill === 'brand' ? BRAND_FILL : NEUTRAL_FILL}
+            className="font-semibold hover:brightness-95 active:brightness-90 dark:ring-1 dark:ring-white/20 dark:ring-inset"
             onClick={onConfirm}
             loading={pending}
           >

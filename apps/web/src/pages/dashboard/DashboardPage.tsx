@@ -1,64 +1,82 @@
-import type { DashboardDto } from '@quoteflow/shared';
+import { type DashboardDto, todayInTimeZone } from '@quoteflow/shared';
 import { Plus } from 'lucide-react';
+import { useState } from 'react';
 import { paths } from '@/app/paths';
 import { DocumentTitle } from '@/components/DocumentTitle';
 import { QueryError } from '@/components/QueryError';
-import { Alert } from '@/components/ui/Alert';
 import { ButtonLink } from '@/components/ui/ButtonLink';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { TextLink } from '@/components/ui/TextLink';
 import { useAuthenticatedSession } from '@/features/auth/use-session';
 import { firstName } from '@/features/auth/user-display';
 import { useBusinessQuery } from '@/features/business/use-business';
+import { formatLongToday, greeting, plural } from '@/features/dashboard/dashboard-format';
 import { gettingStartedChecklist } from '@/features/dashboard/getting-started';
 import { useDashboardQuery } from '@/features/dashboard/use-dashboard';
 import { useServicesQuery } from '@/features/services/use-services';
-import { formatMoney } from '@/lib/format';
+import { ActivityCard } from './ActivityCard';
+import { AttentionBanners } from './AttentionBanners';
+import { BusinessSnapshot } from './BusinessSnapshot';
 import { DashboardSkeleton } from './DashboardSkeleton';
-import {
-  RecentCustomersCard,
-  RecentInvoicesCard,
-  RecentQuotesCard,
-  UpcomingInvoicesCard,
-} from './DashboardLists';
+import { MoneyToCollect, RecentInvoices, RecentQuotes } from './DashboardLists';
 import { GettingStarted } from './GettingStarted';
-import { StatTiles } from './StatTiles';
+import { KeyFigures } from './KeyFigures';
 
-function OverdueCallout({ dashboard }: { dashboard: DashboardDto }) {
-  const { overdueCount, overdueAmount } = dashboard.invoices;
-  if (overdueAmount <= 0) return null;
-  const invoices = overdueCount === 1 ? '1 invoice is' : `${overdueCount} invoices are`;
+/** A business that has not issued anything yet sees the setup steps instead of empty figures. */
+function isNewBusiness(dashboard: DashboardDto): boolean {
+  return dashboard.quotes.total === 0 && dashboard.recentInvoices.length === 0;
+}
+
+/** The line under the greeting: what is waiting on customers, overdue money last. */
+function Summary({ dashboard }: { dashboard: DashboardDto }) {
+  const { quotes, invoices } = dashboard;
+  if (isNewBusiness(dashboard)) return <>Let’s get you ready to send your first quote.</>;
+  const parts: string[] = [];
+  if (quotes.pending > 0) parts.push(`${plural(quotes.pending, 'quote')} waiting for an answer`);
+  if (quotes.acceptedNotInvoiced > 0) parts.push(`${quotes.acceptedNotInvoiced} ready to invoice`);
+  const overdue =
+    invoices.overdueCount > 0 ? `${plural(invoices.overdueCount, 'invoice')} overdue` : null;
+  if (parts.length === 0 && !overdue) return <>Nothing is waiting on your customers right now.</>;
   return (
-    <Alert tone="danger" title={`${invoices} overdue`}>
-      <p>
-        {formatMoney(overdueAmount, dashboard.currency)} is past its due date.{' '}
-        <TextLink to={`${paths.invoices}?status=overdue`} className="text-red-800">
-          Review overdue invoices
-        </TextLink>
-      </p>
-    </Alert>
+    <>
+      {parts.join(' · ')}
+      {overdue && (
+        <span className="text-amber-700">
+          {parts.length > 0 && ' · '}
+          {overdue}
+        </span>
+      )}
+    </>
   );
 }
 
-function DashboardContent({ dashboard }: { dashboard: DashboardDto }) {
+function DashboardContent({ dashboard, today }: { dashboard: DashboardDto; today: string }) {
+  const { user } = useAuthenticatedSession();
   const business = useBusinessQuery().data;
   const services = useServicesQuery({ pageSize: 1 });
   const checklist = gettingStartedChecklist(business, dashboard, services.data?.meta.total ?? 0);
-  // A business that has not issued anything yet sees the setup steps instead of empty figures.
-  const isNew = dashboard.quotes.total === 0 && dashboard.recentInvoices.length === 0;
 
-  if (isNew) {
+  if (isNewBusiness(dashboard)) {
     return <GettingStarted items={checklist} />;
   }
   return (
-    <div className="space-y-8">
-      <OverdueCallout dashboard={dashboard} />
-      <StatTiles dashboard={dashboard} />
-      <div className="grid gap-6 lg:grid-cols-2">
-        <RecentQuotesCard quotes={dashboard.recentQuotes} />
-        <UpcomingInvoicesCard invoices={dashboard.upcomingInvoices} />
-        <RecentInvoicesCard invoices={dashboard.recentInvoices} />
-        <RecentCustomersCard customers={dashboard.recentCustomers} />
+    <div className="space-y-6">
+      <KeyFigures dashboard={dashboard} />
+      <ActivityCard activity={dashboard.activity} currency={dashboard.currency} />
+      {/* The setup reminder waits for the service count, so it never flashes a done step. */}
+      <AttentionBanners dashboard={dashboard} checklist={services.data ? checklist : []} />
+      <div className="grid grid-cols-1 gap-8 pt-2 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="min-w-0 space-y-8">
+          <MoneyToCollect invoices={dashboard.upcomingInvoices} today={today} />
+          <RecentQuotes quotes={dashboard.recentQuotes} />
+          <RecentInvoices invoices={dashboard.recentInvoices} />
+        </div>
+        <div className="xl:sticky xl:top-8 xl:self-start">
+          <BusinessSnapshot
+            business={business}
+            canEditBusiness={user.role === 'owner'}
+            customers={dashboard.recentCustomers}
+          />
+        </div>
       </div>
     </div>
   );
@@ -66,15 +84,25 @@ function DashboardContent({ dashboard }: { dashboard: DashboardDto }) {
 
 export default function DashboardPage() {
   const { user } = useAuthenticatedSession();
-  const name = firstName(user.name);
+  const { timezone } = useBusinessQuery().data;
   const dashboard = useDashboardQuery();
+  // The greeting and date are fixed when the page opens, in the business's time zone.
+  const [now] = useState(() => new Date());
+  const name = firstName(user.name);
 
   return (
     <>
       <DocumentTitle title="Dashboard" />
       <PageHeader
-        title={name ? `Welcome, ${name}` : 'Welcome'}
-        description="An overview of your quotes, invoices and payments."
+        eyebrow={formatLongToday(now, timezone)}
+        title={`${greeting(now, timezone)}${name ? `, ${name}` : ''}`}
+        description={
+          dashboard.data ? (
+            <Summary dashboard={dashboard.data} />
+          ) : dashboard.isPending ? (
+            <span className="inline-block h-4 w-64 max-w-full animate-skeleton rounded bg-stone-200/70 align-middle" />
+          ) : undefined
+        }
         actions={
           <ButtonLink to={paths.newQuote}>
             <Plus aria-hidden="true" />
@@ -92,7 +120,7 @@ export default function DashboardPage() {
           retrying={dashboard.isFetching}
         />
       ) : (
-        <DashboardContent dashboard={dashboard.data} />
+        <DashboardContent dashboard={dashboard.data} today={todayInTimeZone(timezone, now)} />
       )}
     </>
   );

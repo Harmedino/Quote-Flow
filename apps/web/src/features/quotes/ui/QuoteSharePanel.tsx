@@ -1,10 +1,8 @@
 import type { QuoteDto } from '@quoteflow/shared';
-import { Check, ExternalLink, Link2, MessageCircle } from 'lucide-react';
 import { useState } from 'react';
 import { paths } from '@/app/paths';
 import { Alert } from '@/components/ui/Alert';
-import { Button } from '@/components/ui/Button';
-import { buttonClasses } from '@/components/ui/button-styles';
+import { SharePanel } from '@/features/documents/SharePanel';
 import { getErrorMessage } from '@/lib/api-client';
 import { buildQuoteShare, canShareQuote } from '../quote-share';
 import { useSendQuote } from '../use-quotes';
@@ -12,6 +10,14 @@ import { useSendQuote } from '../use-quotes';
 export interface QuoteSharePanelProps {
   quote: QuoteDto;
   businessName: string;
+}
+
+function shareDescription(quote: QuoteDto): string {
+  const name = quote.customer.name;
+  if (quote.status === 'draft')
+    return `${name} can’t see this draft yet. Sharing it marks it as sent.`;
+  if (quote.status === 'accepted') return `${name} accepted it. The link still opens the quote.`;
+  return `${name} opens the link, sees your prices, then accepts or declines. No account needed.`;
 }
 
 /**
@@ -80,64 +86,48 @@ export function QuoteSharePanel({ quote, businessName }: QuoteSharePanelProps) {
     }
   }
 
+  async function markAsSent() {
+    setError(null);
+    if (await ensureSent()) setAnnouncement('Quote marked as sent.');
+  }
+
   return (
-    <div className="space-y-3">
-      <Button
-        className="w-full"
-        size="lg"
-        loading={sendQuote.isPending}
-        onClick={() => void shareOnWhatsApp()}
-      >
-        <MessageCircle aria-hidden="true" />
-        Share via WhatsApp
-      </Button>
+    <SharePanel
+      title="Share with customer"
+      description={shareDescription(quote)}
+      url={share.url}
+      sending={sendQuote.isPending}
+      copied={copied}
+      onShareWhatsApp={() => void shareOnWhatsApp()}
+      onCopyLink={() => void copyLink()}
+      previewHref={isDraft ? undefined : paths.publicQuotePreview(quote.publicToken)}
+      // Once accepted, the header's "Convert to invoice" (or "View invoice") is the next step.
+      emphasis={quote.status === 'accepted' ? 'secondary' : 'primary'}
+    >
       {!share.hasWhatsAppNumber && (
-        <p className="text-xs text-pretty text-zinc-500">
+        <p className="text-xs text-pretty text-stone-500">
           {quote.customer.phone
             ? `${quote.customer.phone} has no country code, so WhatsApp will open without a chat. Pick ${quote.customer.name} there.`
             : `${quote.customer.name} has no phone number, so WhatsApp will open without a chat.`}
         </p>
       )}
-      <div className="grid grid-cols-2 gap-2.5">
-        <Button
-          variant="secondary"
-          onClick={() => void copyLink()}
-          aria-disabled={sendQuote.isPending || undefined}
-        >
-          {copied ? (
-            <Check aria-hidden="true" className="text-emerald-600" />
-          ) : (
-            <Link2 aria-hidden="true" />
-          )}
-          {copied ? 'Copied' : 'Copy link'}
-        </Button>
-        {isDraft ? (
-          <Button
-            variant="secondary"
-            aria-disabled
-            title="Customers can open the link once it is sent"
+      {isDraft && (
+        <p className="text-xs text-stone-500">
+          Sent it another way?{' '}
+          <button
+            type="button"
+            onClick={() => void markAsSent()}
+            disabled={sendQuote.isPending}
+            className="rounded-sm font-medium text-brand-700 hover:text-brand-800 hover:underline disabled:opacity-50"
           >
-            <ExternalLink aria-hidden="true" />
-            Preview
-          </Button>
-        ) : (
-          <a
-            href={paths.publicQuotePreview(quote.publicToken)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={buttonClasses({ variant: 'secondary' })}
-          >
-            <ExternalLink aria-hidden="true" />
-            Preview
-            <span className="sr-only"> as customer (opens in a new tab)</span>
-          </a>
-        )}
-      </div>
-      {isDraft && <p className="text-xs text-zinc-500">Sharing marks this draft as sent.</p>}
+            Mark as sent
+          </button>
+        </p>
+      )}
       <p role="status" aria-live="polite" className="sr-only">
         {announcement}
       </p>
       {error && <Alert tone="danger">{error}</Alert>}
-    </div>
+    </SharePanel>
   );
 }

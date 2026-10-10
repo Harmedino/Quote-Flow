@@ -25,7 +25,7 @@ function initialValues() {
     businessName: '',
     email: '',
     password: '',
-    currency: guessCurrency(navigator.language),
+    currency: guessCurrency(navigator.language, detectTimeZone()),
   };
 }
 
@@ -63,7 +63,7 @@ export default function RegisterPage() {
         description="Set up your business and send your first quote today."
       />
 
-      <form id={form.id} noValidate onSubmit={handleSubmit} className="space-y-5">
+      <form id={form.id} noValidate onSubmit={handleSubmit} className="space-y-4">
         {form.formError && <Alert tone="danger">{form.formError}</Alert>}
 
         <Field label="Your name" error={form.fieldErrors.name} required>
@@ -108,7 +108,7 @@ export default function RegisterPage() {
           </Select>
         </Field>
 
-        <Button type="submit" loading={signUp.isPending} className="w-full">
+        <Button type="submit" size="lg" loading={signUp.isPending} className="w-full">
           Create account
         </Button>
       </form>

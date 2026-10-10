@@ -6,7 +6,10 @@ import { getErrorMessage } from '@/lib/api-error';
 import { cn } from '@/lib/cn';
 import { useDemoLogin } from './use-demo-login';
 
-export interface DemoLoginButtonProps extends Pick<ButtonProps, 'size' | 'className'> {
+export interface DemoLoginButtonProps extends Pick<
+  ButtonProps,
+  'variant' | 'size' | 'shape' | 'className'
+> {
   label?: string;
   /** Shows an "or" divider above the button (under a sign-in form). */
   divider?: boolean;
@@ -19,7 +22,9 @@ export function DemoLoginButton({
   label = 'Explore the demo',
   divider = false,
   fallback = null,
+  variant = 'secondary',
   size,
+  shape,
   className,
 }: DemoLoginButtonProps) {
   const demo = useDemoLogin();
@@ -28,17 +33,18 @@ export function DemoLoginButton({
   return (
     <div className={cn('space-y-4', divider && 'mt-6')}>
       {divider && (
-        <div className="flex items-center gap-3 text-xs font-medium tracking-wide text-zinc-500 uppercase">
-          <span aria-hidden="true" className="h-px flex-1 bg-zinc-200" />
+        <div className="flex items-center gap-3 text-xs font-medium tracking-wide text-stone-500 uppercase">
+          <span aria-hidden="true" className="h-px flex-1 bg-stone-200" />
           or
-          <span aria-hidden="true" className="h-px flex-1 bg-zinc-200" />
+          <span aria-hidden="true" className="h-px flex-1 bg-stone-200" />
         </div>
       )}
       {demo.error && <Alert tone="danger">{getErrorMessage(demo.error)}</Alert>}
       <Button
         type="button"
-        variant="secondary"
+        variant={variant}
         size={size}
+        shape={shape}
         loading={demo.pending}
         onClick={demo.start}
         className={className}

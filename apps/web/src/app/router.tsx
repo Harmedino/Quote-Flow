@@ -36,6 +36,24 @@ export const routes: RouteObject[] = [
         children: [
           withErrorBoundary([
             { index: true, lazy: lazyComponent(() => import('@/pages/marketing/HomePage')) },
+            {
+              path: paths.features,
+              lazy: lazyComponent(() => import('@/pages/marketing/FeaturesPage')),
+            },
+            {
+              path: paths.solutions,
+              lazy: lazyComponent(() => import('@/pages/marketing/SolutionsPage')),
+            },
+            {
+              path: paths.howItWorks,
+              lazy: lazyComponent(() => import('@/pages/marketing/HowItWorksPage')),
+            },
+            {
+              path: paths.pricing,
+              lazy: lazyComponent(() => import('@/pages/marketing/PricingPage')),
+            },
+            { path: paths.about, lazy: lazyComponent(() => import('@/pages/marketing/AboutPage')) },
+            { path: paths.demo, lazy: lazyComponent(() => import('@/pages/marketing/DemoPage')) },
           ]),
         ],
       },

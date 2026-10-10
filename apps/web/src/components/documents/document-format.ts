@@ -46,6 +46,11 @@ export function websiteLabel(url: string): string {
   return url.replace(/^https?:\/\//i, '').replace(/\/$/, '');
 }
 
+/** A `tel:` link for a phone number as people type it, e.g. '+234 801 234 5678' → 'tel:+2348012345678'. */
+export function telHref(phone: string): string {
+  return `tel:${phone.replace(/[^\d+]/g, '')}`;
+}
+
 /** Only http(s) URLs are rendered as links, so stored data can never inject a javascript: URL. */
 export function safeHttpUrl(url: string | null | undefined): string | null {
   if (!url) return null;

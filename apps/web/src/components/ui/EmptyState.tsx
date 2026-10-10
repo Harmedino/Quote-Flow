@@ -9,6 +9,11 @@ export interface EmptyStateProps {
   action?: ReactNode;
   /** Heading level for the title; defaults to h2 (below the page's h1). */
   titleAs?: 'h1' | 'h2' | 'h3';
+  /**
+   * `plain` (default) sits inside a card. `dashed` draws its own dashed box, for an empty
+   * state placed straight on the page.
+   */
+  variant?: 'plain' | 'dashed';
   className?: string;
 }
 
@@ -18,20 +23,29 @@ export function EmptyState({
   description,
   action,
   titleAs: Title = 'h2',
+  variant = 'plain',
   className,
 }: EmptyStateProps) {
   return (
-    <div className={cn('flex flex-col items-center px-6 py-12 text-center sm:py-16', className)}>
+    <div
+      className={cn(
+        'flex animate-fade-in-up flex-col items-center px-6 py-12 text-center sm:py-14',
+        variant === 'dashed' && 'rounded-xl border border-dashed border-stone-300 bg-surface',
+        className,
+      )}
+    >
       {Icon && (
-        <div className="flex size-12 items-center justify-center rounded-xl bg-brand-50 text-brand-600 ring-1 ring-brand-600/10">
-          <Icon aria-hidden="true" className="size-6" strokeWidth={1.75} />
+        <div className="flex size-11 items-center justify-center rounded-full bg-stone-100 text-stone-500">
+          <Icon aria-hidden="true" className="size-5" strokeWidth={1.75} />
         </div>
       )}
-      <Title className="mt-5 text-base font-semibold text-zinc-950">{title}</Title>
+      <Title className={cn('text-base font-semibold text-stone-900', Icon && 'mt-4')}>
+        {title}
+      </Title>
       {description && (
-        <p className="mt-2 max-w-sm text-sm text-pretty text-zinc-600">{description}</p>
+        <p className="mt-1.5 max-w-sm text-sm text-pretty text-stone-500">{description}</p>
       )}
-      {action && <div className="mt-6 flex flex-wrap justify-center gap-3">{action}</div>}
+      {action && <div className="mt-5 flex flex-wrap justify-center gap-3">{action}</div>}
     </div>
   );
 }

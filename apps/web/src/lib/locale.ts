@@ -71,11 +71,27 @@ const CURRENCY_BY_REGION = new Map<string, CurrencyCode>(
 );
 
 /**
- * Suggests a currency from a BCP 47 locale such as `en-NG` (→ NGN). A locale
+ * Time zones used by a single country whose phones often report another
+ * region's language, such as `en-US` or `en-GB` in Lagos.
+ */
+const CURRENCY_BY_TIME_ZONE: Readonly<Record<string, CurrencyCode>> = {
+  'Africa/Lagos': 'NGN',
+  'Africa/Accra': 'GHS',
+  'Africa/Nairobi': 'KES',
+  'Africa/Johannesburg': 'ZAR',
+};
+
+/**
+ * Suggests a currency from the device's time zone, when it points to one
+ * country, or else from a BCP 47 locale such as `en-NG` (→ NGN). A locale
  * without a region (`en`) says nothing about where someone works, so it falls
  * back to the default rather than guessing.
  */
-export function guessCurrency(locale: string | undefined): CurrencyCode {
+export function guessCurrency(locale: string | undefined, timeZone?: string): CurrencyCode {
+  const byTimeZone = timeZone && CURRENCY_BY_TIME_ZONE[timeZone];
+  if (byTimeZone) {
+    return byTimeZone;
+  }
   if (!locale) {
     return DEFAULT_CURRENCY;
   }

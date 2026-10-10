@@ -52,12 +52,9 @@ export default function LoginPage() {
   return (
     <>
       <DocumentTitle title="Sign in" />
-      <PageHeader
-        title="Sign in to QuoteFlow"
-        description="Welcome back. Pick up where you left off."
-      />
+      <PageHeader title="Welcome back" description="Sign in to your QuoteFlow account." />
 
-      <form id={form.id} noValidate onSubmit={handleSubmit} className="space-y-5">
+      <form id={form.id} noValidate onSubmit={handleSubmit} className="space-y-4">
         {sessionExpired && (
           <Alert tone="info">Your session has ended. Sign in again to continue.</Alert>
         )}
@@ -87,12 +84,12 @@ export default function LoginPage() {
           <PasswordInput {...form.bind('password')} autoComplete="current-password" />
         </Field>
 
-        <Button type="submit" loading={signIn.isPending} className="w-full">
+        <Button type="submit" size="lg" loading={signIn.isPending} className="w-full">
           Sign in
         </Button>
       </form>
 
-      <DemoLoginButton divider className="w-full" />
+      <DemoLoginButton divider size="lg" className="w-full" />
 
       <AuthFooterLink
         prompt="New to QuoteFlow?"

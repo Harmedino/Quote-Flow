@@ -45,14 +45,17 @@ export function QuoteAnswerDialogs({
         onConfirm={onAccept}
         onCancel={onClose}
       >
-        <dl className="flex items-center justify-between gap-4 rounded-xl bg-(--doc-accent-soft) px-4 py-3.5">
+        {/* Tinted from the surface, not white, so the summary also reads in dark mode. */}
+        <dl className="flex items-center justify-between gap-4 rounded-r-xl border-l-[3px] border-(--doc-fill) bg-[color-mix(in_srgb,var(--doc-fill)_8%,var(--color-surface))] px-4 py-3.5">
           <div className="min-w-0">
-            <dt className="text-xs font-medium text-zinc-500">Quote</dt>
-            <dd className="truncate font-medium text-zinc-950">{quoteNumber}</dd>
+            <dt className="text-xs font-medium text-stone-500">Quote</dt>
+            <dd className="truncate font-medium text-stone-900">{quoteNumber}</dd>
           </div>
           <div className="text-right">
-            <dt className="text-xs font-medium text-zinc-500">Total</dt>
-            <dd className="text-lg font-semibold text-(--doc-accent-text) tabular-nums">{total}</dd>
+            <dt className="text-xs font-medium text-stone-500">Total</dt>
+            <dd className="font-display text-xl font-semibold tracking-tight text-stone-900 tabular-nums">
+              {total}
+            </dd>
           </div>
         </dl>
       </ResponseDialog>
@@ -62,7 +65,7 @@ export function QuoteAnswerDialogs({
         title="Decline this quote?"
         description={`Let ${businessName} know you won’t be going ahead with quote ${quoteNumber}.`}
         confirmLabel="Decline quote"
-        confirmFill="ink"
+        confirmFill="neutral"
         pending={pending}
         error={open === 'decline' ? error : null}
         onConfirm={onDecline}

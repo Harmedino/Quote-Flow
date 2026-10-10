@@ -114,9 +114,11 @@ function CustomerForm({ customer, pending, onCancel, onSubmit, onSaved }: Custom
           </Field>
         </div>
 
-        <fieldset className="mt-8">
-          <legend className="text-sm font-semibold text-zinc-950">Address</legend>
-          <div className="mt-4 grid gap-5 sm:grid-cols-2">
+        <fieldset className="mt-6 rounded-2xl border border-stone-200 p-4 sm:p-5">
+          <legend className="px-1.5 text-sm font-semibold text-stone-900">
+            Address <span className="font-normal text-stone-500">· optional</span>
+          </legend>
+          <div className="grid gap-5 sm:grid-cols-2">
             <Field label="Address line 1" error={errors['address.line1']} className="sm:col-span-2">
               <Input {...bind('address.line1')} autoComplete="off" />
             </Field>
@@ -142,7 +144,7 @@ function CustomerForm({ customer, pending, onCancel, onSubmit, onSaved }: Custom
           label="Notes"
           hint="Only your team sees these, e.g. gate code or preferred contact time."
           error={errors.notes}
-          className="mt-8"
+          className="mt-6"
         >
           <Textarea {...bind('notes')} rows={3} />
         </Field>

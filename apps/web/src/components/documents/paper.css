@@ -1,0 +1,33 @@
+@reference "../../styles/index.css";
+
+/* A quote or invoice is the customer's paper document, so it stays light in dark mode, like its
+   PDF. Dark mode redefines the colour tokens on <html> (styles/index.css); `.doc-paper` restores
+   the light values inside the sheet: the neutrals, and every tint a status badge can use. */
+.doc-paper {
+  color-scheme: light;
+  --color-surface: --theme(--color-surface inline);
+  --color-surface-muted: --theme(--color-stone-50 inline);
+  --color-stone-50: --theme(--color-stone-50 inline);
+  --color-stone-100: --theme(--color-stone-100 inline);
+  --color-stone-200: --theme(--color-stone-200 inline);
+  --color-stone-300: --theme(--color-stone-300 inline);
+  --color-stone-400: --theme(--color-stone-400 inline);
+  --color-stone-500: --theme(--color-stone-500 inline);
+  --color-stone-600: --theme(--color-stone-600 inline);
+  --color-stone-700: --theme(--color-stone-700 inline);
+  --color-stone-800: --theme(--color-stone-800 inline);
+  --color-stone-900: --theme(--color-stone-900 inline);
+  --color-stone-950: --theme(--color-stone-950 inline);
+  --color-brand-50: --theme(--color-brand-50 inline);
+  --color-brand-700: --theme(--color-brand-700 inline);
+  --color-green-50: --theme(--color-green-50 inline);
+  --color-green-700: --theme(--color-green-700 inline);
+  --color-amber-50: --theme(--color-amber-50 inline);
+  --color-amber-700: --theme(--color-amber-700 inline);
+  --color-red-50: --theme(--color-red-50 inline);
+  --color-red-700: --theme(--color-red-700 inline);
+  --color-blue-50: --theme(--color-blue-50 inline);
+  --color-blue-700: --theme(--color-blue-700 inline);
+  --color-violet-50: --theme(--color-violet-50 inline);
+  --color-violet-700: --theme(--color-violet-700 inline);
+}

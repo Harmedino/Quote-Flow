@@ -5,7 +5,8 @@ export const DEFAULT_QUOTE_PREFIX = 'QT';
 export const DEFAULT_INVOICE_PREFIX = 'INV';
 export const DEFAULT_QUOTE_VALIDITY_DAYS = 14;
 export const DEFAULT_INVOICE_DUE_DAYS = 14;
-export const DEFAULT_BRAND_COLOR = '#0f766e';
+/** Ink, as on QuoteFlow's own dark sections, until the business picks its colour. */
+export const DEFAULT_BRAND_COLOR = '#0c1a14';
 export const DEFAULT_TIMEZONE = 'UTC';
 
 export const MAX_LINE_ITEMS = 100;

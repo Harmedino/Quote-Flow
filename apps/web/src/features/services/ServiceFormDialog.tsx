@@ -134,20 +134,25 @@ function ServiceForm({
             <Input {...bind('unit')} autoComplete="off" />
           </Field>
         </div>
-        <label className="flex items-start gap-3 rounded-lg border border-zinc-200 p-4">
-          <input
-            type="checkbox"
-            name="active"
-            checked={form.values.active === 'true'}
-            onChange={(event) => form.setValue('active', event.target.checked ? 'true' : 'false')}
-            className="mt-0.5 size-4 rounded border-zinc-400 accent-brand-600"
-          />
+        <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-stone-200 p-4">
           <span className="text-sm">
-            <span className="block font-medium text-zinc-900">Active</span>
-            <span className="block text-zinc-600">
+            <span className="block font-medium text-stone-900">Active</span>
+            <span className="mt-0.5 block text-stone-600">
               Inactive services stay on existing quotes but aren’t offered for new ones.
             </span>
           </span>
+          <input
+            type="checkbox"
+            role="switch"
+            name="active"
+            checked={form.values.active === 'true'}
+            onChange={(event) => form.setValue('active', event.target.checked ? 'true' : 'false')}
+            className="peer sr-only"
+          />
+          <span
+            aria-hidden="true"
+            className="relative h-6 w-11 shrink-0 rounded-full bg-stone-300 transition-colors peer-checked:bg-brand-600 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-brand-500 after:absolute after:top-0.5 after:left-0.5 after:size-5 after:rounded-full after:bg-white after:shadow-sm after:transition-transform peer-checked:after:translate-x-5"
+          />
         </label>
       </FormDialogBody>
       <FormDialogFooter>

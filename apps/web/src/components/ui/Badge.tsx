@@ -1,15 +1,18 @@
 import type { ComponentProps } from 'react';
 import { cn } from '@/lib/cn';
 
-export type BadgeTone = 'neutral' | 'brand' | 'success' | 'warning' | 'danger' | 'info';
+export type BadgeTone = 'neutral' | 'brand' | 'success' | 'warning' | 'danger' | 'info' | 'accent';
 
+// Tinted washes whose text shades lighten in dark mode (see styles/index.css).
 const TONES: Record<BadgeTone, string> = {
-  neutral: 'bg-zinc-100 text-zinc-700 ring-zinc-500/15',
-  brand: 'bg-brand-50 text-brand-700 ring-brand-600/20',
-  success: 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
-  warning: 'bg-amber-50 text-amber-800 ring-amber-600/25',
-  danger: 'bg-red-50 text-red-700 ring-red-600/15',
-  info: 'bg-sky-50 text-sky-700 ring-sky-600/20',
+  neutral: 'bg-stone-100 text-stone-600',
+  brand: 'bg-brand-50 text-brand-700',
+  success: 'bg-green-50 text-green-700',
+  warning: 'bg-amber-50 text-amber-700',
+  danger: 'bg-red-50 text-red-700',
+  info: 'bg-blue-50 text-blue-700',
+  /** A distinct colour for a state that is neither good nor bad news, e.g. a viewed quote. */
+  accent: 'bg-violet-50 text-violet-700',
 };
 
 export interface BadgeProps extends ComponentProps<'span'> {
@@ -20,7 +23,7 @@ export function Badge({ tone = 'neutral', className, ...props }: BadgeProps) {
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap ring-1 ring-inset',
+        'inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap',
         TONES[tone],
         className,
       )}

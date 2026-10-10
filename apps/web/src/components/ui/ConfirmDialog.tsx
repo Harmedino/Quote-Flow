@@ -82,18 +82,18 @@ export function ConfirmDialog({
       aria-describedby={descriptionId}
       onCancel={handleCancel}
       onClick={handleBackdropClick}
-      className="m-auto w-[calc(100%-2rem)] max-w-md rounded-xl border-0 bg-white p-0 text-zinc-900 shadow-xl backdrop:bg-zinc-950/40"
+      className="m-auto w-[calc(100%-2rem)] max-w-md rounded-2xl border border-stone-200 bg-surface p-0 text-stone-900 shadow-[var(--shadow-elevated)] backdrop:bg-black/50 open:animate-fade-in-up"
     >
       <div className="p-6">
         <div className="flex gap-4">
           <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600">
             <TriangleAlert aria-hidden="true" className="size-5" />
           </div>
-          <div className="min-w-0 pt-1.5">
-            <h2 id={titleId} className="text-base font-semibold text-zinc-950">
+          <div className="min-w-0 pt-1">
+            <h2 id={titleId} className="text-lg font-semibold text-stone-900">
               {title}
             </h2>
-            <div id={descriptionId} className="mt-2 text-sm text-pretty text-zinc-600">
+            <div id={descriptionId} className="mt-1.5 text-sm text-pretty text-stone-600">
               {description}
             </div>
           </div>

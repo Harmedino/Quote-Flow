@@ -1,11 +1,4 @@
-import {
-  type InvoiceDto,
-  PAYMENT_METHOD_LABELS,
-  PAYMENT_METHODS,
-  type PaymentMethod,
-  type RecordPaymentInput,
-  formatMoney,
-} from '@quoteflow/shared';
+import { type InvoiceDto, type RecordPaymentInput, formatMoney } from '@quoteflow/shared';
 import { type FormEvent, useEffect, useId, useState } from 'react';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
@@ -18,10 +11,10 @@ import {
 } from '@/components/ui/FormDialog';
 import { Input } from '@/components/ui/Input';
 import { MoneyInput } from '@/components/ui/MoneyInput';
-import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
 import { type FieldErrors, focusFirstInvalidField, getSubmitErrors } from '@/lib/forms';
 import { buildPaymentInput, initialPaymentValues, type PaymentFormValues } from './payment-form';
+import { PaymentMethodPicker } from './PaymentMethodPicker';
 import { useRecordPayment } from './use-invoices';
 
 export interface RecordPaymentDialogProps {
@@ -45,7 +38,7 @@ export function RecordPaymentDialog({
     <FormDialog
       open={open}
       title="Record a payment"
-      description={`${invoice.invoiceNumber} · ${formatMoney(invoice.balanceDue, invoice.currency)} due`}
+      description={`${invoice.invoiceNumber} · ${formatMoney(invoice.balanceDue, invoice.currency)} still due. Record money you received by transfer, cash or any other way.`}
       pending={mutation.isPending}
       onClose={onClose}
     >
@@ -87,6 +80,14 @@ function PaymentForm({
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
+  const money = (amount: number) => formatMoney(amount, invoice.currency);
+  // Half is offered only when it leaves a sensible second payment.
+  const quickAmounts = [
+    { label: 'Full balance', amount: invoice.balanceDue },
+    ...(invoice.balanceDue >= 2
+      ? [{ label: 'Half', amount: Math.round(invoice.balanceDue / 2) }]
+      : []),
+  ];
 
   useEffect(() => {
     if (attempt > 0) focusFirstInvalidField(document.getElementById(formId));
@@ -134,33 +135,40 @@ function PaymentForm({
           </Alert>
         )}
         <div className="grid gap-5 sm:grid-cols-2">
-          <Field
-            label="Amount received"
-            error={errors.amount}
-            required
-            hint={`Balance due: ${formatMoney(invoice.balanceDue, invoice.currency)}`}
-            className="sm:col-span-2"
-          >
-            <MoneyInput
-              name="amount"
-              currency={invoice.currency}
-              value={values.amount}
-              onChange={(amount) => change('amount', amount)}
-            />
-          </Field>
-          <Field label="Method" error={errors.method} required>
-            <Select
-              name="method"
-              value={values.method}
-              onChange={(event) => change('method', event.target.value as PaymentMethod)}
+          <div className="space-y-2.5 sm:col-span-2">
+            <Field
+              label="Amount received"
+              error={errors.amount}
+              required
+              hint={`Balance due: ${money(invoice.balanceDue)}`}
             >
-              {PAYMENT_METHODS.map((method) => (
-                <option key={method} value={method}>
-                  {PAYMENT_METHOD_LABELS[method]}
-                </option>
+              <MoneyInput
+                name="amount"
+                currency={invoice.currency}
+                value={values.amount}
+                onChange={(amount) => change('amount', amount)}
+              />
+            </Field>
+            <div className="flex flex-wrap gap-2">
+              {quickAmounts.map(({ label, amount }) => (
+                <button
+                  key={label}
+                  type="button"
+                  aria-pressed={values.amount === amount}
+                  onClick={() => change('amount', amount)}
+                  className="rounded-full border border-stone-200 px-3 py-1 text-xs font-medium text-stone-700 transition-colors hover:border-stone-300 hover:bg-stone-50 aria-pressed:border-brand-600 aria-pressed:bg-brand-50 aria-pressed:text-brand-800"
+                >
+                  {label} · <span className="tabular-nums">{money(amount)}</span>
+                </button>
               ))}
-            </Select>
-          </Field>
+            </div>
+          </div>
+          <PaymentMethodPicker
+            value={values.method}
+            onChange={(method) => change('method', method)}
+            error={errors.method}
+            className="sm:col-span-2"
+          />
           <Field label="Date received" error={errors.paidAt} required>
             <Input
               type="date"
@@ -174,7 +182,6 @@ function PaymentForm({
             label="Reference"
             error={errors.reference}
             hint="Optional, e.g. a transfer or receipt number."
-            className="sm:col-span-2"
           >
             <Input
               name="reference"

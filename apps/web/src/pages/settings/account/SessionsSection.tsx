@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
-import { LogOut } from 'lucide-react';
+import { LogOut, MonitorSmartphone } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -18,9 +18,14 @@ export function SessionsSection() {
       description="Signed in on a shared or lost device? Sign out everywhere at once."
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-pretty text-zinc-600">
-          Sign out of QuoteFlow on every device and browser, including this one.
-        </p>
+        <div className="flex items-start gap-3">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-stone-100 text-stone-600">
+            <MonitorSmartphone aria-hidden="true" className="size-5" />
+          </span>
+          <p className="pt-0.5 text-sm text-pretty text-stone-600">
+            Sign out of QuoteFlow on every device and browser, including this one.
+          </p>
+        </div>
         <Button
           variant="secondary"
           className="shrink-0"

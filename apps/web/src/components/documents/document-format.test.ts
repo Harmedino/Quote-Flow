@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { DEFAULT_BRAND_COLOR } from '@quoteflow/shared';
 import { brandColorVars, brandTextColor, contrastRatio, textColorOn } from './brand-color';
 import {
   businessInitials,
@@ -7,6 +8,7 @@ import {
   formatPercent,
   formatQuantity,
   safeHttpUrl,
+  telHref,
   websiteLabel,
 } from './document-format';
 
@@ -58,6 +60,11 @@ describe('document formatting', () => {
     expect(safeHttpUrl('not a url')).toBeNull();
     expect(safeHttpUrl(null)).toBeNull();
   });
+
+  it('dials a phone number as typed, keeping only digits and the plus', () => {
+    expect(telHref('+234 801 234 5678')).toBe('tel:+2348012345678');
+    expect(telHref('(512) 555-0142')).toBe('tel:5125550142');
+  });
 });
 
 describe('brand colors', () => {
@@ -74,8 +81,8 @@ describe('brand colors', () => {
   });
 
   it('falls back to the default brand color for invalid input', () => {
-    expect(brandColorVars('red')).toMatchObject({ '--doc-accent': '#0f766e' });
-    expect(brandColorVars(null)).toMatchObject({ '--doc-accent': '#0f766e' });
+    expect(brandColorVars('red')).toMatchObject({ '--doc-accent': DEFAULT_BRAND_COLOR });
+    expect(brandColorVars(null)).toMatchObject({ '--doc-accent': DEFAULT_BRAND_COLOR });
     expect(brandColorVars('#1D4ED8')).toMatchObject({ '--doc-accent': '#1d4ed8' });
   });
 });

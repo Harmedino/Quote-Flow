@@ -38,6 +38,19 @@ describe('guessCurrency', () => {
   ])('falls back to USD for %s', (_case, locale) => {
     expect(guessCurrency(locale)).toBe('USD');
   });
+
+  it('prefers a time zone that points to one country, as phones in Lagos often say en-US', () => {
+    expect(guessCurrency('en-US', 'Africa/Lagos')).toBe('NGN');
+    expect(guessCurrency('en-GB', 'Africa/Lagos')).toBe('NGN');
+    expect(guessCurrency('en', 'Africa/Accra')).toBe('GHS');
+    expect(guessCurrency(undefined, 'Africa/Nairobi')).toBe('KES');
+  });
+
+  it('uses the locale when the time zone says nothing about the currency', () => {
+    expect(guessCurrency('en-GB', 'Europe/London')).toBe('GBP');
+    expect(guessCurrency('en-NG', 'UTC')).toBe('NGN');
+    expect(guessCurrency('en-US', undefined)).toBe('USD');
+  });
 });
 
 describe('CURRENCY_OPTIONS', () => {

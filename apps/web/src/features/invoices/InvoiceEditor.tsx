@@ -5,19 +5,22 @@ import { paths } from '@/app/paths';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { ButtonLink } from '@/components/ui/ButtonLink';
-import { Card } from '@/components/ui/Card';
 import { Field } from '@/components/ui/Field';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { DocumentTotalsSummary } from '@/features/documents/DocumentTotalsSummary';
 import { LineItemsEditor } from '@/features/documents/LineItemsEditor';
-import { withoutBlankLineItems } from '@/features/documents/line-items';
+import { draftTotals, withoutBlankLineItems } from '@/features/documents/line-items';
 import { CustomerPicker } from '@/features/quotes/editor/CustomerPicker';
+import { editorSummaryLine, filledItemCount } from '@/features/quotes/editor/editor-summary';
 import { EditorSection } from '@/features/quotes/editor/EditorSection';
+import { MobileActionBar } from '@/features/quotes/editor/MobileActionBar';
 import { PricingFields } from '@/features/quotes/editor/PricingFields';
+import { QuoteSummaryPanel } from '@/features/quotes/editor/QuoteSummaryPanel';
 import type { SelectedCustomer } from '@/features/quotes/editor/selected-customer';
 import { placeFieldErrors } from '@/features/quotes/quote-form';
 import { useServicesQuery } from '@/features/services/use-services';
+import { formatMoney } from '@/lib/format';
 import { focusFirstInvalidField, getSubmitErrors } from '@/lib/forms';
 import {
   type InvoiceFormValues,
@@ -116,16 +119,8 @@ export function InvoiceEditor({
   }
 
   const cancelTo = invoice ? paths.invoice(invoice.id) : paths.invoices;
-  const actions = (
-    <>
-      <Button type="submit" size="lg" className="w-full" loading={saving}>
-        {invoice ? 'Save changes' : 'Save draft'}
-      </Button>
-      <ButtonLink to={cancelTo} variant="secondary" size="lg" className="w-full">
-        Cancel
-      </ButtonLink>
-    </>
-  );
+  const saveLabel = invoice ? 'Save changes' : 'Save draft';
+  const totals = draftTotals(values.items, discount, taxRate);
 
   return (
     <form
@@ -141,9 +136,14 @@ export function InvoiceEditor({
           {formError}
         </Alert>
       )}
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start">
         <div className="min-w-0 space-y-6">
-          <EditorSection title="Customer" headingId={`${formId}-customer`}>
+          <EditorSection
+            step={1}
+            title="Customer"
+            done={customer !== null}
+            headingId={`${formId}-customer`}
+          >
             <CustomerPicker
               inputId={`${formId}-customer-search`}
               customer={customer}
@@ -156,8 +156,10 @@ export function InvoiceEditor({
           </EditorSection>
 
           <EditorSection
+            step={2}
             title="Items"
             description="Pick from your services or type any item. Prices are per unit."
+            done={filledItemCount(values.items) > 0}
             headingId={`${formId}-items`}
           >
             <LineItemsEditor
@@ -169,7 +171,7 @@ export function InvoiceEditor({
             />
           </EditorSection>
 
-          <EditorSection title="Discount and tax" headingId={`${formId}-pricing`}>
+          <EditorSection step={3} title="Discount and tax" headingId={`${formId}-pricing`}>
             <PricingFields
               values={asPricingValues(values)}
               currency={currency}
@@ -183,9 +185,17 @@ export function InvoiceEditor({
                 })
               }
             />
+            <div className="mt-6 rounded-xl bg-surface-muted p-4 xl:hidden">
+              <DocumentTotalsSummary
+                items={values.items}
+                discount={discount}
+                taxRate={taxRate}
+                currency={currency}
+              />
+            </div>
           </EditorSection>
 
-          <EditorSection title="Dates and notes" headingId={`${formId}-details`}>
+          <EditorSection step={4} title="Dates and notes" headingId={`${formId}-details`}>
             <div className="space-y-5">
               <div className="grid gap-5 sm:grid-cols-2">
                 <Field label="Issue date" error={errors.issueDate} required>
@@ -233,41 +243,39 @@ export function InvoiceEditor({
               </Field>
             </div>
           </EditorSection>
-
-          <Card className="space-y-5 p-5 sm:p-6 xl:hidden">
-            <h2 className="text-base font-semibold text-zinc-950">Summary</h2>
-            <DocumentTotalsSummary
-              items={values.items}
-              discount={discount}
-              taxRate={taxRate}
-              currency={currency}
-            />
-            <div className="flex flex-col gap-3 sm:flex-row-reverse [&>*]:sm:w-auto">{actions}</div>
-          </Card>
         </div>
 
-        <Card className="sticky top-8 hidden space-y-4 p-5 xl:block">
-          <div>
-            <h2 className="text-sm font-semibold text-zinc-950">
-              {invoice ? `Invoice ${invoice.invoiceNumber}` : 'New invoice'}
-            </h2>
-            <p className="mt-1 text-sm text-zinc-600">
-              {customer ? `For ${customer.name}` : 'Choose a customer to bill.'}
-            </p>
-          </div>
-          <DocumentTotalsSummary
-            items={values.items}
-            discount={discount}
-            taxRate={taxRate}
-            currency={currency}
-          />
-          <div className="grid gap-2.5 pt-2">{actions}</div>
-          <p className="text-xs text-pretty text-zinc-500">
-            Saved as a draft. You can review it, then mark it as sent or share it with your
-            customer.
-          </p>
-        </Card>
+        <QuoteSummaryPanel
+          title={invoice ? `Invoice ${invoice.invoiceNumber}` : 'New invoice'}
+          customer={customer}
+          items={values.items}
+          discount={discount}
+          taxRate={taxRate}
+          currency={currency}
+          note="Saved as a draft. You can review it, then mark it as sent or share it with your customer."
+          className="sticky top-8 hidden xl:block"
+        >
+          <Button type="submit" size="lg" className="w-full" loading={saving}>
+            {saveLabel}
+          </Button>
+          <ButtonLink to={cancelTo} variant="secondary" size="lg" className="w-full">
+            Cancel
+          </ButtonLink>
+        </QuoteSummaryPanel>
       </div>
+      <MobileActionBar
+        total={totals ? formatMoney(totals.total, currency) : null}
+        detail={editorSummaryLine(customer, values.items)}
+        aboveTabBar
+        className="xl:hidden"
+      >
+        <ButtonLink to={cancelTo} variant="secondary">
+          Cancel
+        </ButtonLink>
+        <Button type="submit" loading={saving}>
+          {saveLabel}
+        </Button>
+      </MobileActionBar>
     </form>
   );
 }

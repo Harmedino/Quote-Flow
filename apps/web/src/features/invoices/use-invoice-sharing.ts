@@ -66,6 +66,8 @@ export function useInvoiceSharing(invoice: InvoiceDto, businessName: string) {
     url: links.url,
     shareOnWhatsApp,
     copyLink,
+    /** For a draft sent some other way: start tracking it without sharing from here. */
+    markAsSent: () => send.mutate(),
     copied,
     copyError,
     sending: send.isPending,

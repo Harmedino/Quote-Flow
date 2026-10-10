@@ -22,7 +22,7 @@ import {
 } from '@/features/customers/use-customers';
 import { getErrorMessage, isMissingRecordError } from '@/lib/api-client';
 import { CustomerContactCard, CustomerNotesCard } from './CustomerContactCard';
-import { CustomerInvoicesCard, CustomerQuotesCard } from './CustomerDocumentsCards';
+import { CustomerInvoicesCard, CustomerQuotesCard, CustomerStats } from './CustomerDocumentsCards';
 
 export default function CustomerDetailPage() {
   const { customerId = '' } = useParams();
@@ -75,13 +75,15 @@ function CustomerDetail({ customer }: { customer: CustomerDto }) {
         badge={archived && <Badge tone="neutral">Archived</Badge>}
         actions={
           <>
-            <Button variant="secondary" onClick={() => setEditing(true)}>
+            {/* On phones "New quote" leads on its own row, with Edit and Archive shared below. */}
+            <Button variant="secondary" className="max-sm:flex-1" onClick={() => setEditing(true)}>
               <Pencil aria-hidden="true" />
               Edit
             </Button>
             {archived ? (
               <Button
                 variant="secondary"
+                className="max-sm:flex-1"
                 loading={restore.isPending}
                 onClick={() => restore.mutate(customer.id)}
               >
@@ -92,6 +94,7 @@ function CustomerDetail({ customer }: { customer: CustomerDto }) {
               <>
                 <Button
                   variant="secondary"
+                  className="max-sm:flex-1"
                   onClick={() => {
                     archive.reset();
                     setConfirmingArchive(true);
@@ -100,7 +103,10 @@ function CustomerDetail({ customer }: { customer: CustomerDto }) {
                   <Archive aria-hidden="true" />
                   Archive
                 </Button>
-                <ButtonLink to={`${paths.newQuote}?customerId=${encodeURIComponent(customer.id)}`}>
+                <ButtonLink
+                  to={`${paths.newQuote}?customerId=${encodeURIComponent(customer.id)}`}
+                  className="max-sm:order-first max-sm:w-full"
+                >
                   <FilePlus2 aria-hidden="true" />
                   New quote
                 </ButtonLink>
@@ -122,12 +128,13 @@ function CustomerDetail({ customer }: { customer: CustomerDto }) {
         </Alert>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="space-y-6">
+      <CustomerStats customer={customer} />
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
+        <div className="space-y-4 lg:sticky lg:top-8">
           <CustomerContactCard customer={customer} />
           <CustomerNotesCard customer={customer} onEdit={() => setEditing(true)} />
         </div>
-        <div className="space-y-6 lg:col-span-2">
+        <div className="min-w-0 space-y-6">
           <CustomerQuotesCard customer={customer} />
           <CustomerInvoicesCard customer={customer} />
         </div>
@@ -161,9 +168,10 @@ function CustomerDetailSkeleton() {
       <Skeleton className="mb-6 h-4 w-24" />
       <Skeleton className="h-8 w-64" />
       <Skeleton className="mt-3 mb-8 h-4 w-40" />
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Skeleton className="h-64 rounded-xl" />
-        <div className="space-y-6 lg:col-span-2">
+      <Skeleton className="mb-6 h-28 rounded-2xl" />
+      <div className="grid gap-6 lg:grid-cols-[20rem_minmax(0,1fr)]">
+        <Skeleton className="h-72 rounded-xl" />
+        <div className="space-y-6">
           <Skeleton className="h-48 rounded-xl" />
           <Skeleton className="h-48 rounded-xl" />
         </div>

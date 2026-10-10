@@ -68,6 +68,18 @@ export function applyServiceToDraft(draft: LineItemDraft, service: ServiceDto): 
   };
 }
 
+/** Adds a catalogue service as a row, filling the last row instead while it is still blank. */
+export function addServiceLineItem(
+  drafts: readonly LineItemDraft[],
+  service: ServiceDto,
+): LineItemDraft[] {
+  const last = drafts.at(-1);
+  if (last && isBlankLineItemDraft(last)) {
+    return [...drafts.slice(0, -1), applyServiceToDraft(last, service)];
+  }
+  return [...drafts, applyServiceToDraft(newLineItemDraft(), service)];
+}
+
 export function duplicateLineItemDraft(draft: LineItemDraft): LineItemDraft {
   return { ...draft, key: nextKey() };
 }

@@ -30,7 +30,7 @@ export function PasswordInput({ className, ...props }: PasswordInputProps) {
         onClick={() => setVisible((current) => !current)}
         aria-pressed={visible}
         aria-controls={field?.id}
-        className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-lg text-zinc-500 transition-colors hover:text-zinc-900 focus-visible:outline-offset-[-2px]"
+        className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-lg text-stone-500 transition-colors hover:text-stone-900 focus-visible:outline-offset-[-2px]"
       >
         {visible ? (
           <EyeOff aria-hidden="true" className="size-[18px]" />

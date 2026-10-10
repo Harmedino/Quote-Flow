@@ -25,8 +25,8 @@ export interface FormDialogProps {
 const FIRST_FIELD = 'input:not([type="hidden"]):not([disabled]), textarea, select';
 
 /**
- * A modal for a short form: a full-screen sheet on phones, a centered panel
- * from `sm` up. Built on a modal <dialog>, so the page behind is inert, focus
+ * A modal for a short form: a bottom sheet on phones (like the Create and More
+ * sheets), a centered panel from `sm` up. Built on a modal <dialog>, so the page behind is inert, focus
  * stays inside, Escape closes it and focus returns to the opener. Put a
  * <form> with {@link FormDialogBody} and {@link FormDialogFooter} inside.
  */
@@ -86,17 +86,17 @@ export function FormDialog({
       onCancel={handleCancel}
       onClick={handleBackdropClick}
       className={cn(
-        'm-0 h-dvh max-h-none w-full max-w-none border-0 bg-white p-0 text-zinc-900 shadow-xl backdrop:bg-zinc-950/40 open:flex open:flex-col',
-        'sm:m-auto sm:h-fit sm:max-h-[calc(100dvh-4rem)] sm:w-[calc(100%-4rem)] sm:max-w-xl sm:rounded-xl',
+        'm-0 mt-auto max-h-[92dvh] w-full max-w-none rounded-t-[1.75rem] border-0 bg-surface p-0 text-stone-900 shadow-[var(--shadow-elevated)] backdrop:bg-black/45 open:flex open:flex-col open:animate-sheet-up open:backdrop:animate-fade-in',
+        'sm:m-auto sm:max-h-[calc(100dvh-4rem)] sm:w-[calc(100%-4rem)] sm:max-w-xl sm:rounded-2xl sm:border sm:border-stone-200 sm:open:animate-fade-in-up',
       )}
     >
-      <div className="flex shrink-0 items-start justify-between gap-4 border-b border-zinc-200 px-5 py-4 sm:px-6">
+      <div className="flex shrink-0 items-start justify-between gap-4 border-b border-stone-200 px-5 py-4 sm:px-6">
         <div className="min-w-0 pt-1">
-          <h2 id={titleId} className="text-base font-semibold text-zinc-950">
+          <h2 id={titleId} className="text-lg font-semibold text-stone-900">
             {title}
           </h2>
           {description && (
-            <p id={descriptionId} className="mt-1 text-sm text-pretty text-zinc-600">
+            <p id={descriptionId} className="mt-1 text-sm text-pretty text-stone-600">
               {description}
             </p>
           )}
@@ -105,7 +105,7 @@ export function FormDialog({
           type="button"
           onClick={dismiss}
           disabled={pending}
-          className="-mr-2 inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-950 disabled:opacity-50"
+          className="-mr-2 inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-900 disabled:opacity-50"
         >
           <X aria-hidden="true" className="size-5" />
           <span className="sr-only">Close</span>
@@ -132,7 +132,7 @@ export function FormDialogFooter({ className, ...props }: ComponentProps<'div'>)
   return (
     <div
       className={cn(
-        'flex shrink-0 flex-col-reverse gap-3 border-t border-zinc-200 bg-zinc-50 px-5 py-4 sm:flex-row sm:justify-end sm:rounded-b-xl sm:px-6',
+        'flex shrink-0 flex-col-reverse gap-3 border-t border-stone-200 bg-surface-muted px-5 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:rounded-b-2xl sm:px-6 sm:pb-4',
         className,
       )}
       {...props}

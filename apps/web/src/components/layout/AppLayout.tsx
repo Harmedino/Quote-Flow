@@ -1,19 +1,26 @@
-import { Plus } from 'lucide-react';
-import { Link, Navigate, Outlet, useLocation } from 'react-router';
+import { type RefObject, useEffect, useRef, useState } from 'react';
+import { Link, Navigate, Outlet, useLocation, useMatches } from 'react-router';
 import { paths } from '@/app/paths';
 import { PageLoader } from '@/components/PageLoader';
-import { ButtonLink } from '@/components/ui/ButtonLink';
 import { Logo } from '@/components/ui/Logo';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { SESSION_EXPIRED_STATE, signInPathFor } from '@/features/auth/redirect';
 import { useSession } from '@/features/auth/use-session';
 import { AccountMenu } from './AccountMenu';
-import { AppNavigation } from './AppNavigation';
-import { MobileNav } from './MobileNav';
+import { AppNavigation, CreateCard } from './AppNavigation';
+import { type MobileSheetName, type MobileSheets, MobileNav, MobileTopBar } from './MobileNav';
 import { MAIN_CONTENT_ID, SkipLink } from './SkipLink';
+
+/** Matches Tailwind's `lg` breakpoint, where the sidebar replaces the phone navigation. */
+const DESKTOP_QUERY = '(min-width: 64rem)';
+const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 
 export default function AppLayout() {
   const session = useSession();
   const location = useLocation();
+  const mainRef = useRef<HTMLElement>(null);
+  const sheets = useMobileSheets();
+  usePageEntrance(mainRef);
 
   // Route middleware admits only signed-in users; this handles a session that ends while
   // the app is open (sign-out, here or in another tab, or a refresh that was refused).
@@ -34,43 +41,82 @@ export default function AppLayout() {
   }
 
   return (
-    <div className="min-h-dvh bg-zinc-50">
+    <div className="flex min-h-dvh bg-stone-50">
       <SkipLink />
 
-      <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-30 lg:flex lg:w-64 lg:flex-col lg:border-r lg:border-zinc-200 lg:bg-white">
-        <div className="flex h-16 shrink-0 items-center px-6">
-          <Link to={paths.dashboard} className="flex rounded-lg">
-            <Logo />
+      <aside className="sticky top-0 z-40 hidden h-dvh w-64 shrink-0 flex-col bg-ink lg:flex dark:border-r dark:border-white/[0.06]">
+        <div className="flex h-16 shrink-0 items-center justify-between gap-3 px-5">
+          <Link to={paths.dashboard} className="flex rounded-lg focus-visible:outline-highlight">
+            <Logo tone="light" />
           </Link>
+          <ThemeToggle tone="ink" />
         </div>
-        <div className="flex flex-1 flex-col overflow-y-auto px-4 pt-2 pb-4">
-          <AppNavigation />
-        </div>
-        <div className="shrink-0 border-t border-zinc-200 p-3">
-          <AccountMenu />
-        </div>
+        <AppNavigation />
+        <CreateCard />
+        <AccountMenu />
       </aside>
 
-      <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-zinc-200 bg-white/95 px-4 backdrop-blur-sm sm:px-6 lg:hidden">
-        <MobileNav />
-        <Link to={paths.dashboard} className="flex min-w-0 overflow-hidden rounded-lg">
-          <Logo />
-        </Link>
-        <ButtonLink to={paths.newQuote} size="sm" className="ml-auto">
-          <Plus aria-hidden="true" />
-          <span className="max-sm:sr-only">New quote</span>
-        </ButtonLink>
-      </header>
-
-      <div className="lg:pl-64">
+      <div className="flex min-w-0 flex-1 flex-col">
+        <MobileTopBar sheets={sheets} />
         <main
+          ref={mainRef}
           id={MAIN_CONTENT_ID}
           tabIndex={-1}
-          className="mx-auto w-full max-w-6xl px-4 py-8 focus:outline-none sm:px-6 lg:px-10 lg:py-12"
+          className="mx-auto w-full max-w-6xl flex-1 px-4 pt-5 pb-28 focus:outline-none sm:px-6 lg:px-8 lg:py-8"
         >
           <Outlet />
         </main>
       </div>
+
+      <MobileNav sheets={sheets} />
     </div>
   );
+}
+
+/**
+ * Which phone sheet is open. It is tied to the location it was opened at, so any navigation
+ * (a link in the sheet, back/forward) closes it, and so does widening to desktop.
+ */
+function useMobileSheets(): MobileSheets {
+  const { key } = useLocation();
+  const [opened, setOpened] = useState<{ name: MobileSheetName; at: string } | null>(null);
+  const open = opened?.at === key ? opened.name : null;
+
+  useEffect(() => {
+    if (!open) return;
+    const desktop = window.matchMedia(DESKTOP_QUERY);
+    const closeOnDesktop = (event: MediaQueryListEvent) => {
+      if (event.matches) setOpened(null);
+    };
+    desktop.addEventListener('change', closeOnDesktop);
+    return () => desktop.removeEventListener('change', closeOnDesktop);
+  }, [open]);
+
+  return {
+    open,
+    show: (name) => setOpened({ name, at: key }),
+    close: () => setOpened(null),
+  };
+}
+
+/**
+ * Fades each new page in. It plays when the matched route changes, not on every URL change,
+ * so filters and search params never replay it, and it animates in place rather than
+ * remounting the page, so focus and state survive.
+ */
+function usePageEntrance(mainRef: RefObject<HTMLElement | null>) {
+  const routeId = useMatches().at(-1)?.id;
+
+  useEffect(() => {
+    const main = mainRef.current;
+    if (!main || !routeId || window.matchMedia(REDUCED_MOTION_QUERY).matches) return;
+    const animation = main.animate(
+      [
+        { opacity: 0, transform: 'translateY(10px)' },
+        { opacity: 1, transform: 'none' },
+      ],
+      { duration: 280, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },
+    );
+    return () => animation.cancel();
+  }, [mainRef, routeId]);
 }

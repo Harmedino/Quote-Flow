@@ -1,6 +1,5 @@
 import type { ServiceDto } from '@quoteflow/shared';
-import { Pencil, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useAuthenticatedSession } from '@/features/auth/use-session';
 import { useUpdateService } from '@/features/services/use-services';
@@ -29,13 +28,13 @@ function ActiveSwitch({ service }: { service: ServiceDto }) {
         aria-label={`Active: ${service.name}`}
         disabled={update.isPending}
         onClick={() => update.mutate({ id: service.id, input: { active: !service.active } })}
-        className="group inline-flex items-center gap-2 rounded-full text-sm font-medium text-zinc-700 disabled:opacity-70"
+        className="group inline-flex items-center gap-2 rounded-full text-sm font-medium disabled:opacity-70"
       >
         <span
           aria-hidden="true"
           className={cn(
             'relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors',
-            active ? 'bg-brand-600' : 'bg-zinc-300 group-hover:bg-zinc-400',
+            active ? 'bg-brand-600' : 'bg-stone-300 group-hover:bg-stone-400',
           )}
         >
           <span
@@ -45,7 +44,7 @@ function ActiveSwitch({ service }: { service: ServiceDto }) {
             )}
           />
         </span>
-        <span className={active ? 'text-zinc-900' : 'text-zinc-500'}>
+        <span className={active ? 'text-stone-900' : 'text-stone-500'}>
           {active ? 'Active' : 'Inactive'}
         </span>
       </button>
@@ -58,108 +57,126 @@ function ActiveSwitch({ service }: { service: ServiceDto }) {
   );
 }
 
+/** ServiceBook's quiet text actions; each names its service for assistive technology. */
 function ServiceActions({
   service,
   onEdit,
   onDelete,
 }: Omit<ServiceListProps, 'services'> & { service: ServiceDto }) {
+  const action =
+    'inline-flex h-8 items-center rounded-md px-1.5 text-sm font-medium transition-colors';
   return (
-    <div className="flex items-center justify-end gap-1">
-      <Button variant="ghost" size="icon" onClick={() => onEdit(service)} title="Edit">
-        <Pencil aria-hidden="true" />
-        <span className="sr-only">Edit {service.name}</span>
-      </Button>
-      <Button variant="ghost" size="icon" onClick={() => onDelete(service)} title="Delete">
-        <Trash2 aria-hidden="true" />
-        <span className="sr-only">Delete {service.name}</span>
-      </Button>
+    <div className="-mr-1.5 flex items-center justify-end gap-2">
+      <button
+        type="button"
+        onClick={() => onEdit(service)}
+        className={cn(action, 'text-brand-700 hover:text-brand-800')}
+      >
+        Edit<span className="sr-only"> {service.name}</span>
+      </button>
+      <button
+        type="button"
+        onClick={() => onDelete(service)}
+        className={cn(action, 'text-stone-500 hover:text-red-700')}
+      >
+        Delete<span className="sr-only"> {service.name}</span>
+      </button>
     </div>
   );
 }
 
-/** Services as a table from `md` up and as stacked cards below it. */
+const HEAD =
+  'px-4 py-3 text-left text-xs font-medium tracking-wide whitespace-nowrap text-stone-500 uppercase';
+
+/** Services as a table in a panel from `md` up and as separate cards below it. */
 export function ServiceList({ services, onEdit, onDelete }: ServiceListProps) {
   const { business } = useAuthenticatedSession();
   const price = (service: ServiceDto) => formatMoney(service.price, business.currency);
 
   return (
     <>
-      <div className="hidden overflow-x-auto md:block">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-zinc-200 bg-zinc-50/80 text-xs font-medium tracking-wide text-zinc-500 uppercase">
-            <tr>
-              <th scope="col" className="px-6 py-3 font-medium">
-                Service
-              </th>
-              <th scope="col" className="px-4 py-3 font-medium">
-                Unit
-              </th>
-              <th scope="col" className="px-4 py-3 text-right font-medium">
-                Price
-              </th>
-              <th scope="col" className="px-4 py-3 font-medium">
-                Status
-              </th>
-              <th scope="col" className="px-6 py-3">
-                <span className="sr-only">Actions</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-zinc-100">
-            {services.map((service) => (
-              <tr key={service.id} className="transition-colors hover:bg-zinc-50">
-                <td className="max-w-md px-6 py-3.5">
-                  <button
-                    type="button"
-                    onClick={() => onEdit(service)}
-                    className="text-left font-medium text-zinc-950 hover:text-brand-700"
-                  >
-                    {service.name}
-                  </button>
-                  {service.description && (
-                    <p className="mt-0.5 line-clamp-1 text-zinc-500">{service.description}</p>
-                  )}
-                </td>
-                <td className="px-4 py-3.5 whitespace-nowrap text-zinc-600">
-                  {service.unit ?? <span className="text-zinc-400">—</span>}
-                </td>
-                <td className="px-4 py-3.5 text-right font-medium whitespace-nowrap text-zinc-950 tabular-nums">
-                  {price(service)}
-                </td>
-                <td className="px-4 py-3.5">
-                  <ActiveSwitch service={service} />
-                </td>
-                <td className="px-6 py-2">
-                  <ServiceActions service={service} onEdit={onEdit} onDelete={onDelete} />
-                </td>
+      <Card className="hidden overflow-hidden md:block">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-surface-muted">
+              <tr>
+                <th scope="col" className={cn(HEAD, 'pl-5')}>
+                  Service
+                </th>
+                <th scope="col" className={HEAD}>
+                  Unit
+                </th>
+                <th scope="col" className={cn(HEAD, 'text-right')}>
+                  Price
+                </th>
+                <th scope="col" className={HEAD}>
+                  Status
+                </th>
+                <th scope="col" className={cn(HEAD, 'pr-5 text-right')}>
+                  Actions
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="divide-y divide-stone-100">
+              {services.map((service) => (
+                <tr key={service.id} className="transition-colors hover:bg-stone-50">
+                  <td className="max-w-md py-3 pr-4 pl-5">
+                    <button
+                      type="button"
+                      onClick={() => onEdit(service)}
+                      className="rounded-sm text-left font-medium text-stone-900 hover:text-brand-700"
+                    >
+                      {service.name}
+                    </button>
+                    {service.description && (
+                      <p className="mt-0.5 line-clamp-1 text-xs text-stone-500">
+                        {service.description}
+                      </p>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap text-stone-600">
+                    {service.unit ?? <span className="text-stone-400">—</span>}
+                  </td>
+                  <td className="px-4 py-3 text-right font-semibold whitespace-nowrap text-stone-900 tabular-nums">
+                    {price(service)}
+                  </td>
+                  <td className="px-4 py-3">
+                    <ActiveSwitch service={service} />
+                  </td>
+                  <td className="py-2 pr-5 pl-4">
+                    <ServiceActions service={service} onEdit={onEdit} onDelete={onDelete} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
 
-      <ul className="divide-y divide-zinc-100 md:hidden">
+      <ul className="space-y-3 md:hidden">
         {services.map((service) => (
-          <li key={service.id} className="px-4 py-4">
+          <li key={service.id} className="rounded-xl border border-stone-200 bg-surface p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <button
                   type="button"
                   onClick={() => onEdit(service)}
-                  className="text-left font-medium text-zinc-950"
+                  className="rounded-sm text-left font-medium text-stone-900"
                 >
                   {service.name}
                 </button>
                 {service.description && (
-                  <p className="mt-0.5 line-clamp-2 text-sm text-zinc-500">{service.description}</p>
+                  <p className="mt-0.5 line-clamp-2 text-sm text-stone-500">
+                    {service.description}
+                  </p>
                 )}
               </div>
               <div className="shrink-0 text-right">
-                <p className="font-medium text-zinc-950 tabular-nums">{price(service)}</p>
-                {service.unit && <p className="text-xs text-zinc-500">per {service.unit}</p>}
+                <p className="font-semibold text-stone-900 tabular-nums">{price(service)}</p>
+                {service.unit && <p className="text-xs text-stone-500">per {service.unit}</p>}
               </div>
             </div>
-            <div className="mt-2 flex items-center justify-between gap-3">
+            <div className="mt-3 flex items-center justify-between gap-3 border-t border-stone-100 pt-3">
               <ActiveSwitch service={service} />
               <ServiceActions service={service} onEdit={onEdit} onDelete={onDelete} />
             </div>
@@ -172,11 +189,11 @@ export function ServiceList({ services, onEdit, onDelete }: ServiceListProps) {
 
 export function ServiceListSkeleton({ rows = 6 }: { rows?: number }) {
   return (
-    <div role="status" aria-label="Loading services" className="divide-y divide-zinc-100">
+    <Card role="status" aria-label="Loading services" className="divide-y divide-stone-100">
       {Array.from({ length: rows }, (_, index) => (
-        <div key={index} className="flex items-center gap-6 px-4 py-4 sm:px-6">
+        <div key={index} className="flex items-center gap-6 px-4 py-3.5 md:px-5">
           <div className="min-w-0 flex-1 space-y-2">
-            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-4 w-40 max-w-full" />
             <Skeleton className="h-3 w-64 max-w-full" />
           </div>
           <Skeleton className="hidden h-4 w-16 md:block" />
@@ -184,6 +201,6 @@ export function ServiceListSkeleton({ rows = 6 }: { rows?: number }) {
           <Skeleton className="hidden h-5 w-16 rounded-full md:block" />
         </div>
       ))}
-    </div>
+    </Card>
   );
 }

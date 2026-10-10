@@ -11,7 +11,7 @@ export function QuoteTimeline({ quote, timeZone }: { quote: QuoteDto; timeZone: 
           {index < events.length - 1 && (
             <span
               aria-hidden="true"
-              className="absolute top-8 bottom-[-1rem] left-3.5 w-px bg-zinc-200"
+              className="absolute top-8 bottom-[-1rem] left-3.5 w-px bg-stone-200"
             />
           )}
           <span
@@ -22,10 +22,14 @@ export function QuoteTimeline({ quote, timeZone }: { quote: QuoteDto; timeZone: 
           >
             <event.icon aria-hidden="true" className="size-3.5" />
           </span>
-          <div className="min-w-0 pt-0.5 text-sm">
-            <p className="font-medium text-zinc-950">{event.label}</p>
-            <p className="text-zinc-500">{event.when}</p>
-            {event.detail && <p className="mt-1 text-pretty text-zinc-700">{event.detail}</p>}
+          <div className="min-w-0 pt-0.5">
+            <p className="text-sm font-medium text-stone-900">{event.label}</p>
+            <p className="text-xs text-stone-500">{event.when}</p>
+            {event.detail && (
+              <p className="mt-1.5 rounded-lg bg-stone-50 px-2.5 py-1.5 text-sm text-pretty text-stone-700">
+                {event.detail}
+              </p>
+            )}
           </div>
         </li>
       ))}

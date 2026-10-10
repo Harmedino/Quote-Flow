@@ -51,6 +51,8 @@ export function createAuthRouter({
   );
   router.get('/demo', controller.demoAvailability);
   router.post('/demo', trustedOrigin, limiters.demo, controller.demo);
+  // A POST because it may send a new demo quote; limited together with demo sign-ins.
+  router.post('/demo/quote', trustedOrigin, limiters.demo, controller.demoQuote);
   router.post('/refresh', trustedOrigin, limiters.refresh, controller.refresh);
   router.post('/logout', trustedOrigin, controller.logout);
   router.post('/logout-all', requireAuth, controller.logoutAll);

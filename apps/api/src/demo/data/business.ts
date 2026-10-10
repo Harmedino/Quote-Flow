@@ -1,3 +1,4 @@
+import { DEFAULT_BRAND_COLOR } from '@quoteflow/shared';
 import type { Business, User } from '../../models';
 
 /** Sign-ups may not use this domain, so only the demo builder creates its accounts. */
@@ -10,39 +11,38 @@ export const DEMO_OWNER_EMAIL = `demo@${DEMO_EMAIL_DOMAIN}`;
 export const isDemoEmail = (email: string) => email.endsWith(`@${DEMO_EMAIL_DOMAIN}`);
 
 export const DEMO_BUSINESS = {
-  name: 'Evergreen Home Services',
-  email: 'hello@evergreen-home.test',
-  phone: '+1 512-555-0142',
-  website: 'https://evergreen-home.test',
+  name: 'Lagoon Home Services',
+  email: 'hello@lagoon-home.test',
+  phone: '+234 803 555 0142',
+  website: 'https://lagoon-home.test',
   address: {
-    line1: '2201 South Lamar Blvd',
-    line2: 'Suite 140',
-    city: 'Austin',
-    state: 'TX',
-    postalCode: '78704',
-    country: 'United States',
+    line1: '27 Adeola Odeku Street',
+    city: 'Victoria Island',
+    state: 'Lagos',
+    country: 'Nigeria',
   },
-  currency: 'USD',
-  timezone: 'America/Chicago',
-  brandColor: '#15803d',
-  quotePrefix: 'EHS-Q',
-  invoicePrefix: 'EHS-INV',
+  currency: 'NGN',
+  timezone: 'Africa/Lagos',
+  // The default colour, like a business that hasn't picked one yet.
+  brandColor: DEFAULT_BRAND_COLOR,
+  quotePrefix: 'LHS-Q',
+  invoicePrefix: 'LHS-INV',
   quoteValidityDays: 14,
   invoiceDueDays: 14,
-  defaultTaxRate: 8.25,
+  defaultTaxRate: 7.5,
   defaultQuoteNotes:
-    'Thank you for considering Evergreen Home Services. All work is carried out by our own insured and background-checked team.',
+    'Thank you for considering Lagoon Home Services. All work is done by our own trained and vetted team.',
   defaultQuoteTerms:
-    'Prices include labour and standard materials unless stated otherwise. A 30% deposit secures your booking for projects over $1,000. This quote is valid until the expiry date shown.',
+    'Prices include labour and standard materials unless stated otherwise. A 50% deposit secures your date for jobs over ₦500,000. This quote is valid until the expiry date shown.',
   defaultInvoiceNotes: 'Thank you for your business!',
   defaultInvoiceTerms:
-    'Payment is due by the due date shown. We accept bank transfer, card and cash. Please include the invoice number as your payment reference.',
+    'Payment is due by the due date shown. We accept bank transfer, card and cash. Please use the invoice number as your transfer narration.',
   isDemo: true,
 } satisfies Omit<Business, 'createdAt' | 'updatedAt'>;
 
 export type DemoUserRole = 'owner' | 'staff';
 
 export const DEMO_USERS = {
-  owner: { name: 'Maya Robinson', email: DEMO_OWNER_EMAIL, role: 'owner' },
-  staff: { name: 'Luis Ortega', email: `staff@${DEMO_EMAIL_DOMAIN}`, role: 'staff' },
+  owner: { name: 'Tolu Adebayo', email: DEMO_OWNER_EMAIL, role: 'owner' },
+  staff: { name: 'Emeka Nwosu', email: `staff@${DEMO_EMAIL_DOMAIN}`, role: 'staff' },
 } as const satisfies Record<DemoUserRole, Pick<User, 'name' | 'email' | 'role'>>;

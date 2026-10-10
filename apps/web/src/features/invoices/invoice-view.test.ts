@@ -1,6 +1,11 @@
 import type { InvoiceDto } from '@quoteflow/shared';
 import { describe, expect, it } from 'vitest';
-import { buildInvoiceShareLinks, getInvoiceActions, invoicePublicUrl } from './invoice-view';
+import {
+  buildInvoiceShareLinks,
+  getInvoiceActions,
+  invoiceOutlook,
+  invoicePublicUrl,
+} from './invoice-view';
 
 function invoice(overrides: Partial<InvoiceDto> = {}): InvoiceDto {
   return {
@@ -101,5 +106,52 @@ describe('sharing', () => {
     expect(message).toContain('Amount due: $1,000.00, due by Nov 15, 2026.');
     expect(message).toContain(url);
     expect(whatsAppUrl).toBe(`https://wa.me/15550101234?text=${encodeURIComponent(message)}`);
+  });
+});
+
+describe('invoiceOutlook', () => {
+  const today = '2026-11-10';
+
+  it('shows the balance with its due date and how much is paid', () => {
+    expect(
+      invoiceOutlook(invoice({ amountPaid: 25_000, balanceDue: 100_000 }), today, 'UTC'),
+    ).toEqual({
+      label: 'Balance due',
+      amount: 100_000,
+      line: 'Due in 5 days · Nov 15, 2026',
+      paidShare: 0.2,
+    });
+    expect(invoiceOutlook(invoice({ status: 'draft' }), today, 'UTC')).toMatchObject({
+      line: 'Not sent yet · due Nov 15, 2026',
+      paidShare: null,
+    });
+  });
+
+  it('counts the days an overdue invoice is late', () => {
+    expect(
+      invoiceOutlook(invoice({ status: 'overdue', dueDate: '2026-11-06' }), today, 'UTC').line,
+    ).toBe('4 days overdue · was due Nov 6, 2026');
+  });
+
+  it('shows the total once nothing is owed', () => {
+    expect(
+      invoiceOutlook(
+        invoice({ status: 'paid', amountPaid: 125_000, balanceDue: 0, paidAt: '2026-11-08' }),
+        today,
+        'UTC',
+      ),
+    ).toEqual({
+      label: 'Paid in full',
+      amount: 125_000,
+      line: 'Last payment on Nov 8, 2026',
+      paidShare: 1,
+    });
+    expect(
+      invoiceOutlook(
+        invoice({ status: 'cancelled', cancelledAt: '2026-11-09T15:00:00.000Z' }),
+        today,
+        'UTC',
+      ),
+    ).toMatchObject({ label: 'Cancelled', amount: 125_000, paidShare: null });
   });
 });
