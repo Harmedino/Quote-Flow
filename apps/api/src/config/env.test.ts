@@ -1,4 +1,4 @@
-import { describe, expect, expectTypeOf, it } from 'vitest';
+import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 import {
   type Env,
   EnvValidationError,
@@ -6,6 +6,7 @@ import {
   durationInSeconds,
   loadEnv,
   loadScriptEnv,
+  parseEnv,
 } from './env';
 
 const SECRET = 'a-very-long-jwt-secret-for-tests-0123456789';
@@ -327,6 +328,42 @@ describe('loadEnv', () => {
         captureError({ ...PRODUCTION, APP_URL: 'http://app.quoteflow.example' }).problems,
       ).toEqual(['APP_URL: must use https in production']);
     });
+  });
+});
+
+describe('parseEnv', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('reads only the source it is given, never process.env', () => {
+    vi.stubEnv('MONGODB_URI', REQUIRED.MONGODB_URI);
+    expect(() => parseEnv({ JWT_SECRET: SECRET })).toThrow(/MONGODB_URI: is required/);
+  });
+
+  it('applies the rules NODE_ENV selects, as loadEnv does', () => {
+    expect(parseEnv(PRODUCTION)).toEqual(loadEnv(PRODUCTION));
+    expect(parseEnv(REQUIRED)).toEqual(loadEnv(REQUIRED));
+  });
+
+  it('applies the production rules on request, which then require NODE_ENV=production', () => {
+    expect(parseEnv(PRODUCTION, { production: true }).NODE_ENV).toBe('production');
+
+    for (const nodeEnv of [undefined, 'development', 'test']) {
+      expect(() =>
+        parseEnv({ ...PRODUCTION, NODE_ENV: nodeEnv }, { production: true }),
+      ).toThrowError(
+        new EnvValidationError(['NODE_ENV: must be production on a production deployment']),
+      );
+    }
+    expect(() => parseEnv(REQUIRED, { production: true })).toThrowError(
+      new EnvValidationError([
+        'NODE_ENV: must be production on a production deployment',
+        'CORS_ORIGIN: is required in production',
+        'APP_URL: is required in production',
+        'TRUST_PROXY: is required in production (0 when the API is exposed directly, 1 behind one load balancer)',
+      ]),
+    );
   });
 });
 

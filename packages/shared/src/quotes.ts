@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from './zod';
 import type { CurrencyCode } from './constants/currencies';
 import { TEXT_LIMITS } from './constants/limits';
 import { QUOTE_STATUSES, type QuoteStatus } from './constants/statuses';

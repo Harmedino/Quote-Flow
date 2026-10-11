@@ -40,9 +40,35 @@ export default tseslint.config(
     },
   },
   {
+    // Classic scripts the browser runs as they are, before the app's modules (see index.html).
+    files: ['apps/web/public/**/*.js'],
+    languageOptions: {
+      sourceType: 'script',
+      globals: globals.browser,
+    },
+  },
+  {
     files: ['apps/api/**/*.ts', 'packages/shared/**/*.ts'],
     languageOptions: {
       globals: globals.node,
+    },
+  },
+  {
+    files: ['packages/shared/src/**/*.ts'],
+    ignores: ['packages/shared/src/zod.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'zod',
+              message:
+                "Import { z } from this package's zod.ts, which keeps zod from using eval under the web app's Content-Security-Policy.",
+            },
+          ],
+        },
+      ],
     },
   },
   {

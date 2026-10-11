@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Express } from 'express';
 import { createApp } from './app';
 import { EnvValidationError, loadEnv } from './config/env';
+import { warnAboutEnv } from './config/env-warnings';
 import { connectDatabase } from './db/connection';
 import { buildDeclaredIndexes, findMissingIndexes } from './db/indexes';
 import { ALL_MODELS } from './models';
@@ -34,6 +35,7 @@ async function ensureIndexes(logger: Logger): Promise<void> {
 async function initialise(): Promise<Express> {
   const env = loadEnv();
   const logger = createLogger({ level: env.LOG_LEVEL, pretty: false });
+  warnAboutEnv(env, logger);
   await connectDatabase(env.MONGODB_URI, {
     autoIndex: false,
     logger,

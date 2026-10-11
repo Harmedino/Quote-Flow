@@ -2,7 +2,7 @@ import { useSyncExternalStore } from 'react';
 
 export type Theme = 'light' | 'dark';
 
-/** Also read by the inline script in index.html, which applies the theme before first paint. */
+/** Also read by public/theme-init.js, which applies the theme before first paint. */
 export const THEME_STORAGE_KEY = 'quoteflow_theme';
 
 const DARK_QUERY = '(prefers-color-scheme: dark)';
@@ -27,8 +27,8 @@ function systemTheme(): Theme {
   return window.matchMedia?.(DARK_QUERY).matches ? 'dark' : 'light';
 }
 
-/** The phone browser's toolbar in each theme: the top bar's colour. Mirrored in index.html. */
-const TOOLBAR_COLORS: Record<Theme, string> = { light: '#fffdf9', dark: '#111b2d' };
+/** The phone browser's toolbar in each theme: the top bar's colour. Also in public/theme-init.js. */
+export const TOOLBAR_COLORS: Record<Theme, string> = { light: '#fffdf9', dark: '#111b2d' };
 /** A page's own toolbar colour while it is on screen, in place of the theme's. */
 let pageToolbarColor: string | null = null;
 
@@ -88,7 +88,7 @@ export class ThemeStore {
   }
 
   #watch(): void {
-    // Normally the inline script in index.html has already done this.
+    // Normally public/theme-init.js has already done this.
     applyToDocument(this.getSnapshot());
 
     const media = window.matchMedia?.(DARK_QUERY);

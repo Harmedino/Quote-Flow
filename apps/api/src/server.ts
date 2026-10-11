@@ -2,6 +2,7 @@ import { once } from 'node:events';
 import { type Server, createServer } from 'node:http';
 import { createApp } from './app';
 import { type Env, loadEnv } from './config/env';
+import { warnAboutEnv } from './config/env-warnings';
 import { loadEnvOrExit } from './config/load-env-or-exit';
 import { connectDatabase, disconnectDatabase } from './db/connection';
 import { findMissingIndexes } from './db/indexes';
@@ -92,6 +93,7 @@ async function start(env: Env, logger: Logger): Promise<void> {
 
 const env = loadEnvOrExit(loadEnv);
 const logger = createLogger({ level: env.LOG_LEVEL, pretty: shouldUsePrettyLogs(env.NODE_ENV) });
+warnAboutEnv(env, logger);
 
 process.on('uncaughtException', (error) => {
   logger.fatal({ err: error }, 'Uncaught exception');

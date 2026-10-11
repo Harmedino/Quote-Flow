@@ -20,6 +20,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check": "pnpm format:check && pnpm typecheck && pnpm lint && pnpm test && pnpm build",
+    "env:check": "pnpm --filter @quoteflow/api env:check",
     "seed": "pnpm --filter @quoteflow/api seed",
     "db:indexes": "pnpm --filter @quoteflow/api db:indexes"
   },

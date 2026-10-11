@@ -54,7 +54,8 @@ export default defineConfig(({ mode }) => {
     },
     test: {
       environment: 'node',
-      include: ['src/**/*.test.{ts,tsx}'],
+      // The root-level tests check the deploy configuration and the built index.html.
+      include: ['src/**/*.test.{ts,tsx}', '*.test.ts'],
     },
   };
 });

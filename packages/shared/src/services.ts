@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from './zod';
 import { TEXT_LIMITS } from './constants/limits';
 import { booleanQuerySchema } from './customers';
 import { moneySchema, paginationQuerySchema } from './validation';
