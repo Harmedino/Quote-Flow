@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from './zod';
 import type { CurrencyCode } from './constants/currencies';
 import { INVOICE_DUE_DAYS_RANGE, QUOTE_VALIDITY_DAYS_RANGE, TEXT_LIMITS } from './constants/limits';
 import {

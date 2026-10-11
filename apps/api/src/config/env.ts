@@ -42,6 +42,12 @@ function integerInRange(min: number, max: number, requiredMessage?: string) {
 
 const nodeEnvSchema = z.enum(NODE_ENVS, { error: `must be one of: ${NODE_ENVS.join(', ')}` });
 
+// The server picks its rules from NODE_ENV, so a production deployment without it would run on
+// development defaults. Only the build-time check can ask for production rules without it.
+const productionNodeEnvSchema = z.literal('production', {
+  error: 'must be production on a production deployment',
+});
+
 const logLevelSchema = z.enum(LOG_LEVELS, { error: `must be one of: ${LOG_LEVELS.join(', ')}` });
 
 const mongoUriSchema = z
@@ -145,6 +151,7 @@ const databaseEnvSchema = z.object({
 
 function createServerEnvSchema(isProduction: boolean) {
   return databaseEnvSchema.extend({
+    NODE_ENV: isProduction ? productionNodeEnvSchema : nodeEnvSchema.default('development'),
     PORT: integerInRange(1, 65535).default(4000),
     JWT_SECRET: jwtSecretSchema(isProduction),
     ACCESS_TOKEN_TTL: accessTokenTtlSchema.default('15m'),
@@ -172,7 +179,7 @@ export type Env = Readonly<z.output<ReturnType<typeof createServerEnvSchema>>>;
 export type ScriptEnv = Readonly<z.output<typeof databaseEnvSchema>>;
 
 /** Empty or whitespace-only values are treated as unset (`.env.example` ships `JWT_SECRET=`). */
-function readVariable(source: NodeJS.ProcessEnv, name: string): string | undefined {
+export function readVariable(source: NodeJS.ProcessEnv, name: string): string | undefined {
   const value = source[name];
   return value === undefined || value.trim() === '' ? undefined : value;
 }
@@ -183,7 +190,7 @@ function describeIssue(issue: z.core.$ZodIssue): string {
   return `${label}: ${issue.message}`;
 }
 
-function parseEnv<Schema extends z.ZodObject>(
+function parseWithSchema<Schema extends z.ZodObject>(
   schema: Schema,
   source: NodeJS.ProcessEnv,
 ): Readonly<z.output<Schema>> {
@@ -198,11 +205,29 @@ function parseEnv<Schema extends z.ZodObject>(
   return Object.freeze(result.data);
 }
 
+export interface ParseEnvOptions {
+  /**
+   * Applies the production rules, which then also require NODE_ENV=production. Defaults to
+   * whether NODE_ENV is production; the build-time check also asks for them on a production host.
+   */
+  production?: boolean;
+}
+
+/**
+ * Validates the server's configuration in `source` alone (never `process.env`): the same rules
+ * at start-up and in the build-time check. Throws EnvValidationError listing every problem.
+ */
+export function parseEnv(
+  source: NodeJS.ProcessEnv,
+  { production = readVariable(source, 'NODE_ENV') === 'production' }: ParseEnvOptions = {},
+): Env {
+  return parseWithSchema(createServerEnvSchema(production), source);
+}
+
 export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
-  const isProduction = readVariable(source, 'NODE_ENV') === 'production';
-  return parseEnv(createServerEnvSchema(isProduction), source);
+  return parseEnv(source);
 }
 
 export function loadScriptEnv(source: NodeJS.ProcessEnv = process.env): ScriptEnv {
-  return parseEnv(databaseEnvSchema, source);
+  return parseWithSchema(databaseEnvSchema, source);
 }

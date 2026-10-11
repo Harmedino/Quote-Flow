@@ -50,7 +50,9 @@ Lead / customer → Create quote → Send quote → Customer views public link
 - Environment configuration validated with Zod at startup. The process exits with a clear list of
   every missing or invalid variable (names only — values are never printed). Production
   additionally requires `https` `CORS_ORIGIN` and `APP_URL` values, an explicit `TRUST_PROXY` and a
-  random `JWT_SECRET`.
+  random `JWT_SECRET`. The same check runs at build time (`pnpm env:check`), so a bad environment
+  fails the deploy instead of the running site. In production the API warns at start-up when
+  `APP_URL` is a host's default address (`*.vercel.app`, `*.onrender.com`).
 - Security middleware: Helmet (strict JSON-API CSP), allow-list CORS with credentials, per-IP rate
   limiting, a 1 MB JSON body limit, and request ids (`X-Request-Id`).
 - Centralised error handling with one consistent response envelope. Validation, Mongoose, MongoDB
@@ -94,6 +96,9 @@ Lead / customer → Create quote → Send quote → Customer views public link
   headers).
 - An API client that unwraps the shared response envelope and turns failures into typed errors with
   friendly messages, plus a TanStack Query client that never retries 4xx errors.
+- Security headers on every page from `apps/web/vercel.json`, including a strict
+  Content-Security-Policy with no inline or evaluated script (see
+  [Deploying to Vercel](#deploying-to-vercel)).
 
 **Shared package (`packages/shared`)**
 
@@ -348,6 +353,7 @@ Run from the repository root:
 | `pnpm test`       | All unit tests (database tests run when `MONGODB_TEST_URI` is set)                                                                    |
 | `pnpm format`     | Format with Prettier (`pnpm format:check` to verify)                                                                                  |
 | `pnpm check`      | Everything CI runs: format check, typecheck, lint, tests and build (set `MONGODB_TEST_URI` to include the database tests, as CI does) |
+| `pnpm env:check`  | Validate the API's environment variables (the real ones, not `.env`) without starting it; the Vercel build runs it first              |
 | `pnpm seed`       | Load the demo business (development only)                                                                                             |
 | `pnpm db:indexes` | Create any missing MongoDB indexes and report drift (never drops)                                                                     |
 
@@ -382,12 +388,15 @@ The production commands read **real environment variables only — not `.env`**.
 `NODE_ENV=production`, `MONGODB_URI`, `JWT_SECRET`, `CORS_ORIGIN`, `APP_URL` and `TRUST_PROXY` (see
 [Environment variables](#environment-variables)). On each deploy, in this order:
 
-1. **Indexes** — `pnpm --filter @quoteflow/api db:indexes:prod` against the production database. It
+1. **Environment** — `pnpm env:check` with the production variables. It applies the same rules as
+   the API's start-up (the production rules when `NODE_ENV` or `VERCEL_ENV` is `production`), names
+   every missing or invalid variable without printing values, and exits non-zero on failure.
+2. **Indexes** — `pnpm --filter @quoteflow/api db:indexes:prod` against the production database. It
    needs only `MONGODB_URI`, never drops indexes, reports drift and exits non-zero on failure. The
    API refuses to start in production while a declared index is missing.
-2. **API** — `pnpm --filter @quoteflow/api start`, or `node --enable-source-maps dist/server.js` from
+3. **API** — `pnpm --filter @quoteflow/api start`, or `node --enable-source-maps dist/server.js` from
    `apps/api`.
-3. **Web** — publish `apps/web/dist/`.
+4. **Web** — publish `apps/web/dist/`.
 
 For a lean API deployment artefact — `package.json`, `dist/` and production dependencies only — run
 this after `pnpm build` (the target directory must be empty):
@@ -405,7 +414,7 @@ Copy `deploy/api` to the server and, from that directory, run
 
 The repository deploys to Vercel as one project: the web app is served as static files and the
 whole REST API runs as a single Vercel Function (`apps/web/api/index.mjs`, which wraps the API
-bundle). `apps/web/vercel.json` holds the build and routing configuration.
+bundle). `apps/web/vercel.json` holds the build command, the routing and the security headers.
 
 1. **Create the database (MongoDB Atlas, free tier is fine).**
    - Create a cluster, then under _Database Access_ add a database user with a strong password.
@@ -427,15 +436,29 @@ bundle). `apps/web/vercel.json` holds the build and routing configuration.
    | `APP_URL`     | the same production URL                                                                    |
    | `TRUST_PROXY` | `1`                                                                                        |
 
-4. **Redeploy.** The first API request after a deploy connects to the database and creates any
-   missing indexes. Check `https://<your-app>/api/health`: it should return
-   `{"data":{"status":"ok",…}}`. If it returns 503, the function logs (_Deployments → Functions_)
-   name the missing or invalid variable.
+4. **Redeploy.** The build first runs `pnpm env:check`: a missing or invalid variable fails the
+   build, the build log names it (never its value), and the current deployment keeps serving. A
+   production deployment (`VERCEL_ENV=production`, set by Vercel) gets the production rules even if
+   `NODE_ENV` was forgotten, and then also fails until `NODE_ENV=production` is set. The first API
+   request after a deploy connects to the database and creates any missing indexes. Check
+   `https://<your-app>/api/health`: it should return `{"data":{"status":"ok",…}}`. If it returns 503,
+   the function logs (_Deployments → Functions_) say why.
 5. **Optional one-click demo.** Add `DEMO_LOGIN_ENABLED` = `true` to get an "Explore the demo"
    button on the sign-in page (and "View live demo" on the landing page). The first click creates
    the demo business in your database; it is rebuilt every 24 hours.
 6. **Optional demo data.** From your computer, load the demo business into the same database:
    `MONGODB_URI="<atlas connection string>" SEED_DEMO_PASSWORD="<a password>" pnpm seed`.
+
+Security headers: every response carries the headers in `vercel.json`: a Content-Security-Policy
+that loads scripts, styles, fonts, images and API calls from the app's own origin only (images also
+from `data:` and `blob:` URLs; scripts and frames also from Cloudflare Turnstile), with no inline or
+evaluated script, and no framing; `X-Frame-Options: DENY`; `X-Content-Type-Options: nosniff`;
+`Referrer-Policy: strict-origin-when-cross-origin` (`no-referrer` on customer quote and invoice
+links); and a `Permissions-Policy` that turns off the camera, microphone and location. `/admin/*`,
+`/quote/*`, `/invoice/*` and `/api/*` (which includes the customer PDF links) also send
+`X-Robots-Tag: noindex`. Because the policy only allows API calls to the same origin, leave
+`VITE_API_URL` empty on Vercel. Until the custom domain is set, the
+API logs a warning at start-up that `APP_URL` is still the `*.vercel.app` address.
 
 Notes: preview deployments work without listing their URLs, because the web app and API share
 an origin. They use the same database unless you set a different `MONGODB_URI` for the Preview
@@ -456,7 +479,9 @@ across function instances; the other rate limits are counted per instance and ar
   only sent when the two are same-site, and default PaaS hostnames (`*.vercel.app`,
   `*.netlify.app`, `*.onrender.com`, `*.herokuapp.com`, `*.fly.dev`, `*.pages.dev`,
   `*.up.railway.app`) are public suffixes, so two apps on them are cross-site. Use a custom domain
-  for both, or proxy `/api` through the web host and leave `VITE_API_URL` empty.
+  for both, or proxy `/api` through the web host and leave `VITE_API_URL` empty. The
+  Content-Security-Policy in `apps/web/vercel.json` allows API calls to the same origin only, so a
+  web host that calls an API on another origin must add that origin to its policy's `connect-src`.
 - **Reverse proxies.** `TRUST_PROXY` is required in production: `0` when the API is exposed
   directly, usually `1` behind a load balancer or PaaS router, so rate limiting and logs see real
   client IPs.

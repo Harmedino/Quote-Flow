@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from './zod';
 
 /**
  * Calendar dates (issue, expiry, due and payment dates) travel as

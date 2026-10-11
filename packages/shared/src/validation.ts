@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from './zod';
 import { CURRENCY_CODES } from './constants/currencies';
 import {
   DISCOUNT_TYPES,

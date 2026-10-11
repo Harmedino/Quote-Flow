@@ -7,31 +7,13 @@
       name="description"
       content="QuoteFlow helps service businesses create, send, track, and convert quotes into invoices."
     />
-    <!-- The toolbar follows the app's theme, set below and by lib/theme.ts. -->
+    <!-- The toolbar follows the app's theme, set by /theme-init.js and lib/theme.ts. -->
     <meta name="theme-color" content="#fffdf9" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <title>QuoteFlow</title>
-    <script>
-      // Applies the theme before first paint so dark mode never flashes white.
-      // Mirrors lib/theme.ts: a saved choice wins, otherwise the system preference.
-      (function () {
-        var theme = null;
-        try {
-          theme = localStorage.getItem('quoteflow_theme');
-        } catch (_) {}
-        if (theme !== 'light' && theme !== 'dark') {
-          theme =
-            window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches
-              ? 'dark'
-              : 'light';
-        }
-        document.documentElement.classList.toggle('dark', theme === 'dark');
-        document
-          .querySelector('meta[name="theme-color"]')
-          .setAttribute('content', theme === 'dark' ? '#111b2d' : '#fffdf9');
-      })();
-    </script>
+    <!-- Classic and synchronous on purpose: it must run before first paint. -->
+    <script src="/theme-init.js"></script>
   </head>
   <body>
     <div id="root"></div>

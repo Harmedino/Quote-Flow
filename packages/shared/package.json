@@ -4,7 +4,9 @@
   "private": true,
   "description": "Domain constants, calculations, validation schemas and API contracts shared by the QuoteFlow API and web app.",
   "type": "module",
-  "sideEffects": false,
+  "sideEffects": [
+    "./src/zod.ts"
+  ],
   "exports": {
     ".": "./src/index.ts"
   },
