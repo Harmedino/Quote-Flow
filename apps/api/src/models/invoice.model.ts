@@ -104,8 +104,8 @@ invoiceSchema.pre('validate', function (this: InvoiceDocument) {
 
 invoiceSchema.index({ businessId: 1, invoiceNumber: 1 }, { unique: true });
 invoiceSchema.index({ publicToken: 1 }, { unique: true });
-// Partial, so invoices without a quote are not indexed; a quote can never be converted twice,
-// even by concurrent requests.
+// Partial, so invoices without a quote are not indexed; a quote never has two invoices, even
+// under concurrent conversions (deleting its draft invoice frees it to be converted again).
 invoiceSchema.index(
   { quoteId: 1 },
   { unique: true, partialFilterExpression: { quoteId: { $type: 'objectId' } } },

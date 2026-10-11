@@ -3,12 +3,13 @@ import type {
   InvoiceInput,
   InvoiceListItemDto,
   PaginationMeta,
+  QuoteDto,
 } from '@quoteflow/shared';
 import { addDaysToIsoDate, todayInTimeZone } from '@quoteflow/shared';
 import type { Express } from 'express';
 import { Types } from 'mongoose';
 import request from 'supertest';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { BusinessModel, CustomerModel, InvoiceModel, QuoteModel, ServiceModel } from '../models';
 import { bearer, createAuthTestApp, registerOwner } from '../test/auth';
 import { TEST_DATABASE_URI, isUnsupportedIndexOption, useTestDatabase } from '../test/database';
@@ -32,6 +33,10 @@ describe.skipIf(!TEST_DATABASE_URI)('invoice routes (database)', () => {
 
   beforeAll(() => {
     app = createAuthTestApp();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   const api = (owner: Owner) => ({
@@ -234,6 +239,129 @@ describe.skipIf(!TEST_DATABASE_URI)('invoice routes (database)', () => {
       expect(again.status).toBe(409);
       expect(errorOf(again).message).toBe('This quote has already been converted to an invoice');
       expect(await InvoiceModel.countDocuments({ businessId: owner.businessId })).toBe(1);
+    });
+
+    it('converts a quote again once its draft invoice is deleted', async () => {
+      const owner = await newOwner();
+      const quote = await acceptedQuote(owner);
+      const convert = () => api(owner).post(`/quotes/${quote._id.toString()}/convert`);
+      const first = dataOf<InvoiceDto>(await convert().expect(201));
+
+      await api(owner).delete(`/invoices/${first.id}`).expect(204);
+
+      const released = await QuoteModel.findOne({
+        _id: quote._id,
+        businessId: owner.businessId,
+      }).lean();
+      expect(released).not.toHaveProperty('invoiceId');
+      expect(released).not.toHaveProperty('convertedAt');
+      const second = dataOf<InvoiceDto>(await convert().expect(201));
+      expect(second).toMatchObject({ quoteId: quote._id.toString(), status: 'draft' });
+      expect(second.id).not.toBe(first.id);
+      const relinked = await QuoteModel.findOne({ _id: quote._id, businessId: owner.businessId });
+      expect(relinked?.invoiceId?.toString()).toBe(second.id);
+
+      const third = await convert();
+      expect(third.status).toBe(409);
+      expect(errorOf(third).message).toBe('This quote has already been converted to an invoice');
+      expect(await InvoiceModel.countDocuments({ businessId: owner.businessId })).toBe(1);
+    });
+
+    it('keeps a quote converted while its invoice is live', async () => {
+      const owner = await newOwner();
+      const quote = await acceptedQuote(owner);
+      const res = await api(owner).post(`/quotes/${quote._id.toString()}/convert`).expect(201);
+      const invoice = dataOf<InvoiceDto>(res);
+      await api(owner).post(`/invoices/${invoice.id}/send`).expect(200);
+
+      await api(owner).delete(`/invoices/${invoice.id}`).expect(409);
+
+      await api(owner).post(`/quotes/${quote._id.toString()}/convert`).expect(409);
+      const linked = await QuoteModel.findOne({ _id: quote._id, businessId: owner.businessId });
+      expect(linked?.invoiceId?.toString()).toBe(invoice.id);
+    });
+
+    it('does not delete a draft that was sent while it was being deleted', async () => {
+      const owner = await newOwner();
+      const quote = await acceptedQuote(owner);
+      const res = await api(owner).post(`/quotes/${quote._id.toString()}/convert`).expect(201);
+      const invoice = dataOf<InvoiceDto>(res);
+      // Another request sends the invoice between the delete's status check and its delete.
+      const deleteOne = InvoiceModel.deleteOne.bind(InvoiceModel);
+      vi.spyOn(InvoiceModel, 'deleteOne').mockImplementationOnce(((
+        ...args: Parameters<typeof deleteOne>
+      ) =>
+        api(owner)
+          .post(`/invoices/${invoice.id}/send`)
+          .expect(200)
+          .then(() => deleteOne(...args))) as unknown as typeof InvoiceModel.deleteOne);
+
+      const deletion = await api(owner).delete(`/invoices/${invoice.id}`);
+
+      expect(deletion.status).toBe(409);
+      expect(
+        await InvoiceModel.findOne({ _id: invoice.id, businessId: owner.businessId }),
+      ).toMatchObject({ status: 'sent' });
+      const linked = await QuoteModel.findOne({ _id: quote._id, businessId: owner.businessId });
+      expect(linked?.invoiceId?.toString()).toBe(invoice.id);
+    });
+
+    it('releases a quote whose invoice was deleted without releasing it', async () => {
+      const owner = await newOwner();
+      const quote = await acceptedQuote(owner);
+      const res = await api(owner).post(`/quotes/${quote._id.toString()}/convert`).expect(201);
+      // As deletions did before they released the quote, or one that stopped halfway.
+      await InvoiceModel.deleteOne({
+        _id: dataOf<InvoiceDto>(res).id,
+        businessId: owner.businessId,
+      });
+
+      const again = await api(owner).post(`/quotes/${quote._id.toString()}/convert`).expect(201);
+
+      const relinked = await QuoteModel.findOne({ _id: quote._id, businessId: owner.businessId });
+      expect(relinked?.invoiceId?.toString()).toBe(dataOf<InvoiceDto>(again).id);
+    });
+
+    it('shows a quote whose invoice was deleted without releasing it as convertible', async () => {
+      const owner = await newOwner();
+      const quote = await acceptedQuote(owner);
+      const res = await api(owner).post(`/quotes/${quote._id.toString()}/convert`).expect(201);
+      await InvoiceModel.deleteOne({
+        _id: dataOf<InvoiceDto>(res).id,
+        businessId: owner.businessId,
+      });
+
+      const opened = dataOf<QuoteDto>(
+        await api(owner).get(`/quotes/${quote._id.toString()}`).expect(200),
+      );
+
+      expect(opened).toMatchObject({ invoiceId: null, convertedAt: null });
+      const released = await QuoteModel.findOne({
+        _id: quote._id,
+        businessId: owner.businessId,
+      }).lean();
+      expect(released).not.toHaveProperty('invoiceId');
+    });
+
+    it('reports a draft deleted by a concurrent request as not found', async () => {
+      const owner = await newOwner();
+      const quote = await acceptedQuote(owner);
+      const res = await api(owner).post(`/quotes/${quote._id.toString()}/convert`).expect(201);
+      const invoice = dataOf<InvoiceDto>(res);
+      // Another request deletes the draft between this delete's status check and its delete.
+      const deleteOne = InvoiceModel.deleteOne.bind(InvoiceModel);
+      vi.spyOn(InvoiceModel, 'deleteOne').mockImplementationOnce(((
+        ...args: Parameters<typeof deleteOne>
+      ) =>
+        api(owner)
+          .delete(`/invoices/${invoice.id}`)
+          .expect(204)
+          .then(() => deleteOne(...args))) as unknown as typeof InvoiceModel.deleteOne);
+
+      const deletion = await api(owner).delete(`/invoices/${invoice.id}`);
+
+      expect(deletion.status).toBe(404);
+      await api(owner).post(`/quotes/${quote._id.toString()}/convert`).expect(201);
     });
 
     it('re-links a quote whose earlier conversion stopped before linking it', async () => {

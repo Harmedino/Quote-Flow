@@ -171,7 +171,7 @@ export function BusinessSettingsForm({ business, canEdit }: BusinessSettingsForm
           <div className="grid gap-5 sm:grid-cols-2">
             <Field
               label="Currency"
-              hint="Changes apply to new quotes and invoices only. Existing ones keep their currency."
+              hint="Existing quotes and invoices keep their currency. Service prices aren’t converted: they’ll be read in the new currency, so check them."
               error={errors.currency}
             >
               <Select {...bind('currency')}>

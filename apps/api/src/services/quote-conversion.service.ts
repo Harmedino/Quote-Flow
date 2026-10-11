@@ -31,6 +31,39 @@ async function linkQuoteToInvoice(quote: QuoteDocument, invoiceId: Types.ObjectI
   ).setOptions({ allowAtomicUpdate: true });
 }
 
+/**
+ * Undoes a conversion whose draft invoice was deleted, so the quote can be
+ * converted again. Matches only that invoice's link, never a newer conversion's.
+ */
+export async function releaseQuote(
+  businessId: Types.ObjectId,
+  quoteId: Types.ObjectId,
+  invoiceId: Types.ObjectId,
+): Promise<void> {
+  await QuoteModel.updateOne(
+    { _id: quoteId, businessId, invoiceId },
+    { $unset: { invoiceId: 1, convertedAt: 1 } },
+  ).setOptions({ allowAtomicUpdate: true });
+}
+
+/**
+ * Clears the quote's link to an invoice that no longer exists (deleted before drafts
+ * released their quote, or a deletion that stopped part-way). Returns whether it did.
+ */
+export async function releaseDanglingInvoice(quote: QuoteDocument): Promise<boolean> {
+  const { invoiceId, businessId } = quote;
+  if (!invoiceId || (await InvoiceModel.exists({ _id: invoiceId, businessId }))) return false;
+  await releaseQuote(businessId, quote._id, invoiceId);
+  return true;
+}
+
+/** Rejects converting a quote again while its invoice exists. */
+async function assertNotConverted(quote: QuoteDocument): Promise<void> {
+  if (quote.invoiceId && !(await releaseDanglingInvoice(quote))) {
+    throw conflict(ALREADY_CONVERTED);
+  }
+}
+
 /** An invoice already created from the quote, e.g. by a concurrent or interrupted conversion. */
 async function findConvertedInvoiceId(quote: QuoteDocument): Promise<Types.ObjectId | null> {
   const existing = await InvoiceModel.findOne(
@@ -55,9 +88,10 @@ function isQuoteIdConflict(error: unknown): boolean {
 
 /**
  * Turns an accepted quote into a draft invoice that bills exactly what was
- * accepted. A quote converts at most once: the unique index on
+ * accepted. A quote has at most one invoice: the unique index on
  * Invoice.quoteId rejects a concurrent second conversion, and the quote is
- * re-linked if an earlier conversion stopped before linking it.
+ * re-linked if an earlier conversion stopped before linking it. Deleting the
+ * draft invoice releases the quote, which can then be converted again.
  */
 export async function convertQuote(auth: AuthContext, quoteId: string): Promise<InvoiceDto> {
   const business = await findOwnBusiness(auth);
@@ -66,7 +100,7 @@ export async function convertQuote(auth: AuthContext, quoteId: string): Promise<
 
   const quote = await QuoteModel.findOne({ _id: quoteId, businessId });
   if (!quote) throw notFound('Quote not found.');
-  if (quote.invoiceId) throw conflict(ALREADY_CONVERTED);
+  await assertNotConverted(quote);
 
   const status = getEffectiveQuoteStatus(quote.status, toIsoDate(quote.expiryDate), today);
   if (!canConvertQuote(status, null)) throw conflict(ONLY_ACCEPTED);

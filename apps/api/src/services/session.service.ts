@@ -1,4 +1,5 @@
 import type { Types } from 'mongoose';
+import { isDuplicateKeyError } from '../db/errors';
 import {
   RetiredRefreshTokenModel,
   type SessionDocument,
@@ -6,11 +7,17 @@ import {
   type SessionRevokedReason,
 } from '../models';
 import type { Clock } from '../utils/clock';
-import { SECURE_TOKEN_PATTERN, generateRefreshToken, hashToken } from '../utils/tokens';
+import {
+  SECURE_TOKEN_PATTERN,
+  createRefreshTokenSuccessor,
+  generateRefreshToken,
+  hashToken,
+} from '../utils/tokens';
 
 /**
- * How long a just-rotated refresh token is treated as a benign race (two tabs
- * refreshing at once) rather than a replay: it is rejected, but the session survives.
+ * How long a just-rotated refresh token is treated as a retry (two tabs
+ * refreshing at once, or a page that reloaded before the refresh response
+ * arrived) rather than a replay: it is handed the same successor again.
  */
 export const REFRESH_REUSE_GRACE_MS = 20_000;
 
@@ -25,7 +32,7 @@ export type RotationOutcome =
   | ({ status: 'rotated' } & StartedSession)
   /** Unknown, expired or revoked. */
   | { status: 'invalid' }
-  /** Rotated moments ago by a concurrent request; the caller may retry with the newer cookie. */
+  /** Retried inside the grace window, but the session has rotated past its successor since. */
   | { status: 'superseded' }
   /** A token rotated out earlier was replayed, so the session has been revoked. */
   | { status: 'reused'; session: SessionDocument };
@@ -65,6 +72,8 @@ export interface SessionService {
 
 export interface SessionServiceOptions {
   refreshTokenTtlDays: number;
+  /** Keys each refresh token's successor (see createRefreshTokenSuccessor). */
+  secret: string;
   clock: Clock;
 }
 
@@ -75,8 +84,10 @@ function findByTokenHash(field: 'tokenHash' | 'previousTokenHash', hash: string)
 
 export function createSessionService({
   refreshTokenTtlDays,
+  secret,
   clock,
 }: SessionServiceOptions): SessionService {
+  const successorOf = createRefreshTokenSuccessor(secret);
   const expiryFrom = (now: Date) => new Date(now.getTime() + refreshTokenTtlDays * DAY_MS);
   const isLive = (session: SessionDocument, now: Date) =>
     session.revokedAt === null && session.expiresAt > now;
@@ -103,21 +114,61 @@ export function createSessionService({
   }
 
   /**
-   * A token that is no longer current: the previous one inside the grace window
-   * is a racing tab; any other is a replay (e.g. a stolen cookie), which revokes the session.
+   * A rotation retried with the token it replaced gets the same successor again,
+   * so every tab ends up with one current token. Read-only: nothing rotates.
    */
-  async function checkReplay(tokenHash: string, now: Date): Promise<RotationOutcome> {
+  function reissue(session: SessionDocument, refreshToken: string): RotationOutcome {
+    const nextToken = successorOf(refreshToken);
+    return session.tokenHash === hashToken(nextToken)
+      ? { status: 'rotated', session, refreshToken: nextToken }
+      : { status: 'superseded' };
+  }
+
+  /**
+   * A token that is no longer current: the previous one inside the grace window
+   * is a retry; any other is a replay (e.g. a stolen cookie), which revokes the session.
+   */
+  async function checkReplay(
+    refreshToken: string,
+    tokenHash: string,
+    now: Date,
+  ): Promise<RotationOutcome> {
     const previousOf = await findByTokenHash('previousTokenHash', tokenHash);
     if (previousOf) {
       if (!isLive(previousOf, now)) return { status: 'invalid' };
       const rotatedAgoMs = now.getTime() - (previousOf.rotatedAt?.getTime() ?? 0);
-      if (rotatedAgoMs <= REFRESH_REUSE_GRACE_MS) return { status: 'superseded' };
+      if (rotatedAgoMs <= REFRESH_REUSE_GRACE_MS) return reissue(previousOf, refreshToken);
     }
 
     const session = previousOf ?? (await findByRetiredToken(tokenHash, now));
     if (!session) return { status: 'invalid' };
     await revoke(session, 'reuse_detected');
     return { status: 'reused', session };
+  }
+
+  /** A concurrent request rotated the same token first; it produced the same successor. */
+  async function afterLostRace(
+    current: SessionDocument,
+    refreshToken: string,
+    now: Date,
+  ): Promise<RotationOutcome> {
+    const latest = await SessionModel.findOne({ _id: current._id, businessId: current.businessId });
+    return latest && isLive(latest, now) ? reissue(latest, refreshToken) : { status: 'invalid' };
+  }
+
+  async function retire(session: SessionDocument, tokenHash: string): Promise<void> {
+    try {
+      await RetiredRefreshTokenModel.create({
+        businessId: session.businessId,
+        sessionId: session._id,
+        tokenHash,
+        expiresAt: session.expiresAt,
+      });
+    } catch (error) {
+      // A server without atomic compare-and-swap (e.g. FerretDB) can let two racing
+      // rotations both succeed; they stored the same successor, so one record suffices.
+      if (!isDuplicateKeyError(error)) throw error;
+    }
   }
 
   return {
@@ -141,10 +192,11 @@ export function createSessionService({
       const tokenHash = hashToken(refreshToken);
 
       const current = await findByTokenHash('tokenHash', tokenHash);
-      if (!current) return checkReplay(tokenHash, now);
+      if (!current) return checkReplay(refreshToken, tokenHash, now);
       if (!isLive(current, now)) return { status: 'invalid' };
 
-      const nextToken = generateRefreshToken();
+      // Derived, not random, so a retry with the same token can be handed it again.
+      const nextToken = successorOf(refreshToken);
       // Compare-and-swap on the presented token: of two concurrent refreshes, only one matches.
       const rotated = await SessionModel.findOneAndUpdate(
         { _id: current._id, businessId: current.businessId, tokenHash, revokedAt: null },
@@ -159,13 +211,8 @@ export function createSessionService({
         },
         { returnDocument: 'after' },
       );
-      if (!rotated) return { status: 'superseded' };
-      await RetiredRefreshTokenModel.create({
-        businessId: rotated.businessId,
-        sessionId: rotated._id,
-        tokenHash,
-        expiresAt: rotated.expiresAt,
-      });
+      if (!rotated) return afterLostRace(current, refreshToken, now);
+      await retire(rotated, tokenHash);
       return { status: 'rotated', session: rotated, refreshToken: nextToken };
     },
 

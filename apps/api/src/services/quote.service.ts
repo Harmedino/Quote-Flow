@@ -40,6 +40,7 @@ import { AppError, conflict, notFound, sessionExpired, validationFailed } from '
 import { generatePublicToken } from '../utils/tokens';
 import type { AuthContext } from './access-token.service';
 import { nextDocumentNumber } from './numbering.service';
+import { releaseDanglingInvoice } from './quote-conversion.service';
 
 export type QuoteInputData = z.output<typeof quoteInputSchema>;
 export type QuoteListQueryData = z.output<typeof quoteListQuerySchema>;
@@ -100,7 +101,8 @@ async function assertOwnServices(
     .lean();
   const known = new Set(found.map((service) => service._id.toString()));
   const details = items.flatMap((item, index) =>
-    item.serviceId && !known.has(item.serviceId)
+    // Ids are accepted in either case; toString() is lowercase.
+    item.serviceId && !known.has(item.serviceId.toLowerCase())
       ? [{ path: `items.${index}.serviceId`, message: 'Service not found' }]
       : [],
   );
@@ -225,6 +227,11 @@ export async function listQuotes(auth: AuthContext, query: QuoteListQueryData): 
 
 export async function getQuote(auth: AuthContext, id: string): Promise<QuoteDto> {
   const [{ today }, quote] = await Promise.all([loadContext(auth), findOwnQuote(auth, id)]);
+  // Opening the quote repairs a link to a deleted invoice, so it can be converted again.
+  if (await releaseDanglingInvoice(quote)) {
+    quote.invoiceId = undefined;
+    quote.convertedAt = undefined;
+  }
   return toQuoteDto(quote, today);
 }
 

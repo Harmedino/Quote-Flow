@@ -4,10 +4,11 @@ import { testBusiness, testUser } from '@/test/fixtures';
 import { redirectSignedIn, requireSession } from './route-guards';
 import type { SessionSnapshot } from './session-store';
 
-const { ensureSession } = vi.hoisted(() => ({
+const { ensureSession, ensureSessionIfHinted } = vi.hoisted(() => ({
   ensureSession: vi.fn<() => Promise<SessionSnapshot>>(),
+  ensureSessionIfHinted: vi.fn<() => Promise<SessionSnapshot>>(),
 }));
-vi.mock('./session', () => ({ ensureSession }));
+vi.mock('./session', () => ({ ensureSession, ensureSessionIfHinted }));
 
 const signedIn: SessionSnapshot = {
   status: 'authenticated',
@@ -15,6 +16,8 @@ const signedIn: SessionSnapshot = {
   business: testBusiness,
 };
 const signedOut: SessionSnapshot = { status: 'anonymous', endReason: null };
+/** What the hint-aware check answers in a browser that has never signed in. */
+const unchecked: SessionSnapshot = { status: 'unknown' };
 
 function run(middleware: typeof requireSession, url: string) {
   const request = new Request(new URL(url, 'https://app.example'));
@@ -36,6 +39,7 @@ function location(result: unknown): string | null {
 
 beforeEach(() => {
   ensureSession.mockReset();
+  ensureSessionIfHinted.mockReset();
 });
 
 describe('requireSession', () => {
@@ -57,21 +61,38 @@ describe('requireSession', () => {
     ensureSession.mockRejectedValue(new Error('offline'));
     await expect(run(requireSession, '/quotes')).rejects.toThrow('offline');
   });
+
+  it('always checks the session itself, whatever the sign-in hint says', async () => {
+    ensureSession.mockResolvedValue(signedIn);
+    ensureSessionIfHinted.mockResolvedValue(unchecked);
+
+    expect(await run(requireSession, '/dashboard')).toBeUndefined();
+    expect(ensureSession).toHaveBeenCalledOnce();
+    expect(ensureSessionIfHinted).not.toHaveBeenCalled();
+  });
 });
 
 describe('redirectSignedIn', () => {
+  it('checks the session only through the sign-in hint', async () => {
+    ensureSessionIfHinted.mockResolvedValue(unchecked);
+
+    expect(await run(redirectSignedIn, '/login')).toBeUndefined();
+    expect(ensureSessionIfHinted).toHaveBeenCalledOnce();
+    expect(ensureSession).not.toHaveBeenCalled();
+  });
+
   it('shows the form to signed-out visitors', async () => {
-    ensureSession.mockResolvedValue(signedOut);
+    ensureSessionIfHinted.mockResolvedValue(signedOut);
     expect(await run(redirectSignedIn, '/login')).toBeUndefined();
   });
 
   it('shows the form when the session cannot be checked', async () => {
-    ensureSession.mockRejectedValue(new Error('offline'));
+    ensureSessionIfHinted.mockRejectedValue(new Error('offline'));
     expect(await run(redirectSignedIn, '/login')).toBeUndefined();
   });
 
   it('sends signed-in users to a safe redirectTo or the dashboard', async () => {
-    ensureSession.mockResolvedValue(signedIn);
+    ensureSessionIfHinted.mockResolvedValue(signedIn);
 
     expect(location(await run(redirectSignedIn, '/login?redirectTo=%2Fquotes%2Fnew'))).toBe(
       '/quotes/new',

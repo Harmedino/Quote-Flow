@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type * as ApiClient from '@/lib/api-client';
 import { errorResponse, jsonResponse, noContent, testSession } from '@/test/fixtures';
 import type * as Session from './session';
+import { hasSessionHint, syncSessionHint } from './session-hint';
 import type * as SessionStore from './session-store';
 
 type Handler = (headers: Headers) => Response | Promise<Response>;
@@ -83,10 +84,28 @@ async function openTab(): Promise<Tab> {
   return { session, store: sessionStore, client };
 }
 
+/** localStorage shared by every "tab" in a test, as in one browser. */
+let stored: Map<string, string>;
+
+function stubLocalStorage() {
+  stored = new Map();
+  vi.stubGlobal('localStorage', {
+    getItem: (key: string) => stored.get(key) ?? null,
+    setItem: (key: string, value: string) => stored.set(key, value),
+    removeItem: (key: string) => stored.delete(key),
+  });
+}
+
+/** Sets the hint as a session in an earlier visit would have. */
+function leaveHintFromEarlierVisit() {
+  syncSessionHint({ status: 'authenticated', ...testSession() });
+}
+
 let locks: ReturnType<typeof createLockManager>;
 
 beforeEach(() => {
   handlers = {};
+  stubLocalStorage();
   fetchMock.mockReset();
   fetchMock.mockImplementation((input, init) => {
     const key = requestKey(input, init);
@@ -414,5 +433,139 @@ describe('signing out', () => {
       { key: 'POST /auth/logout-all', authorization: 'Bearer token-2' },
     ]);
     expect(store.getSnapshot()).toEqual({ status: 'anonymous', endReason: 'signed-out' });
+  });
+});
+
+describe('the sign-in hint', () => {
+  it('is set when someone signs in', async () => {
+    const { store } = await openTab();
+
+    store.setSession(testSession('token-1'));
+
+    expect(hasSessionHint()).toBe(true);
+  });
+
+  it('is set when the refresh cookie restores a session', async () => {
+    const { session } = await openTab();
+    respond('POST /auth/refresh', () => jsonResponse({ data: testSession('token-1') }));
+
+    await session.ensureSession();
+
+    expect(hasSessionHint()).toBe(true);
+  });
+
+  it('is cleared on sign-out', async () => {
+    leaveHintFromEarlierVisit();
+    const { session, store } = await openTab();
+    store.setSession(testSession('token-1'));
+    respond('POST /auth/logout', () => noContent());
+
+    await session.signOut();
+
+    expect(hasSessionHint()).toBe(false);
+  });
+
+  it('is cleared when another tab signs out', async () => {
+    leaveHintFromEarlierVisit();
+    const { store } = await openTab();
+    store.setSession(testSession('token-1'));
+    const otherTab = new FakeBroadcastChannel('quoteflow-auth');
+
+    otherTab.postMessage('signed-out');
+
+    expect(store.getSnapshot()).toEqual({ status: 'anonymous', endReason: 'signed-out' });
+    expect(hasSessionHint()).toBe(false);
+  });
+
+  it('is cleared when the refresh cookie is refused', async () => {
+    leaveHintFromEarlierVisit();
+    const { session } = await openTab();
+    respond('POST /auth/refresh', () => errorResponse(401, 'UNAUTHORIZED'));
+
+    await session.ensureSession();
+
+    expect(hasSessionHint()).toBe(false);
+  });
+
+  it('is cleared when a signed-in session can no longer be renewed', async () => {
+    leaveHintFromEarlierVisit();
+    const { store, client } = await openTab();
+    store.setSession(testSession('token-1'));
+    respond('GET /business', () => errorResponse(401, 'UNAUTHORIZED'));
+    respond('POST /auth/refresh', () => errorResponse(401, 'UNAUTHORIZED'));
+
+    await expect(client.request('/business')).rejects.toMatchObject({ status: 401 });
+
+    expect(hasSessionHint()).toBe(false);
+  });
+
+  it('is kept when the refresh fails for a transient reason', async () => {
+    leaveHintFromEarlierVisit();
+    const { session } = await openTab();
+    respond('POST /auth/refresh', () => errorResponse(503, 'SERVICE_UNAVAILABLE'));
+
+    await expect(session.ensureSession()).rejects.toMatchObject({ code: 'SERVICE_UNAVAILABLE' });
+
+    expect(hasSessionHint()).toBe(true);
+  });
+});
+
+describe('ensureSessionIfHinted', () => {
+  it('skips the cookie check without the hint, leaving the session unknown', async () => {
+    const { session, store } = await openTab();
+
+    await expect(session.ensureSessionIfHinted()).resolves.toEqual({ status: 'unknown' });
+
+    expect(sentRequests()).toEqual([]);
+    expect(store.getSnapshot()).toEqual({ status: 'unknown' });
+  });
+
+  it('still lets a protected route restore a session the hint missed', async () => {
+    const { session } = await openTab();
+    respond('POST /auth/refresh', () => jsonResponse({ data: testSession('token-1') }));
+
+    await session.ensureSessionIfHinted();
+    await expect(session.ensureSession()).resolves.toMatchObject({ status: 'authenticated' });
+
+    expect(sentRequests().map(({ key }) => key)).toEqual(['POST /auth/refresh']);
+    expect(hasSessionHint()).toBe(true);
+  });
+
+  it('checks the cookie when the hint is set', async () => {
+    leaveHintFromEarlierVisit();
+    const { session } = await openTab();
+    respond('POST /auth/refresh', () => jsonResponse({ data: testSession('token-1') }));
+
+    await expect(session.ensureSessionIfHinted()).resolves.toMatchObject({
+      status: 'authenticated',
+    });
+    expect(sentRequests().map(({ key }) => key)).toEqual(['POST /auth/refresh']);
+  });
+
+  it('checks the cookie when storage cannot be read', async () => {
+    vi.stubGlobal('localStorage', {
+      getItem: () => {
+        throw new DOMException('The operation is insecure.', 'SecurityError');
+      },
+    });
+    const { session } = await openTab();
+    respond('POST /auth/refresh', () => errorResponse(401, 'UNAUTHORIZED'));
+
+    await expect(session.ensureSessionIfHinted()).resolves.toEqual({
+      status: 'anonymous',
+      endReason: null,
+    });
+    expect(sentRequests()).toHaveLength(1);
+  });
+
+  it('answers from the session already known in this tab, without a request', async () => {
+    const { session, store } = await openTab();
+    store.setSession(testSession('token-1'));
+    stored.clear();
+
+    await expect(session.ensureSessionIfHinted()).resolves.toMatchObject({
+      status: 'authenticated',
+    });
+    expect(sentRequests()).toEqual([]);
   });
 });

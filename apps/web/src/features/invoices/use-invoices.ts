@@ -106,6 +106,8 @@ export function useDeleteInvoice(id: string) {
       return Promise.all([
         queryClient.invalidateQueries({ queryKey: invoiceKeys.lists() }),
         queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
+        // A deleted draft frees the quote it was converted from.
+        queryClient.invalidateQueries({ queryKey: ['quotes'] }),
       ]);
     },
   });

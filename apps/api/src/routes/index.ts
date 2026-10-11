@@ -38,7 +38,11 @@ export function createApiRouter({ env, logger, clock, authRateLimits }: ApiRoute
     ttlSeconds: durationInSeconds(env.ACCESS_TOKEN_TTL),
     clock,
   });
-  const sessions = createSessionService({ refreshTokenTtlDays: env.REFRESH_TOKEN_TTL_DAYS, clock });
+  const sessions = createSessionService({
+    refreshTokenTtlDays: env.REFRESH_TOKEN_TTL_DAYS,
+    secret: env.JWT_SECRET,
+    clock,
+  });
   const requireAuth = createRequireAuth(tokens, sessions);
   // Shared through MongoDB: each serverless instance would otherwise count on its own.
   const limiters = createAuthRateLimiters(authRateLimits, logger, (name) =>
