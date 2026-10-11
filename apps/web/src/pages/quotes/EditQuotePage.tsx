@@ -69,7 +69,7 @@ export default function EditQuotePage() {
       ) : (
         <>
           {duplicated && (
-            <Alert tone="success" className="mb-6">
+            <Alert tone="success" className="mb-5">
               Copy created as draft {quote.quoteNumber}. Review it, then save or send.
             </Alert>
           )}

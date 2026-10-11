@@ -17,11 +17,11 @@ function useScrollToInitialHash() {
   }, []);
 }
 
-/** The public website: ink header and footer around pages on the warm paper background. */
+/** The public website: the light header with the hazard tape, the pages on site paper, a navy footer. */
 export default function MarketingLayout() {
   useScrollToInitialHash();
   return (
-    <div className="flex min-h-dvh flex-col bg-paper text-stone-900">
+    <div className="flex min-h-dvh flex-col bg-canvas text-ink">
       <SkipLink />
       <MarketingHeader />
       <main id={MAIN_CONTENT_ID} tabIndex={-1} className="flex-1 focus:outline-none">

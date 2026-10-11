@@ -17,14 +17,15 @@ export function Pagination({ meta, onPageChange, label = 'results' }: Pagination
   return (
     <nav
       aria-label="Pagination"
-      className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-sm text-stone-500"
+      className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-sm text-muted"
     >
       <p>
         Showing{' '}
-        <span className="font-medium text-stone-700 tabular-nums">
+        <span className="font-mono text-[13px] font-medium text-ink-2">
           {first}–{last}
         </span>{' '}
-        of <span className="font-medium text-stone-700 tabular-nums">{meta.total}</span> {label}
+        of <span className="font-mono text-[13px] font-medium text-ink-2">{meta.total}</span>{' '}
+        {label}
       </p>
       {meta.totalPages > 1 && (
         <div className="flex gap-2">

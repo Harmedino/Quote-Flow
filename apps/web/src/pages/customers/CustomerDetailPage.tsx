@@ -64,12 +64,14 @@ function CustomerDetail({ customer }: { customer: CustomerDto }) {
   const archive = useArchiveCustomer();
   const restore = useRestoreCustomer();
   const archived = customer.archivedAt !== null;
+  const place = [customer.address.city, customer.address.state].filter(Boolean).join(', ');
 
   return (
     <>
       <DocumentTitle title={customer.name} />
       <PageHeader
         title={customer.name}
+        eyebrow={place || undefined}
         back={{ to: paths.customers, label: 'Customers' }}
         description={customer.company ?? undefined}
         badge={archived && <Badge tone="neutral">Archived</Badge>}
@@ -117,24 +119,24 @@ function CustomerDetail({ customer }: { customer: CustomerDto }) {
       />
 
       {restore.isError && (
-        <Alert tone="danger" className="mb-6">
+        <Alert tone="danger" className="mb-5">
           {getErrorMessage(restore.error)}
         </Alert>
       )}
       {archived && (
-        <Alert tone="warning" title="This customer is archived" className="mb-6">
+        <Alert tone="warning" title="This customer is archived" className="mb-5">
           They’re hidden from your customer list and can’t be picked for new quotes. Their existing
           quotes and invoices are unchanged. Restore them to work with them again.
         </Alert>
       )}
 
       <CustomerStats customer={customer} />
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
-        <div className="space-y-4 lg:sticky lg:top-8">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[21rem_minmax(0,1fr)] lg:items-start lg:gap-6">
+        <div className="space-y-4 lg:sticky lg:top-[5.75rem]">
           <CustomerContactCard customer={customer} />
           <CustomerNotesCard customer={customer} onEdit={() => setEditing(true)} />
         </div>
-        <div className="min-w-0 space-y-6">
+        <div className="min-w-0 space-y-5">
           <CustomerQuotesCard customer={customer} />
           <CustomerInvoicesCard customer={customer} />
         </div>
@@ -168,8 +170,8 @@ function CustomerDetailSkeleton() {
       <Skeleton className="mb-6 h-4 w-24" />
       <Skeleton className="h-8 w-64" />
       <Skeleton className="mt-3 mb-8 h-4 w-40" />
-      <Skeleton className="mb-6 h-28 rounded-2xl" />
-      <div className="grid gap-6 lg:grid-cols-[20rem_minmax(0,1fr)]">
+      <Skeleton className="mb-6 h-28 rounded-xl" />
+      <div className="grid gap-6 lg:grid-cols-[21rem_minmax(0,1fr)]">
         <Skeleton className="h-72 rounded-xl" />
         <div className="space-y-6">
           <Skeleton className="h-48 rounded-xl" />

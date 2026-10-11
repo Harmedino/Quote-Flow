@@ -1,7 +1,11 @@
-import { cn } from '@/lib/cn';
+import { SITE_CONTAINER } from '@/components/marketing/site-container';
+import { TAB_LIST_CLASSES, TAB_SCROLLER_CLASSES, tabClasses } from '@/components/ui/tab-styles';
 import type { FeatureSection } from './feature-sections';
 
-/** The sticky row of section links under the header, highlighting the section on screen. */
+/**
+ * The sticky row of section links under the header, in the app's tab style: the section on
+ * screen is navy with the orange marker. It sits right under the header (tape + bar).
+ */
 export function FeatureNav({
   sections,
   active,
@@ -12,30 +16,29 @@ export function FeatureNav({
   return (
     <nav
       aria-label="Feature sections"
-      className="sticky top-16 z-30 border-b border-stone-200 bg-paper/90 backdrop-blur-xl"
+      className="sticky top-[4.25rem] z-30 bg-canvas/92 pt-2 backdrop-blur-md xl:top-20"
     >
-      <ul className="no-scrollbar mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4 py-2.5 sm:px-6 lg:px-8">
-        {sections.map((section) => {
-          const current = section.id === active;
-          return (
-            <li key={section.id} className="shrink-0">
-              <a
-                href={`#${section.id}`}
-                aria-current={current ? 'true' : undefined}
-                className={cn(
-                  'inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium transition-colors focus-visible:outline-offset-0',
-                  current
-                    ? 'bg-ink text-white dark:bg-highlight dark:text-ink'
-                    : 'text-stone-600 hover:text-stone-900',
-                )}
-              >
-                <section.icon aria-hidden="true" className="size-4" />
-                {section.nav}
-              </a>
-            </li>
-          );
-        })}
-      </ul>
+      <div className={SITE_CONTAINER}>
+        <div className={TAB_SCROLLER_CLASSES}>
+          <ul className={TAB_LIST_CLASSES}>
+            {sections.map((section) => {
+              const current = section.id === active;
+              return (
+                <li key={section.id}>
+                  <a
+                    href={`#${section.id}`}
+                    aria-current={current ? 'true' : undefined}
+                    className={tabClasses(current)}
+                  >
+                    <section.icon aria-hidden="true" />
+                    {section.nav}
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </div>
     </nav>
   );
 }

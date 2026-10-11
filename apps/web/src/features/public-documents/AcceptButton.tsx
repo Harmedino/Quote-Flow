@@ -2,9 +2,9 @@ import { Check } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/cn';
-import { BRAND_FILL } from './fills';
+import { BRAND_FILL, FILL_FEEDBACK } from './fills';
 
-/** "Accept quote", filled with the business's colour (from `brandColorVars`). */
+/** "Accept quote", filled with the business's colour (inside a BrandedPage). */
 export function AcceptButton({
   onClick,
   className,
@@ -15,16 +15,8 @@ export function AcceptButton({
   children?: ReactNode;
 }) {
   return (
-    <Button
-      size="xl"
-      style={BRAND_FILL}
-      onClick={onClick}
-      className={cn(
-        'font-semibold hover:brightness-95 active:brightness-90 dark:ring-1 dark:ring-white/20 dark:ring-inset',
-        className,
-      )}
-    >
-      <Check aria-hidden="true" className="hidden sm:block" />
+    <Button size="xl" style={BRAND_FILL} onClick={onClick} className={cn(FILL_FEEDBACK, className)}>
+      <Check aria-hidden="true" />
       {children}
     </Button>
   );

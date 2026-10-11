@@ -1,6 +1,5 @@
 import type { PublicBusinessDto } from '@quoteflow/shared';
 import { Mail, MessageCircle, Phone } from 'lucide-react';
-import { cn } from '@/lib/cn';
 import { type ContactLink, businessContactLinks } from './public-status';
 
 const ICONS: Record<ContactLink['kind'], typeof Phone> = {
@@ -11,18 +10,24 @@ const ICONS: Record<ContactLink['kind'], typeof Phone> = {
 
 export interface ContactLinksProps {
   business: PublicBusinessDto;
-  /** E.g. 'Quote QT-0001', used in the WhatsApp message and email subject. */
+  /** E.g. 'Quote LHS-Q-0014', used in the WhatsApp message and email subject. */
   documentLabel: string;
-  className?: string;
 }
 
-/** Ways to reach the business, as chips. */
-export function ContactLinks({ business, documentLabel, className }: ContactLinksProps) {
+/**
+ * Ways to reach the business, as buttons on its colour band: an equal row on phones, beside the
+ * name on wide screens. Their wash moves away from the text colour (see `brandPageVars`), so the
+ * label reads at least as well as on the band itself, whatever the brand colour.
+ */
+export function ContactLinks({ business, documentLabel }: ContactLinksProps) {
   const links = businessContactLinks(business, documentLabel);
   if (links.length === 0) return null;
 
   return (
-    <ul className={cn('flex flex-wrap gap-2', className)} aria-label={`Contact ${business.name}`}>
+    <ul
+      aria-label={`Contact ${business.name}`}
+      className="grid auto-cols-fr grid-flow-col gap-2 lg:flex lg:shrink-0"
+    >
       {links.map((link) => {
         const Icon = ICONS[link.kind];
         const external = link.kind === 'whatsapp';
@@ -31,10 +36,11 @@ export function ContactLinks({ business, documentLabel, className }: ContactLink
             <a
               href={link.href}
               {...(external && { target: '_blank', rel: 'noopener noreferrer' })}
-              className="inline-flex h-9 items-center gap-1.5 rounded-full bg-stone-100 px-3.5 text-[13px] font-medium text-stone-700 transition-colors hover:bg-stone-200 hover:text-stone-900"
+              className="flex h-10.5 items-center justify-center gap-2 rounded-[9px] bg-[color-mix(in_srgb,var(--doc-fill),var(--doc-fill-away)_14%)] px-4 text-[14.5px] font-[650] shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--doc-on-fill)_28%,transparent)] transition-colors hover:bg-[color-mix(in_srgb,var(--doc-fill),var(--doc-fill-away)_24%)] focus-visible:outline-(--doc-on-fill)"
             >
-              <Icon aria-hidden="true" className="size-3.5 shrink-0" />
+              <Icon aria-hidden="true" className="size-[17px] shrink-0" strokeWidth={2.25} />
               {link.label}
+              <span className="sr-only"> {link.detail}</span>
             </a>
           </li>
         );

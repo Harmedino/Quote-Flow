@@ -10,7 +10,8 @@ type Rgb = readonly [number, number, number];
 
 const HEX_COLOR = /^#([0-9a-f]{6})$/i;
 const WHITE: Rgb = [255, 255, 255];
-const INK = '#18181b';
+/** Signal's workwear navy, the dark text on a light brand colour. */
+const INK = '#0e1b33';
 /** WCAG AA for normal text. */
 const READABLE_CONTRAST = 4.5;
 
@@ -51,7 +52,7 @@ export function normalizeBrandColor(hex: string | null | undefined): string {
   return hex && parseHex(hex) ? hex.trim().toLowerCase() : DEFAULT_BRAND_COLOR;
 }
 
-/** White or near-black, whichever reads better on a surface filled with the brand color. */
+/** White or navy, whichever reads better on a surface filled with the brand color. */
 export function textColorOn(hex: string): string {
   const rgb = parseHex(normalizeBrandColor(hex)) as Rgb;
   return contrast(rgb, WHITE) >= contrast(rgb, parseHex(INK) as Rgb) ? '#ffffff' : INK;
@@ -73,8 +74,8 @@ export function brandTextColor(hex: string): string {
 
 /**
  * CSS custom properties for brand-tinted UI: `--doc-accent` (fills),
- * `--doc-on-accent` (text on fills), `--doc-accent-text` (text on white) and
- * `--doc-accent-soft` (a light tint for highlighted areas).
+ * `--doc-on-accent` (text on fills), `--doc-accent-text` (text on paper) and
+ * `--doc-accent-soft` (7% of the brand in ticket stock: the quote's stub).
  */
 export function brandColorVars(hex: string | null | undefined): CSSProperties {
   const accent = normalizeBrandColor(hex);
@@ -82,6 +83,6 @@ export function brandColorVars(hex: string | null | undefined): CSSProperties {
     '--doc-accent': accent,
     '--doc-on-accent': textColorOn(accent),
     '--doc-accent-text': brandTextColor(accent),
-    '--doc-accent-soft': `color-mix(in srgb, ${accent} 8%, white)`,
+    '--doc-accent-soft': `color-mix(in srgb, ${accent} 7%, #fffdf9)`,
   } as CSSProperties;
 }

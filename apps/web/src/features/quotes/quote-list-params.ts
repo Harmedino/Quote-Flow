@@ -1,16 +1,11 @@
-import { QUOTE_STATUSES, type QuoteStatus } from '@quoteflow/shared';
+import { QUOTE_STATUS_LABELS, QUOTE_STATUSES, type QuoteStatus } from '@quoteflow/shared';
 import type { QuoteListParamsQuery } from './quotes-api';
 
 export type QuoteStatusTab = QuoteStatus | 'all';
 
 export const QUOTE_STATUS_TABS: readonly { value: QuoteStatusTab; label: string }[] = [
   { value: 'all', label: 'All' },
-  { value: 'draft', label: 'Draft' },
-  { value: 'sent', label: 'Sent' },
-  { value: 'viewed', label: 'Viewed' },
-  { value: 'accepted', label: 'Accepted' },
-  { value: 'rejected', label: 'Rejected' },
-  { value: 'expired', label: 'Expired' },
+  ...QUOTE_STATUSES.map((value) => ({ value, label: QUOTE_STATUS_LABELS[value] })),
 ];
 
 export const QUOTES_PAGE_SIZE = 20;

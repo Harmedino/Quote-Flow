@@ -20,7 +20,9 @@ import {
   toPublicBusinessDto,
 } from '../../serializers/sales-document.serializer';
 
-export type PdfTone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
+/** The stamp's ink: the Signal status colours, as on the ticket in the app. */
+export type PdfTone =
+  'draft' | 'sent' | 'accepted' | 'declined' | 'expired' | 'partial' | 'paid' | 'overdue';
 
 /** Everything a quote or invoice PDF shows, built from the same data as the DTOs. */
 export interface PdfDocumentModel {
@@ -45,17 +47,17 @@ export interface PdfDocumentModel {
 }
 
 const QUOTE_TONES: Partial<Record<keyof typeof QUOTE_STATUS_LABELS, PdfTone>> = {
-  accepted: 'success',
-  rejected: 'danger',
-  expired: 'warning',
+  accepted: 'accepted',
+  rejected: 'declined',
+  expired: 'expired',
 };
 
 const INVOICE_TONES: Partial<Record<keyof typeof INVOICE_STATUS_LABELS, PdfTone>> = {
-  sent: 'info',
-  partially_paid: 'warning',
-  paid: 'success',
-  overdue: 'danger',
-  cancelled: 'neutral',
+  sent: 'sent',
+  partially_paid: 'partial',
+  paid: 'paid',
+  overdue: 'overdue',
+  cancelled: 'draft',
 };
 
 type SalesRecord = QuoteRecord | InvoiceRecord;

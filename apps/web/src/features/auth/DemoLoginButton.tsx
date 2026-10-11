@@ -33,10 +33,10 @@ export function DemoLoginButton({
   return (
     <div className={cn('space-y-4', divider && 'mt-6')}>
       {divider && (
-        <div className="flex items-center gap-3 text-xs font-medium tracking-wide text-stone-500 uppercase">
-          <span aria-hidden="true" className="h-px flex-1 bg-stone-200" />
+        <div className="flex items-center gap-3 label-mono text-muted">
+          <span aria-hidden="true" className="h-px flex-1 bg-line-strong" />
           or
-          <span aria-hidden="true" className="h-px flex-1 bg-stone-200" />
+          <span aria-hidden="true" className="h-px flex-1 bg-line-strong" />
         </div>
       )}
       {demo.error && <Alert tone="danger">{getErrorMessage(demo.error)}</Alert>}

@@ -38,7 +38,7 @@ export function quoteTimelineEvents(quote: QuoteDto, timeZone: string): Timeline
       icon: FilePlus,
       label: 'Created',
       when: at(quote.createdAt),
-      tone: 'bg-stone-100 text-stone-600',
+      tone: 'bg-draft-tint text-draft',
     },
   ];
   if (quote.sentAt) {
@@ -47,7 +47,7 @@ export function quoteTimelineEvents(quote: QuoteDto, timeZone: string): Timeline
       icon: Send,
       label: 'Sent',
       when: at(quote.sentAt),
-      tone: 'bg-blue-50 text-blue-700',
+      tone: 'bg-sent-tint text-sent',
     });
   }
   if (quote.viewedAt) {
@@ -56,7 +56,7 @@ export function quoteTimelineEvents(quote: QuoteDto, timeZone: string): Timeline
       icon: Eye,
       label: 'Viewed by customer',
       when: at(quote.viewedAt),
-      tone: 'bg-violet-50 text-violet-700',
+      tone: 'bg-viewed-tint text-viewed',
     });
   }
   if (quote.acceptedAt) {
@@ -65,17 +65,17 @@ export function quoteTimelineEvents(quote: QuoteDto, timeZone: string): Timeline
       icon: CircleCheck,
       label: 'Accepted',
       when: at(quote.acceptedAt),
-      tone: 'bg-green-50 text-green-700',
+      tone: 'bg-accepted-tint text-accepted',
     });
   }
   if (quote.rejectedAt) {
     events.push({
       key: 'rejected',
       icon: CircleX,
-      label: 'Rejected',
+      label: 'Declined',
       when: at(quote.rejectedAt),
       detail: quote.rejectionReason ? `“${quote.rejectionReason}”` : undefined,
-      tone: 'bg-red-50 text-red-700',
+      tone: 'bg-declined-tint text-declined',
     });
   }
   if (quote.status === 'expired') {
@@ -84,7 +84,7 @@ export function quoteTimelineEvents(quote: QuoteDto, timeZone: string): Timeline
       icon: Clock,
       label: 'Expired',
       when: `After ${formatCalendarDate(quote.expiryDate)}`,
-      tone: 'bg-amber-50 text-amber-700',
+      tone: 'bg-expired-tint text-expired',
     });
   }
   if (quote.convertedAt) {
@@ -93,7 +93,7 @@ export function quoteTimelineEvents(quote: QuoteDto, timeZone: string): Timeline
       icon: Receipt,
       label: 'Converted to invoice',
       when: at(quote.convertedAt),
-      tone: 'bg-brand-50 text-brand-700',
+      tone: 'bg-primary-tint text-primary-ink',
     });
   }
   return events;

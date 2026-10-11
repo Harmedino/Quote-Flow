@@ -1,4 +1,10 @@
-import { type QuoteDto, canConvertQuote, canEditQuote, todayInTimeZone } from '@quoteflow/shared';
+import {
+  type QuoteDto,
+  type QuoteStatus,
+  canConvertQuote,
+  canEditQuote,
+  todayInTimeZone,
+} from '@quoteflow/shared';
 import { Pencil, Receipt } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router';
@@ -14,11 +20,13 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { PanelCard } from '@/components/ui/PanelCard';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useBusinessQuery } from '@/features/business/use-business';
+import { DESKTOP_QUERY, useMediaQuery } from '@/features/dashboard/use-media-query';
 import { DocumentCustomerCard } from '@/features/documents/DocumentCustomerCard';
-import { DocumentHero } from '@/features/documents/DocumentHero';
+import { DETAIL_ASIDE, DETAIL_GRID } from '@/features/documents/detail-layout';
+import { DocumentHero, type DocumentHeroTone } from '@/features/documents/DocumentHero';
 import { toPublicBusiness } from '@/features/documents/public-business';
 import { readQuoteFlash } from '@/features/quotes/quote-flash';
-import { quoteOutlook } from '@/features/quotes/quote-outlook';
+import { quoteOutlook, quoteStamp } from '@/features/quotes/quote-outlook';
 import { QuoteActionsPanel } from '@/features/quotes/ui/QuoteActionsPanel';
 import { QuoteFlashBanner } from '@/features/quotes/ui/QuoteFlashBanner';
 import { QuoteNotFound } from '@/features/quotes/ui/QuoteNotFound';
@@ -29,16 +37,21 @@ import { useConvertQuote, useQuoteQuery } from '@/features/quotes/use-quotes';
 import { getErrorMessage, isMissingRecordError } from '@/lib/api-client';
 import { formatCalendarDate, formatMoney } from '@/lib/format';
 
+const HERO_TONES: Record<QuoteStatus, DocumentHeroTone> = {
+  draft: 'open',
+  sent: 'open',
+  viewed: 'open',
+  accepted: 'settled',
+  rejected: 'ended',
+  expired: 'ended',
+};
+
 function DetailSkeleton() {
   return (
-    <div
-      role="status"
-      aria-label="Loading quote"
-      className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]"
-    >
-      <div className="space-y-6">
-        <Skeleton className="h-40 rounded-2xl" />
-        <Skeleton className="h-[32rem] rounded-2xl" />
+    <div role="status" aria-label="Loading quote" className={DETAIL_GRID}>
+      <div className="space-y-5">
+        <Skeleton className="h-36 rounded-xl" />
+        <Skeleton className="h-[32rem] rounded-xl" />
       </div>
       <div className="space-y-4">
         <Skeleton className="h-56 rounded-xl" />
@@ -79,12 +92,19 @@ function QuoteView({ quote }: { quote: QuoteDto }) {
   const { data: business } = useBusinessQuery();
   const convert = useConvertQuote();
   const [flash] = useState(() => readQuoteFlash(location.state));
+  // The stamp thumps down only when the answer arrives while the page is open.
+  const [statusOnArrival] = useState(quote.status);
 
   // The flash is for this visit only: drop it from history so a reload doesn't show it again.
   useEffect(() => {
     if (flash) void navigate(location.pathname, { replace: true, state: null });
   }, [flash, location.pathname, navigate]);
   const title = `Quote ${quote.quoteNumber}`;
+  const stamp = quoteStamp(quote, business.timezone);
+  // Phones show the ticket straight after sharing, before the side cards; desktop keeps sharing
+  // at the top of the side column.
+  const desktop = useMediaQuery(DESKTOP_QUERY);
+  const share = <QuoteSharePanel quote={quote} businessName={business.name} />;
 
   return (
     <>
@@ -126,33 +146,22 @@ function QuoteView({ quote }: { quote: QuoteDto }) {
       />
       {flash && <QuoteFlashBanner flash={flash} quote={quote} />}
       {convert.isError && (
-        <Alert tone="danger" title="The quote wasn’t converted" className="mb-6">
+        <Alert tone="danger" title="The quote wasn’t converted" className="mb-5">
           {getErrorMessage(convert.error)}
         </Alert>
       )}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:grid-rows-[auto_1fr] lg:items-start">
+      <div className={DETAIL_GRID}>
         <DocumentHero
           label="Quote total"
           amount={formatMoney(quote.totals.total, quote.currency)}
+          detail={quoteOutlook(quote, todayInTimeZone(business.timezone), business.timezone)}
+          tone={HERO_TONES[quote.status]}
           className="lg:col-start-1 lg:row-start-1"
         >
-          <p className="mt-2 text-sm text-white/70">
-            {quoteOutlook(quote, todayInTimeZone(business.timezone), business.timezone)}
-          </p>
           <QuoteProgress quote={quote} />
         </DocumentHero>
-        <aside
-          aria-label="Quote actions"
-          className="space-y-4 lg:sticky lg:top-8 lg:col-start-2 lg:row-span-2 lg:row-start-1"
-        >
-          <QuoteSharePanel quote={quote} businessName={business.name} />
-          <DocumentCustomerCard customerId={quote.customerId} customer={quote.customer} />
-          <QuoteActionsPanel quote={quote} />
-          <PanelCard title="Activity">
-            <QuoteTimeline quote={quote} timeZone={business.timezone} />
-          </PanelCard>
-        </aside>
+        {!desktop && share}
         <div className="min-w-0 lg:col-start-1 lg:row-start-2">
           <SalesDocument
             kind="quote"
@@ -168,9 +177,19 @@ function QuoteView({ quote }: { quote: QuoteDto }) {
             totals={quote.totals}
             notes={quote.notes}
             terms={quote.terms}
-            status={<QuoteStatusBadge status={quote.status} />}
+            // A stamp says it once the quote is settled; until then the tag does.
+            status={stamp ? undefined : <QuoteStatusBadge status={quote.status} />}
+            stamp={stamp && { ...stamp, animate: quote.status !== statusOnArrival }}
           />
         </div>
+        <aside aria-label="Quote actions" className={DETAIL_ASIDE}>
+          {desktop && share}
+          <DocumentCustomerCard customerId={quote.customerId} customer={quote.customer} />
+          <QuoteActionsPanel quote={quote} />
+          <PanelCard title="Activity">
+            <QuoteTimeline quote={quote} timeZone={business.timezone} />
+          </PanelCard>
+        </aside>
       </div>
     </>
   );

@@ -10,35 +10,35 @@ interface DocumentTotalsProps {
   totals: TotalsDto;
   amountPaid?: number;
   balanceDue?: number;
+  /** The highlighted total's label when there is no balance due, e.g. "Total to pay" on a quote. */
+  totalLabel?: string;
+  /** Strikes through the highlighted figure, e.g. on a declined quote. */
+  struck?: boolean;
+  className?: string;
 }
 
 function Row({ label, value, className }: { label: string; value: string; className?: string }) {
   return (
     <div className={cn('flex items-baseline justify-between gap-6', className)}>
       <dt>{label}</dt>
-      <dd className="tabular-nums">{value}</dd>
+      <dd className="money text-sm font-medium text-ink">{value}</dd>
     </div>
   );
 }
 
-function Highlight({
-  label,
-  value,
-  className,
-}: {
-  label: string;
-  value: string;
-  className?: string;
-}) {
+/** The figure that matters, in a sunken box with the business's colour underlining it. */
+function Highlight({ label, value, struck }: { label: string; value: string; struck: boolean }) {
   return (
-    <div
-      className={cn(
-        'flex items-baseline justify-between gap-6 rounded-xl bg-(--doc-accent-soft) px-4 py-3.5 [print-color-adjust:exact]',
-        className,
-      )}
-    >
-      <dt className="font-semibold text-stone-900">{label}</dt>
-      <dd className="font-display text-xl font-semibold tracking-tight text-(--doc-accent-text) tabular-nums sm:text-2xl">
+    <div className="mt-3.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-[10px] bg-surface-muted px-3.5 py-4 [print-color-adjust:exact]">
+      <dt className="label-mono text-ink-2">{label}</dt>
+      <dd
+        className={cn(
+          'text-2xl leading-none font-[820] tracking-[-0.02em] wrap-anywhere tabular-nums font-stretch-115% sm:text-[27px]',
+          struck
+            ? 'text-muted line-through decoration-declined decoration-2'
+            : 'shadow-[inset_0_-5px_0_color-mix(in_srgb,var(--doc-accent)_30%,transparent)]',
+        )}
+      >
         {value}
       </dd>
     </div>
@@ -57,6 +57,9 @@ export function DocumentTotals({
   totals,
   amountPaid,
   balanceDue,
+  totalLabel = 'Total',
+  struck = false,
+  className,
 }: DocumentTotalsProps) {
   const money = (amount: number) => formatMoney(amount, currency);
   const isInvoice = balanceDue !== undefined;
@@ -70,31 +73,24 @@ export function DocumentTotals({
   }
 
   return (
-    <dl className="w-full space-y-3 text-sm text-stone-600 sm:max-w-sm">
-      {lines.map((line, index) => (
-        <Row
-          key={line.label}
-          {...line}
-          // On a quote the rule sits between the breakdown and the highlighted total.
-          className={
-            !isInvoice && index === lines.length - 1 ? 'border-b border-stone-200 pb-3' : undefined
-          }
-        />
+    <dl className={cn('space-y-2 text-sm text-ink-2', className)}>
+      {lines.map((line) => (
+        <Row key={line.label} {...line} />
       ))}
       {isInvoice ? (
         <>
           <Row
             label="Total"
             value={money(totals.total)}
-            className="border-t border-stone-200 pt-3 font-semibold text-stone-900"
+            className="border-t-[1.5px] border-dashed border-line-strong pt-2.5 font-semibold text-ink"
           />
           {amountPaid !== undefined && (
             <Row label="Amount paid" value={amountPaid > 0 ? `−${money(amountPaid)}` : money(0)} />
           )}
-          <Highlight label="Balance due" value={money(balanceDue)} className="mt-4" />
+          <Highlight label="Balance due" value={money(balanceDue)} struck={struck} />
         </>
       ) : (
-        <Highlight label="Total" value={money(totals.total)} />
+        <Highlight label={totalLabel} value={money(totals.total)} struck={struck} />
       )}
     </dl>
   );

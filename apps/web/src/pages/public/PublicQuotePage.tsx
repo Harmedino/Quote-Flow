@@ -1,9 +1,12 @@
-import { type PublicQuoteDto, canRespondToQuote } from '@quoteflow/shared';
+import { type PublicQuoteDto, canRespondToQuote, todayInTimeZone } from '@quoteflow/shared';
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router';
 import { SalesDocument } from '@/components/documents/SalesDocument';
-import { Badge } from '@/components/ui/Badge';
+import { HangTag } from '@/components/ui/HangTag';
+import { AnswerBarSlot } from '@/features/public-documents/AnswerBarSlot';
 import { BrandedPage } from '@/features/public-documents/BrandedPage';
+import { DocumentColumns } from '@/features/public-documents/DocumentBand';
+import { DownloadPdfLink } from '@/features/public-documents/DownloadPdfLink';
 import { PublicDocumentHeader } from '@/features/public-documents/PublicDocumentHeader';
 import {
   PublicDocumentError,
@@ -22,7 +25,9 @@ import { publicPdfUrl } from '@/features/public-documents/public-api';
 import {
   CUSTOMER_QUOTE_STATUS,
   QUOTE_REVISED_BANNER,
+  quoteStamp,
   quoteStatusBanner,
+  validityNote,
 } from '@/features/public-documents/public-status';
 import {
   type QuoteAnswer,
@@ -31,6 +36,7 @@ import {
 } from '@/features/public-documents/use-public-documents';
 import { getErrorMessage, isApiError } from '@/lib/api-client';
 import { formatCalendarDate, formatMoney } from '@/lib/format';
+import { detectTimeZone } from '@/lib/locale';
 
 function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -70,6 +76,10 @@ function PublicQuoteView({ token, data }: { token: string; data: PublicQuoteDto 
   const documentLabel = `Quote ${quote.quoteNumber}`;
   const status = CUSTOMER_QUOTE_STATUS[quote.status];
   const validUntil = formatCalendarDate(quote.expiryDate);
+  // Answers and days left are read where the customer is.
+  const timeZone = detectTimeZone() ?? 'UTC';
+  const note = validityNote(quote, todayInTimeZone(timeZone));
+  const stamp = quoteStamp(quote, timeZone);
   const pdfUrl = publicPdfUrl('quote', token);
   const pdfFileName = `${quote.quoteNumber}.pdf`;
 
@@ -118,77 +128,85 @@ function PublicQuoteView({ token, data }: { token: string; data: PublicQuoteDto 
 
       <PublicDocumentHeader
         business={business}
-        eyebrow="Quote from"
-        summary={`${documentLabel} · Valid until ${validUntil}`}
+        eyebrow={`Quote for ${quote.customer.name}`}
+        date={formatCalendarDate(quote.issueDate)}
         documentLabel={documentLabel}
-        pdfUrl={pdfUrl}
-        pdfFileName={pdfFileName}
       />
 
-      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-6">
-        <div className="min-w-0 space-y-5">
-          {banner && (
-            <StatusBanner ref={bannerRef} banner={banner}>
-              {quote.status === 'rejected' && quote.rejectionReason && (
-                <p className="rounded-2xl bg-stone-100 px-4 py-3 text-sm text-stone-700">
-                  <span className="font-medium text-stone-900">Your note:</span>{' '}
-                  {quote.rejectionReason}
-                </p>
-              )}
-            </StatusBanner>
-          )}
-
-          <SalesDocument
-            kind="quote"
-            number={quote.quoteNumber}
-            business={business}
-            customer={quote.customer}
-            currency={quote.currency}
-            issueDate={quote.issueDate}
-            secondaryDate={{ label: 'Valid until', value: quote.expiryDate }}
-            items={quote.items}
-            discount={quote.discount}
-            taxRate={quote.taxRate}
-            totals={quote.totals}
-            notes={quote.notes}
-            terms={quote.terms}
-            status={<Badge tone={status.tone}>{status.label}</Badge>}
+      <DocumentColumns
+        aside={
+          <QuoteSummary
+            total={total}
+            validUntil={validUntil}
+            validityNote={note}
+            live={live}
+            struck={quote.status === 'rejected'}
+            pdfUrl={pdfUrl}
+            pdfFileName={pdfFileName}
+            onAccept={() => openDialog('accept')}
+            onDecline={() => openDialog('decline')}
           />
-        </div>
+        }
+      >
+        {banner && (
+          <StatusBanner ref={bannerRef} banner={banner}>
+            {quote.status === 'rejected' && quote.rejectionReason && (
+              <p className="rounded-[10px] bg-surface-muted px-3.5 py-3 text-sm text-ink-2">
+                <span className="font-semibold text-ink">Your note:</span> {quote.rejectionReason}
+              </p>
+            )}
+          </StatusBanner>
+        )}
 
-        <QuoteSummary
-          total={total}
-          validUntil={validUntil}
-          live={live}
-          pdfUrl={pdfUrl}
-          pdfFileName={pdfFileName}
-          onAccept={() => openDialog('accept')}
-          onDecline={() => openDialog('decline')}
+        <SalesDocument
+          kind="quote"
+          number={quote.quoteNumber}
+          business={business}
+          customer={quote.customer}
+          currency={quote.currency}
+          issueDate={quote.issueDate}
+          secondaryDate={{ label: 'Valid until', value: quote.expiryDate, note }}
+          items={quote.items}
+          discount={quote.discount}
+          taxRate={quote.taxRate}
+          totals={quote.totals}
+          notes={quote.notes}
+          terms={quote.terms}
+          // Once the quote is settled the stamp says so; until then the tag does.
+          status={stamp ? undefined : <HangTag tone={status.tone}>{status.label}</HangTag>}
+          stamp={stamp && { ...stamp, animate: justAnswered }}
+          // The band above says who sent it; a printout, without the band, still does.
+          sender="print-only"
         />
-      </div>
+
+        <DownloadPdfLink href={pdfUrl} fileName={pdfFileName} className="w-full lg:hidden" />
+      </DocumentColumns>
 
       {live && (
-        <>
+        <AnswerBarSlot brandColor={business.brandColor}>
           <QuoteActionBar
             total={total}
             validUntil={validUntil}
             onAccept={() => openDialog('accept')}
             onDecline={() => openDialog('decline')}
           />
-          <QuoteAnswerDialogs
-            open={dialog}
-            quoteNumber={quote.quoteNumber}
-            total={total}
-            businessName={business.name}
-            reason={reason}
-            onReasonChange={setReason}
-            pending={answer.isPending}
-            error={answer.isError ? getErrorMessage(answer.error) : null}
-            onAccept={() => submit({ action: 'accept' })}
-            onDecline={() => submit({ action: 'reject', reason: reason.trim() || undefined })}
-            onClose={() => setDialog(null)}
-          />
-        </>
+        </AnswerBarSlot>
+      )}
+
+      {live && (
+        <QuoteAnswerDialogs
+          open={dialog}
+          quoteNumber={quote.quoteNumber}
+          total={total}
+          businessName={business.name}
+          reason={reason}
+          onReasonChange={setReason}
+          pending={answer.isPending}
+          error={answer.isError ? getErrorMessage(answer.error) : null}
+          onAccept={() => submit({ action: 'accept' })}
+          onDecline={() => submit({ action: 'reject', reason: reason.trim() || undefined })}
+          onClose={() => setDialog(null)}
+        />
       )}
     </BrandedPage>
   );

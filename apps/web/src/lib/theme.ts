@@ -27,8 +27,16 @@ function systemTheme(): Theme {
   return window.matchMedia?.(DARK_QUERY).matches ? 'dark' : 'light';
 }
 
+/** The phone browser's toolbar in each theme: the top bar's colour. Mirrored in index.html. */
+const TOOLBAR_COLORS: Record<Theme, string> = { light: '#fffdf9', dark: '#111b2d' };
+/** A page's own toolbar colour while it is on screen, in place of the theme's. */
+let pageToolbarColor: string | null = null;
+
 function applyToDocument(theme: Theme): void {
   document.documentElement.classList.toggle('dark', theme === 'dark');
+  document
+    .querySelector('meta[name="theme-color"]')
+    ?.setAttribute('content', pageToolbarColor ?? TOOLBAR_COLORS[theme]);
 }
 
 /**
@@ -112,6 +120,15 @@ export class ThemeStore {
 }
 
 export const themeStore = new ThemeStore();
+
+/**
+ * Colours the phone browser's toolbar for the page on screen, e.g. a customer's page (always
+ * light) in its band's colour; null hands it back to the theme.
+ */
+export function setPageToolbarColor(color: string | null): void {
+  pageToolbarColor = color;
+  applyToDocument(themeStore.getSnapshot());
+}
 
 const toggleTheme = () => themeStore.toggle();
 const serverSnapshot = (): Theme => 'light';

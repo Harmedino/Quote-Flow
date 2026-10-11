@@ -1,56 +1,53 @@
 import type { PublicBusinessDto } from '@quoteflow/shared';
 import { BusinessMark } from '@/components/documents/BusinessMark';
+import { formatAddressLines } from '@/components/documents/document-format';
 import { ContactLinks } from './ContactLinks';
-import { DownloadPdfLink } from './DownloadPdfLink';
+import { DocumentBand } from './DocumentBand';
 
 export interface PublicDocumentHeaderProps {
   business: PublicBusinessDto;
-  /** E.g. 'Quote from' or 'Invoice from'. */
+  /** Who the document is for, e.g. 'Quote for Musa Ibrahim'. */
   eyebrow: string;
-  /** One line about the document, e.g. 'Quote QT-0001 · Valid until Oct 15, 2026'. */
-  summary: string;
-  /** E.g. 'Quote QT-0001', used in the WhatsApp message and email subject. */
+  /** The document's date, e.g. 'Oct 5, 2026'. */
+  date: string;
+  /** E.g. 'Quote LHS-Q-0014', used in the WhatsApp message and email subject. */
   documentLabel: string;
-  pdfUrl: string;
-  pdfFileName: string;
 }
 
 /**
- * The card at the top of a customer's page: who the document is from, how to
- * reach them and the PDF (in the summary beside the document on wide screens).
- * Expects the brand CSS variables from `brandColorVars`.
+ * The band at the top of a customer's page, in the business's colour: who sent the document and
+ * how to reach them. The monogram is inverted (brand letters on a white tile) so it stands out
+ * on its own colour. Expects the variables from `brandPageVars`.
  */
 export function PublicDocumentHeader({
   business,
   eyebrow,
-  summary,
+  date,
   documentLabel,
-  pdfUrl,
-  pdfFileName,
 }: PublicDocumentHeaderProps) {
+  const address = formatAddressLines(business.address).join(', ');
   return (
-    <header className="animate-fade-in-up rounded-3xl border border-stone-200 bg-surface p-5 shadow-[0_20px_50px_-20px_rgb(12_26_20/0.3)] sm:p-7 print:hidden">
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-        {/* The faint ring keeps a near-black brand tile visible on the dark card. */}
-        <BusinessMark
-          name={business.name}
-          logoUrl={business.logoUrl}
-          className="shadow-lg dark:ring-1 dark:ring-white/15"
-        />
-        <div className="min-w-0 flex-1">
-          <h1>
-            <span className="block font-sans text-sm font-normal tracking-normal text-stone-500">
-              {eyebrow}
-            </span>
-            <span className="mt-0.5 block text-2xl font-extrabold wrap-break-word text-stone-900 sm:text-3xl">
-              {business.name}
-            </span>
-          </h1>
-          <p className="mt-1.5 text-sm text-stone-600">{summary}</p>
-          <ContactLinks business={business} documentLabel={documentLabel} className="mt-4" />
+    <DocumentBand tone="brand">
+      <header>
+        <div className="flex items-center justify-between gap-4 label-mono">
+          <p className="min-w-0 truncate">{eyebrow}</p>
+          <p className="shrink-0">{date}</p>
         </div>
-        <DownloadPdfLink href={pdfUrl} fileName={pdfFileName} className="lg:hidden" />
-      </div>
-    </header>
+        <div className="mt-4.5 flex flex-col gap-4 lg:mt-6 lg:flex-row lg:items-center lg:justify-between lg:gap-8">
+          <div className="flex min-w-0 items-center gap-3.5 lg:gap-4.5">
+            <span className="flex size-13 shrink-0 items-center justify-center rounded-xl bg-white shadow-[0_1px_0_rgb(0_0_0/0.1)] ring-1 ring-(--doc-fill-edge) [--doc-accent:transparent] [--doc-on-accent:var(--doc-accent-text)] lg:size-16">
+              <BusinessMark name={business.name} logoUrl={business.logoUrl} />
+            </span>
+            <div className="min-w-0">
+              <h1 className="text-[22px] leading-[1.12] font-extrabold tracking-[-0.015em] wrap-break-word font-stretch-115% lg:text-[32px]">
+                {business.name}
+              </h1>
+              {address && <p className="mt-0.5 text-sm lg:mt-1 lg:text-[15px]">{address}</p>}
+            </div>
+          </div>
+          <ContactLinks business={business} documentLabel={documentLabel} />
+        </div>
+      </header>
+    </DocumentBand>
   );
 }

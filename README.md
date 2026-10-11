@@ -301,6 +301,11 @@ Indexes are created automatically on startup in development. In production `auto
 — run the index script on each deploy instead (see [Building for production](#building-for-production)).
 The API refuses to start in production while any declared index is missing.
 
+Businesses created before the Signal redesign were given the old default brand colour
+(`#0c1a14`). Run `MONGODB_URI="<connection string>" pnpm --filter @quoteflow/api db:migrate-brand-color`
+once against each existing database to move them to the new default; running it again changes
+nothing.
+
 ## Seeding demo data
 
 ```bash

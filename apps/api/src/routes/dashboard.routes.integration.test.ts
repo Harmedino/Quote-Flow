@@ -71,14 +71,17 @@ describe.skipIf(!TEST_DATABASE_URI)('dashboard routes (database)', () => {
     const today = todayInTimeZone(session.business.timezone);
     expect(dataOf<DashboardDto>(res)).toEqual({
       currency: session.business.currency,
-      quotes: { total: 0, pending: 0, accepted: 0, acceptedNotInvoiced: 0 },
+      quotes: { total: 0, pending: 0, viewed: 0, accepted: 0, acceptedNotInvoiced: 0 },
       invoices: {
+        total: 0,
         totalInvoiced: 0,
         amountPaid: 0,
         outstanding: 0,
+        outstandingCount: 0,
         overdueCount: 0,
         overdueAmount: 0,
       },
+      customers: { total: 0 },
       activity: {
         days: Array.from({ length: DASHBOARD_ACTIVITY_DAYS }, (_, index) => ({
           date: addDaysToIsoDate(today, index + 1 - DASHBOARD_ACTIVITY_DAYS),
@@ -86,10 +89,10 @@ describe.skipIf(!TEST_DATABASE_URI)('dashboard routes (database)', () => {
           quoted: 0,
         })),
         previous: { paid: 0, quoted: 0 },
+        entries: { paid: [], quoted: [] },
       },
-      recentQuotes: [],
-      recentInvoices: [],
-      recentCustomers: [],
+      awaitingQuotes: [],
+      readyToInvoice: [],
       upcomingInvoices: [],
     });
   });
@@ -107,24 +110,60 @@ describe.skipIf(!TEST_DATABASE_URI)('dashboard routes (database)', () => {
       { $set: { timezone: TIME_ZONE } },
     );
     const make = fixtures(owner);
-    await make.quote({ status: 'sent', expiryDate: dayFromToday(0) }); // expires today: pending
-    await make.quote({ status: 'viewed', expiryDate: dayFromToday(3) }); // pending
+    // Expires today: still pending.
+    await make.quote({ status: 'sent', issueDate: dayFromToday(-4), expiryDate: dayFromToday(0) });
+    await make.quote({
+      status: 'viewed',
+      issueDate: dayFromToday(-2),
+      expiryDate: dayFromToday(3),
+      customer: { name: 'Musa Ibrahim', phone: '+234 803 555 0101' },
+    });
     await make.quote({ status: 'sent', expiryDate: dayFromToday(-1) }); // effectively expired
     await make.quote({ status: 'draft', expiryDate: dayFromToday(5) });
-    await make.quote({ status: 'accepted', expiryDate: dayFromToday(-10) });
+    await make.quote({
+      status: 'accepted',
+      expiryDate: dayFromToday(-10),
+      acceptedAt: new Date('2026-01-02T10:00:00Z'),
+    });
     // Already converted: accepted, but no longer waiting to be invoiced.
     await make.quote({
       status: 'accepted',
       expiryDate: dayFromToday(-10),
       invoiceId: new Types.ObjectId(),
     });
+    await make.quote({
+      status: 'accepted',
+      expiryDate: dayFromToday(-10),
+      acceptedAt: new Date('2026-01-05T10:00:00Z'),
+    });
 
     const dashboard = dataOf<DashboardDto>(await getDashboard(app, owner.session.accessToken));
 
-    expect(dashboard.quotes).toEqual({ total: 6, pending: 2, accepted: 2, acceptedNotInvoiced: 1 });
-    expect(dashboard.recentQuotes).toHaveLength(5);
-    expect(dashboard.recentQuotes[0]?.quoteNumber).toBe('Q-6');
-    expect(dashboard.recentQuotes.find((q) => q.quoteNumber === 'Q-3')?.status).toBe('expired');
+    expect(dashboard.quotes).toEqual({
+      total: 7,
+      pending: 2,
+      viewed: 1,
+      accepted: 3,
+      acceptedNotInvoiced: 2,
+    });
+    // The latest issued first, each with what a WhatsApp follow-up needs.
+    expect(
+      dashboard.awaitingQuotes.map((quote) => [
+        quote.quoteNumber,
+        quote.status,
+        quote.customerPhone,
+      ]),
+    ).toEqual([
+      ['Q-2', 'viewed', '+234 803 555 0101'],
+      ['Q-1', 'sent', null],
+    ]);
+    const viewed = await QuoteModel.findOne({
+      businessId: owner.session.business.id,
+      quoteNumber: 'Q-2',
+    }).lean();
+    expect(dashboard.awaitingQuotes[0]?.publicToken).toBe(viewed?.publicToken);
+    // The latest accepted first.
+    expect(dashboard.readyToInvoice.map((quote) => quote.quoteNumber)).toEqual(['Q-7', 'Q-5']);
   });
 
   it('totals invoices in the business currency and applies the overdue rule', async () => {
@@ -165,19 +204,14 @@ describe.skipIf(!TEST_DATABASE_URI)('dashboard routes (database)', () => {
 
     expect(dashboard.currency).toBe('USD');
     expect(dashboard.invoices).toEqual({
+      total: 7,
       totalInvoiced: 4 * TOTAL,
       amountPaid: TOTAL + 2 * 3_750,
       outstanding: TOTAL + 2 * (TOTAL - 3_750),
+      outstandingCount: 3,
       overdueCount: 3,
       overdueAmount: TOTAL + (TOTAL - 3_750),
     });
-    expect(dashboard.recentInvoices.map((i) => i.invoiceNumber)).toEqual([
-      'I-7',
-      'I-6',
-      'I-5',
-      'I-4',
-      'I-3',
-    ]);
     // Unpaid and issued, soonest due first.
     expect(dashboard.upcomingInvoices.map((i) => [i.invoiceNumber, i.status])).toEqual([
       ['I-7', 'overdue'],
@@ -204,6 +238,7 @@ describe.skipIf(!TEST_DATABASE_URI)('dashboard routes (database)', () => {
     };
     await make.invoice({
       ...billedLongAgo,
+      customer: { name: 'Amaka Nwankwo' },
       payments: [paidOn(0, 100), paidOn(-29, 200), paidOn(-30, 400), paidOn(-59, 800)],
     });
     // Too old for either period.
@@ -223,6 +258,7 @@ describe.skipIf(!TEST_DATABASE_URI)('dashboard routes (database)', () => {
       status: 'viewed',
       issueDate: dayFromToday(-3),
       expiryDate: dayFromToday(9),
+      customer: { name: 'Musa Ibrahim' },
     });
     await make.quote({
       status: 'accepted',
@@ -249,24 +285,29 @@ describe.skipIf(!TEST_DATABASE_URI)('dashboard routes (database)', () => {
       activity.days.reduce((total, day) => total + day[field], 0);
     expect([sum('paid'), sum('quoted')]).toEqual([300, 2 * TOTAL]);
     expect(activity.previous).toEqual({ paid: 400 + 800, quoted: TOTAL });
+    // Each payment and quote behind the days, oldest first.
+    expect(activity.entries).toEqual({
+      paid: [
+        { date: date(-29), amount: 200, customerName: 'Amaka Nwankwo' },
+        { date: date(0), amount: 100, customerName: 'Amaka Nwankwo' },
+      ],
+      quoted: [
+        { date: date(-3), amount: TOTAL, customerName: 'Musa Ibrahim' },
+        { date: date(0), amount: TOTAL, customerName: 'Olivia Harper' },
+      ],
+    });
   });
 
-  it('lists the newest active customers only', async () => {
+  it('counts active customers only', async () => {
     const app = createAuthTestApp();
     const owner = await registerOwner(app);
     const make = fixtures(owner);
-    for (const name of ['Ada', 'Bola', 'Chidi', 'Dayo', 'Efe', 'Femi']) await make.customer(name);
+    for (const name of ['Ada', 'Bola', 'Chidi']) await make.customer(name);
     await make.customer('Gone', new Date());
 
     const dashboard = dataOf<DashboardDto>(await getDashboard(app, owner.session.accessToken));
 
-    expect(dashboard.recentCustomers.map((c) => c.name)).toEqual([
-      'Femi',
-      'Efe',
-      'Dayo',
-      'Chidi',
-      'Bola',
-    ]);
+    expect(dashboard.customers).toEqual({ total: 3 });
   });
 
   it("never includes another business's documents", async () => {
@@ -292,12 +333,14 @@ describe.skipIf(!TEST_DATABASE_URI)('dashboard routes (database)', () => {
     const dashboard = dataOf<DashboardDto>(await getDashboard(app, owner.session.accessToken));
 
     expect(dashboard.quotes.total).toBe(0);
+    expect(dashboard.invoices.total).toBe(0);
     expect(dashboard.invoices.totalInvoiced).toBe(0);
+    expect(dashboard.customers.total).toBe(0);
     expect(dashboard.activity.previous).toEqual({ paid: 0, quoted: 0 });
     expect(dashboard.activity.days.every((day) => day.paid === 0 && day.quoted === 0)).toBe(true);
-    expect(dashboard.recentQuotes).toEqual([]);
-    expect(dashboard.recentInvoices).toEqual([]);
-    expect(dashboard.recentCustomers).toEqual([]);
+    expect(dashboard.activity.entries).toEqual({ paid: [], quoted: [] });
+    expect(dashboard.awaitingQuotes).toEqual([]);
+    expect(dashboard.readyToInvoice).toEqual([]);
     expect(dashboard.upcomingInvoices).toEqual([]);
   });
 });

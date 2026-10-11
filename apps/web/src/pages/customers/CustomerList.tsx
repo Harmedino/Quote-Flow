@@ -14,8 +14,9 @@ function ArchivedBadge() {
 }
 
 const HEAD =
-  'px-4 py-3 text-left text-xs font-medium tracking-wide whitespace-nowrap text-stone-500 uppercase';
-const EMPTY = <span className="text-stone-400">—</span>;
+  'border-y border-line px-3 py-2 text-left label-mono font-medium whitespace-nowrap text-muted';
+const CELL = 'border-b border-line px-3 py-2.5';
+const EMPTY = <span className="text-muted">—</span>;
 
 /** Customers as a table from `md` up and as rows with initials below it, inside the list panel. */
 export function CustomerList({ customers }: { customers: CustomerDto[] }) {
@@ -29,7 +30,7 @@ export function CustomerList({ customers }: { customers: CustomerDto[] }) {
         <table className="w-full text-sm">
           <thead className="bg-surface-muted">
             <tr>
-              <th scope="col" className={cn(HEAD, 'pl-5')}>
+              <th scope="col" className={cn(HEAD, 'pl-6')}>
                 Name
               </th>
               <th scope="col" className={HEAD}>
@@ -38,18 +39,18 @@ export function CustomerList({ customers }: { customers: CustomerDto[] }) {
               <th scope="col" className={HEAD}>
                 Email
               </th>
-              <th scope="col" className={cn(HEAD, 'pr-5 text-right')}>
+              <th scope="col" className={cn(HEAD, 'pr-6 text-right')}>
                 Added
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-stone-100">
+          <tbody className="[&>tr:last-child>td]:border-b-0">
             {customers.map((customer) => (
               <tr
                 key={customer.id}
-                className="group relative transition-colors focus-within:bg-stone-50 hover:bg-stone-50"
+                className="group relative transition-colors focus-within:bg-surface-muted hover:bg-surface-muted"
               >
-                <td className="max-w-80 py-3 pr-4 pl-5">
+                <td className={cn(CELL, 'max-w-80 pl-6')}>
                   <div className="flex items-center gap-3">
                     <Avatar name={customer.name} size="sm" />
                     <div className="min-w-0">
@@ -57,25 +58,27 @@ export function CustomerList({ customers }: { customers: CustomerDto[] }) {
                         {/* The link covers the whole row, so any part of it opens the customer. */}
                         <Link
                           to={paths.customer(customer.id)}
-                          className="truncate rounded-sm font-medium text-stone-900 after:absolute after:inset-0 group-hover:text-brand-700"
+                          className="truncate rounded-sm font-[650] text-ink after:absolute after:inset-0 group-hover:text-primary-ink"
                         >
                           {customer.name}
                         </Link>
                         {customer.archivedAt && <ArchivedBadge />}
                       </div>
                       {customer.company && (
-                        <p className="truncate text-xs text-stone-500">{customer.company}</p>
+                        <p className="truncate text-[12.5px] text-muted">{customer.company}</p>
                       )}
                     </div>
                   </div>
                 </td>
-                <td className="px-4 py-3 whitespace-nowrap text-stone-600 tabular-nums">
+                <td className={cn(CELL, 'whitespace-nowrap text-ink-2 tabular-nums')}>
                   {customer.phone ?? EMPTY}
                 </td>
-                <td className="max-w-64 truncate px-4 py-3 text-stone-600">
+                <td className={cn(CELL, 'max-w-64 truncate text-ink-2')}>
                   {customer.email ?? EMPTY}
                 </td>
-                <td className="py-3 pr-5 pl-4 text-right whitespace-nowrap text-stone-500">
+                <td
+                  className={cn(CELL, 'pr-6 text-right text-[13px] whitespace-nowrap text-muted')}
+                >
                   {added(customer)}
                 </td>
               </tr>
@@ -84,7 +87,7 @@ export function CustomerList({ customers }: { customers: CustomerDto[] }) {
         </table>
       </div>
 
-      <ul className="divide-y divide-stone-100 md:hidden">
+      <ul className="divide-y divide-line md:hidden">
         {customers.map((customer) => {
           const secondary = [customer.company, customer.phone ?? customer.email]
             .filter(Boolean)
@@ -93,19 +96,21 @@ export function CustomerList({ customers }: { customers: CustomerDto[] }) {
             <li key={customer.id}>
               <Link
                 to={paths.customer(customer.id)}
-                className="flex items-center gap-3 px-3.5 py-3 transition-colors hover:bg-stone-50 focus-visible:outline-offset-[-2px] active:bg-stone-100"
+                className="grid grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-3 px-3.5 py-3 transition-colors hover:bg-surface-muted focus-visible:outline-offset-[-2px] active:bg-canvas-deep"
               >
                 <Avatar name={customer.name} size="md" />
-                <div className="min-w-0 flex-1">
-                  <p className="flex items-center gap-2">
-                    <span className="truncate font-medium text-stone-900">{customer.name}</span>
+                <span className="min-w-0">
+                  <span className="flex items-center gap-2">
+                    <span className="truncate text-[14.5px] font-semibold text-ink">
+                      {customer.name}
+                    </span>
                     {customer.archivedAt && <ArchivedBadge />}
-                  </p>
-                  <p className="truncate text-sm text-stone-500">
+                  </span>
+                  <span className="mt-px block truncate text-[12.5px] text-muted">
                     {secondary || `Added ${added(customer)}`}
-                  </p>
-                </div>
-                <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-stone-400" />
+                  </span>
+                </span>
+                <ChevronRight aria-hidden="true" className="size-4 text-muted" />
               </Link>
             </li>
           );
@@ -117,10 +122,10 @@ export function CustomerList({ customers }: { customers: CustomerDto[] }) {
 
 export function CustomerListSkeleton({ rows = 6 }: { rows?: number }) {
   return (
-    <div role="status" aria-label="Loading customers" className="divide-y divide-stone-100">
+    <div role="status" aria-label="Loading customers" className="divide-y divide-line">
       {Array.from({ length: rows }, (_, index) => (
-        <div key={index} className="flex items-center gap-3 px-4 py-3 md:px-5">
-          <Skeleton className="size-10 rounded-full md:size-8" />
+        <div key={index} className="flex items-center gap-3 px-3.5 py-3 md:px-6">
+          <Skeleton className="size-9 md:size-8" />
           <div className="min-w-0 flex-1 space-y-2">
             <Skeleton className="h-4 w-40 max-w-full" />
             <Skeleton className="h-3 w-28 md:hidden" />

@@ -13,7 +13,7 @@ export const QUOTE_STATUS_LABELS: Record<QuoteStatus, string> = {
   sent: 'Sent',
   viewed: 'Viewed',
   accepted: 'Accepted',
-  rejected: 'Rejected',
+  rejected: 'Declined',
   expired: 'Expired',
 };
 
@@ -30,7 +30,7 @@ export type InvoiceStatus = (typeof INVOICE_STATUSES)[number];
 export const INVOICE_STATUS_LABELS: Record<InvoiceStatus, string> = {
   draft: 'Draft',
   sent: 'Sent',
-  partially_paid: 'Partially paid',
+  partially_paid: 'Part paid',
   paid: 'Paid',
   overdue: 'Overdue',
   cancelled: 'Cancelled',

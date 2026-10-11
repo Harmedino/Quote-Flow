@@ -1,11 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { THEME_STORAGE_KEY, ThemeStore } from './theme';
+import { THEME_STORAGE_KEY, ThemeStore, setPageToolbarColor, themeStore } from './theme';
 
 type Handler = (event: { matches?: boolean; key?: string; newValue?: string | null }) => void;
 
 let stored: Map<string, string>;
 let systemDark: boolean;
 let darkClass: boolean;
+let toolbarColor: string | null;
 let mediaHandlers: Set<Handler>;
 let windowHandlers: Set<Handler>;
 
@@ -22,6 +23,7 @@ beforeEach(() => {
   stored = new Map();
   systemDark = false;
   darkClass = false;
+  toolbarColor = null;
   mediaHandlers = new Set();
   windowHandlers = new Set();
   vi.stubGlobal('localStorage', {
@@ -47,6 +49,14 @@ beforeEach(() => {
         },
       },
     },
+    querySelector: (selector: string) =>
+      selector === 'meta[name="theme-color"]'
+        ? {
+            setAttribute: (name: string, value: string) => {
+              if (name === 'content') toolbarColor = value;
+            },
+          }
+        : null,
   });
 });
 
@@ -137,5 +147,20 @@ describe('ThemeStore', () => {
     unsubscribe();
     expect(mediaHandlers.size).toBe(0);
     expect(windowHandlers.size).toBe(0);
+  });
+});
+
+describe('setPageToolbarColor', () => {
+  it('colours the browser toolbar for a page, then hands it back to the theme', () => {
+    themeStore.setTheme('dark');
+    expect(toolbarColor).toBe('#111b2d');
+
+    setPageToolbarColor('#0f6b78');
+    expect(toolbarColor).toBe('#0f6b78');
+    themeStore.setTheme('light');
+    expect(toolbarColor).toBe('#0f6b78');
+
+    setPageToolbarColor(null);
+    expect(toolbarColor).toBe('#fffdf9');
   });
 });

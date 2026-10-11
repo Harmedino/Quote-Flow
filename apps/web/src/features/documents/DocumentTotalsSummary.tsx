@@ -11,7 +11,16 @@ export interface DocumentTotalsSummaryProps {
   currency: CurrencyCode;
 }
 
-/** Live subtotal → discount → tax → total for a document being edited. */
+function Line({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-4">
+      <dt>{label}</dt>
+      <dd className="money text-sm font-medium text-ink">{value}</dd>
+    </div>
+  );
+}
+
+/** Live subtotal → discount → tax → total for a document being edited, set like a till slip. */
 export function DocumentTotalsSummary({
   items,
   discount,
@@ -21,7 +30,7 @@ export function DocumentTotalsSummary({
   const totals = draftTotals(items, discount, taxRate);
   if (!totals) {
     return (
-      <p role="status" className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+      <p role="status" className="rounded-lg bg-warning-tint px-3 py-2 text-sm text-warning">
         These amounts are too large to total. Check the quantities, prices, discount and tax rate.
       </p>
     );
@@ -29,28 +38,15 @@ export function DocumentTotalsSummary({
   const money = (amount: number) => formatMoney(amount, currency);
 
   return (
-    <dl className="space-y-2.5 text-sm text-stone-600" aria-live="polite" aria-atomic="true">
-      <div className="flex items-baseline justify-between gap-4">
-        <dt>Subtotal</dt>
-        <dd className="text-stone-900 tabular-nums">{money(totals.subtotal)}</dd>
-      </div>
+    <dl className="space-y-2 text-sm text-ink-2" aria-live="polite" aria-atomic="true">
+      <Line label="Subtotal" value={money(totals.subtotal)} />
       {totals.discount > 0 && (
-        <div className="flex items-baseline justify-between gap-4">
-          <dt>{discountLabel(discount)}</dt>
-          <dd className="text-stone-900 tabular-nums">−{money(totals.discount)}</dd>
-        </div>
+        <Line label={discountLabel(discount)} value={`−${money(totals.discount)}`} />
       )}
-      {taxRate > 0 && (
-        <div className="flex items-baseline justify-between gap-4">
-          <dt>Tax ({formatPercent(taxRate)})</dt>
-          <dd className="text-stone-900 tabular-nums">{money(totals.tax)}</dd>
-        </div>
-      )}
-      <div className="flex items-baseline justify-between gap-4 border-t border-stone-200 pt-3">
-        <dt className="font-semibold text-stone-900">Total</dt>
-        <dd className="font-display text-2xl font-semibold tracking-tight text-stone-900 tabular-nums">
-          {money(totals.total)}
-        </dd>
+      {taxRate > 0 && <Line label={`Tax (${formatPercent(taxRate)})`} value={money(totals.tax)} />}
+      <div className="flex items-baseline justify-between gap-4 border-t-[1.5px] border-dashed border-line-strong pt-2.5">
+        <dt className="font-semibold text-ink">Total</dt>
+        <dd className="money text-[15px] text-ink">{money(totals.total)}</dd>
       </div>
     </dl>
   );

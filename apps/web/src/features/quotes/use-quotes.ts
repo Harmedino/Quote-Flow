@@ -69,11 +69,16 @@ export function useDuplicateQuote() {
   return useMutation({ mutationFn: duplicateQuote, onSuccess: onSaved });
 }
 
-export function useDeleteQuote() {
+/**
+ * Deletes a draft quote. `leave` moves off its page first: dropping the cached quote while that
+ * page still shows it would make the page fetch it again, and get a 404.
+ */
+export function useDeleteQuote(leave: () => void | Promise<void>) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: deleteQuote,
-    onSuccess: (_result, id) => {
+    onSuccess: async (_result, id) => {
+      await leave();
       queryClient.removeQueries({ queryKey: quoteKeys.detail(id) });
       void queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       return queryClient.invalidateQueries({ queryKey: quoteKeys.lists() });

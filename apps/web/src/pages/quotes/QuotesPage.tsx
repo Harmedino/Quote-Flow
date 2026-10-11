@@ -28,6 +28,8 @@ export default function QuotesPage() {
   const quotes = useQuotesQuery(toQuoteListQuery(listParams));
 
   const filtered = listParams.status !== 'all' || listParams.search !== '';
+  // With no quotes yet, the empty state holds the only call to action and there is nothing to filter.
+  const empty = quotes.data?.meta.total === 0 && !filtered;
   const statusLabel = QUOTE_STATUS_TABS.find((tab) => tab.value === listParams.status)?.label;
 
   function clearFilters() {
@@ -113,26 +115,32 @@ export default function QuotesPage() {
         title="Quotes"
         description="Create, send and track quotes for your customers."
         actions={
-          <ButtonLink to={paths.newQuote}>
-            <Plus aria-hidden="true" />
-            New quote
-          </ButtonLink>
+          !empty && (
+            <ButtonLink to={paths.newQuote}>
+              <Plus aria-hidden="true" />
+              New quote
+            </ButtonLink>
+          )
         }
       />
 
       <div className="space-y-4">
-        <StatusTabs current={listParams.status} />
-        <ListToolbar>
-          <ListSearch
-            value={listParams.search}
-            onSearch={(search) =>
-              setParams(writeQuoteListParams(params, { search }), { replace: true })
-            }
-            label="Search quotes"
-            placeholder="Search number or customer"
-            className="w-full sm:max-w-xs"
-          />
-        </ListToolbar>
+        {!empty && (
+          <>
+            <StatusTabs current={listParams.status} />
+            <ListToolbar>
+              <ListSearch
+                value={listParams.search}
+                onSearch={(search) =>
+                  setParams(writeQuoteListParams(params, { search }), { replace: true })
+                }
+                label="Search quotes"
+                placeholder="Search number or customer"
+                className="w-full sm:max-w-xs"
+              />
+            </ListToolbar>
+          </>
+        )}
         {renderContent()}
       </div>
     </>

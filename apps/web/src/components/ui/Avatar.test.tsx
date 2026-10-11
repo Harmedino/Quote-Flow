@@ -11,11 +11,19 @@ describe('Avatar', () => {
     expect(renderToStaticMarkup(<Avatar name="Adaeze Okafor" />)).toBe(first);
   });
 
-  it('uses a fixed tone and tile shape when asked', () => {
-    const html = renderToStaticMarkup(<Avatar name="Evergreen" tone="highlight" shape="square" />);
+  it('uses a fixed tone and shape when asked', () => {
+    const html = renderToStaticMarkup(<Avatar name="Tolu Adebayo" tone="navy" shape="circle" />);
 
-    expect(html).toContain('bg-highlight text-ink');
-    expect(html).toContain('rounded-xl');
+    expect(html).toContain('bg-navy text-on-navy');
+    expect(html).toContain('rounded-full');
+  });
+
+  it('fills the tile with a brand colour and picks readable letters', () => {
+    const html = renderToStaticMarkup(<Avatar name="Lagoon Home" brandColor="#0F6B78" />);
+
+    expect(html).toContain('background-color:#0f6b78');
+    expect(html).toContain('color:#ffffff');
+    expect(html).not.toContain('bg-avatar-');
   });
 
   it('never renders an empty tile', () => {

@@ -1,15 +1,16 @@
 import type { QuoteListItemDto } from '@quoteflow/shared';
 import { Link } from 'react-router';
 import { paths } from '@/app/paths';
-import { QuoteStatusAccent, QuoteStatusBadge } from '@/components/StatusBadge';
+import { QuoteStatusBadge } from '@/components/StatusBadge';
 import { Avatar } from '@/components/ui/Avatar';
+import { MetaLine } from '@/components/ui/MetaLine';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { cn } from '@/lib/cn';
 import { formatCalendarDate, formatMoney } from '@/lib/format';
 
 const HEAD =
-  'px-4 py-3 text-left text-xs font-medium tracking-wide whitespace-nowrap text-stone-500 uppercase';
-const CELL = 'px-4 py-3 whitespace-nowrap';
+  'border-y border-line px-3 py-2 text-left label-mono font-medium whitespace-nowrap text-muted';
+const CELL = 'border-b border-line px-3 py-2.5 whitespace-nowrap';
 
 /**
  * A table from `md` up and stacked rows below, inside the list panel; each row links to the
@@ -22,7 +23,7 @@ export function QuoteListResults({ quotes }: { quotes: QuoteListItemDto[] }) {
         <table className="w-full text-sm">
           <thead className="bg-surface-muted">
             <tr>
-              <th scope="col" className={cn(HEAD, 'pl-5')}>
+              <th scope="col" className={cn(HEAD, 'pl-6')}>
                 Customer
               </th>
               <th scope="col" className={HEAD}>
@@ -37,47 +38,45 @@ export function QuoteListResults({ quotes }: { quotes: QuoteListItemDto[] }) {
               <th scope="col" className={HEAD}>
                 Status
               </th>
-              <th scope="col" className={cn(HEAD, 'pr-5 text-right')}>
+              <th scope="col" className={cn(HEAD, 'pr-6 text-right')}>
                 Total
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-stone-100">
+          <tbody className="[&>tr:last-child>td]:border-b-0">
             {quotes.map((quote) => (
               <tr
                 key={quote.id}
-                className="relative transition-colors focus-within:bg-stone-50 hover:bg-stone-50"
+                className="relative transition-colors focus-within:bg-surface-muted hover:bg-surface-muted"
               >
-                <td className={cn(CELL, 'max-w-72 pl-5')}>
+                <td className={cn(CELL, 'max-w-72 pl-6')}>
                   <div className="flex items-center gap-3">
                     <Avatar name={quote.customerName} size="sm" />
-                    <span className="truncate font-medium text-stone-900">
-                      {quote.customerName}
-                    </span>
+                    <span className="truncate font-[650] text-ink">{quote.customerName}</span>
                   </div>
                 </td>
                 <td className={CELL}>
                   {/* The link covers the whole row, so any part of it opens the quote. */}
                   <Link
                     to={paths.quote(quote.id)}
-                    className="rounded-sm font-mono text-[13px] text-stone-600 after:absolute after:inset-0 hover:text-brand-700"
+                    className="rounded-sm font-mono text-[12.5px] text-ink-2 after:absolute after:inset-0 hover:text-primary-ink"
                   >
                     {quote.quoteNumber}
                   </Link>
                 </td>
-                <td className={cn(CELL, 'text-stone-600')}>
+                <td className={cn(CELL, 'text-[13px] text-ink-2')}>
                   {formatCalendarDate(quote.issueDate)}
                 </td>
-                <td className={cn(CELL, 'text-stone-600')}>
+                <td className={cn(CELL, 'text-[13px] text-ink-2')}>
                   {formatCalendarDate(quote.expiryDate)}
                 </td>
                 <td className={CELL}>
                   <QuoteStatusBadge status={quote.status} />
                 </td>
-                <td
-                  className={cn(CELL, 'pr-5 text-right font-semibold text-stone-900 tabular-nums')}
-                >
-                  {formatMoney(quote.total, quote.currency)}
+                <td className={cn(CELL, 'pr-6 text-right')}>
+                  <span className="money text-[14px] text-ink">
+                    {formatMoney(quote.total, quote.currency)}
+                  </span>
                 </td>
               </tr>
             ))}
@@ -85,26 +84,29 @@ export function QuoteListResults({ quotes }: { quotes: QuoteListItemDto[] }) {
         </table>
       </div>
 
-      <ul className="divide-y divide-stone-100 md:hidden">
+      <ul className="divide-y divide-line md:hidden">
         {quotes.map((quote) => (
           <li key={quote.id}>
             <Link
               to={paths.quote(quote.id)}
-              className="flex items-center gap-3 px-3.5 py-3 transition-colors hover:bg-stone-50 focus-visible:outline-offset-[-2px] active:bg-stone-100"
+              className="grid grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-3 px-3.5 py-3 transition-colors hover:bg-surface-muted focus-visible:outline-offset-[-2px] active:bg-canvas-deep"
             >
-              <QuoteStatusAccent status={quote.status} />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-stone-900">{quote.customerName}</p>
-                <p className="mt-0.5 text-xs text-stone-500">
-                  {quote.quoteNumber} · Valid until {formatCalendarDate(quote.expiryDate)}
-                </p>
-              </div>
-              <div className="flex shrink-0 flex-col items-end gap-1">
-                <span className="text-sm font-semibold text-stone-900 tabular-nums">
+              <Avatar name={quote.customerName} size="md" />
+              <span className="min-w-0">
+                <span className="block truncate text-[14.5px] font-semibold text-ink">
+                  {quote.customerName}
+                </span>
+                <MetaLine className="mt-px text-[12.5px] text-muted">
+                  <span className="font-mono">{quote.quoteNumber}</span>
+                  <span>Valid until {formatCalendarDate(quote.expiryDate)}</span>
+                </MetaLine>
+              </span>
+              <span className="flex flex-col items-end gap-1.5">
+                <span className="money text-[13.5px] text-ink">
                   {formatMoney(quote.total, quote.currency)}
                 </span>
                 <QuoteStatusBadge status={quote.status} />
-              </div>
+              </span>
             </Link>
           </li>
         ))}
@@ -115,14 +117,14 @@ export function QuoteListResults({ quotes }: { quotes: QuoteListItemDto[] }) {
 
 export function QuoteListSkeleton() {
   return (
-    <div role="status" aria-label="Loading quotes" className="divide-y divide-stone-100">
+    <div role="status" aria-label="Loading quotes" className="divide-y divide-line">
       {Array.from({ length: 6 }, (_, index) => (
-        <div key={index} className="flex items-center gap-4 px-4 py-3.5 md:px-5">
-          <Skeleton className="hidden size-8 rounded-full md:block" />
+        <div key={index} className="flex items-center gap-4 px-3.5 py-3.5 md:px-6">
+          <Skeleton className="size-9 md:size-8" />
           <Skeleton className="h-4 flex-1" />
           <Skeleton className="hidden h-4 w-24 md:block" />
           <Skeleton className="hidden h-4 w-24 md:block" />
-          <Skeleton className="h-5 w-16 rounded-full" />
+          <Skeleton className="h-5.5 w-16 rounded-[5px]" />
           <Skeleton className="h-4 w-20" />
         </div>
       ))}

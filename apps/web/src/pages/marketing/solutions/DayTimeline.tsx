@@ -2,6 +2,8 @@ import { Reveal } from '@/components/marketing/Reveal';
 import { ScreenFrame } from '@/components/marketing/ScreenFrame';
 import { SectionHeading } from '@/components/marketing/SectionHeading';
 import { SCREENS } from '@/components/marketing/screens';
+import { SITE_CONTAINER } from '@/components/marketing/site-container';
+import { cn } from '@/lib/cn';
 import { naira } from '../sample-money';
 
 const TIMELINE = [
@@ -37,28 +39,35 @@ const TIMELINE = [
   },
 ];
 
-/** One working day for a cleaning business, from the viewing to the first payment. */
+/** One working day for a cleaning business, from the viewing to the first payment, on a ruler. */
 export function DayTimeline() {
   return (
-    <section aria-labelledby="day-title" className="border-t border-stone-200/70">
-      <div className="mx-auto grid max-w-6xl items-center gap-14 px-4 py-20 sm:px-6 sm:py-28 lg:grid-cols-[1.1fr_0.9fr] lg:px-8">
+    <section aria-labelledby="day-title" className="mb-14 border-y border-line bg-surface sm:mb-22">
+      <div
+        className={cn(
+          SITE_CONTAINER,
+          'grid items-center gap-14 py-20 sm:py-28 lg:grid-cols-[1.1fr_0.9fr]',
+        )}
+      >
         <div>
           <SectionHeading
             id="day-title"
             eyebrow="A day with QuoteFlow"
             title="One cleaning job, from viewing to payment."
           />
-          <ol className="relative mt-10 space-y-8 border-l border-stone-300 pl-7">
+          <ol className="relative mt-10 space-y-8 border-l-2 border-dashed border-line-strong pl-7">
             {TIMELINE.map((entry, index) => (
               <li key={entry.time} className="relative">
                 <Reveal delay={index * 50}>
                   <span
                     aria-hidden="true"
-                    className="absolute top-1 -left-[33px] size-3 rounded-full border-2 border-paper bg-brand-600 ring-4 ring-brand-100"
+                    className="absolute top-1 -left-[35px] size-3 rotate-45 bg-primary ring-4 ring-surface"
                   />
-                  <p className="font-mono text-xs font-semibold text-brand-700">{entry.time}</p>
-                  <h3 className="mt-1 text-lg font-semibold text-stone-900">{entry.title}</h3>
-                  <p className="mt-1 text-[0.9375rem] text-pretty text-stone-600">{entry.body}</p>
+                  <p className="font-mono text-xs font-semibold text-primary-ink">{entry.time}</p>
+                  <h3 className="mt-1 text-lg font-[750] text-ink font-stretch-112%">
+                    {entry.title}
+                  </h3>
+                  <p className="mt-1 text-[0.9375rem] text-pretty text-ink-2">{entry.body}</p>
                 </Reveal>
               </li>
             ))}

@@ -132,12 +132,12 @@ export function InvoiceEditor({
       }}
     >
       {formError && (
-        <Alert tone="danger" className="mb-6">
+        <Alert tone="danger" className="mb-5">
           {formError}
         </Alert>
       )}
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start">
-        <div className="min-w-0 space-y-6">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_21rem] xl:items-start">
+        <div className="min-w-0 space-y-5">
           <EditorSection
             step={1}
             title="Customer"
@@ -253,7 +253,7 @@ export function InvoiceEditor({
           taxRate={taxRate}
           currency={currency}
           note="Saved as a draft. You can review it, then mark it as sent or share it with your customer."
-          className="sticky top-8 hidden xl:block"
+          className="sticky top-[5.75rem] max-xl:hidden"
         >
           <Button type="submit" size="lg" className="w-full" loading={saving}>
             {saveLabel}

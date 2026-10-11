@@ -4,7 +4,7 @@ import { PageLoader } from '@/components/PageLoader';
 import { redirectSignedIn, requireSession } from '@/features/auth/route-guards';
 import { paths } from './paths';
 import { RootRoute } from './RootRoute';
-import { RouteErrorBoundary } from './RouteErrorBoundary';
+import { RootErrorBoundary, RouteErrorBoundary } from './RouteErrorBoundary';
 
 interface RouteModule {
   default: ComponentType;
@@ -28,7 +28,7 @@ function withErrorBoundary(children: RouteObject[]): RouteObject {
 export const routes: RouteObject[] = [
   {
     Component: RootRoute,
-    ErrorBoundary: RouteErrorBoundary,
+    ErrorBoundary: RootErrorBoundary,
     HydrateFallback: PageLoader,
     children: [
       {

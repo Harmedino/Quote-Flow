@@ -12,10 +12,10 @@ export function Select({ className, ...props }: ComponentProps<'select'>) {
   const controlProps = useFieldControlProps(props);
   return (
     <div className={cn('relative', className)}>
-      <select className={cn(CONTROL_CLASSES, 'h-10 appearance-none pr-9')} {...controlProps} />
+      <select className={cn(CONTROL_CLASSES, 'h-10.5 appearance-none pr-9')} {...controlProps} />
       <ChevronDown
         aria-hidden="true"
-        className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-stone-500"
+        className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted"
       />
     </div>
   );

@@ -4,65 +4,65 @@ import {
   QUOTE_STATUS_LABELS,
   type QuoteStatus,
 } from '@quoteflow/shared';
-import { Badge, type BadgeTone } from '@/components/ui/Badge';
+import { HangTag, type HangTagTone } from '@/components/ui/HangTag';
 import { cn } from '@/lib/cn';
 
-const QUOTE_TONES: Record<QuoteStatus, BadgeTone> = {
-  draft: 'neutral',
-  sent: 'info',
-  // Not green, so a viewed quote never reads as accepted.
-  viewed: 'accent',
-  accepted: 'success',
-  rejected: 'danger',
-  expired: 'warning',
+const QUOTE_TONES: Record<QuoteStatus, HangTagTone> = {
+  draft: 'draft',
+  sent: 'sent',
+  // Teal, not green, so a viewed quote never reads as accepted.
+  viewed: 'viewed',
+  accepted: 'accepted',
+  rejected: 'declined',
+  expired: 'expired',
 };
 
-const INVOICE_TONES: Record<InvoiceStatus, BadgeTone> = {
-  draft: 'neutral',
-  sent: 'info',
-  partially_paid: 'warning',
-  paid: 'success',
-  overdue: 'danger',
-  cancelled: 'neutral',
+const INVOICE_TONES: Record<InvoiceStatus, HangTagTone> = {
+  draft: 'draft',
+  sent: 'sent',
+  partially_paid: 'partial',
+  paid: 'paid',
+  overdue: 'overdue',
+  cancelled: 'draft',
 };
 
-const QUOTE_ACCENTS: Record<QuoteStatus, string> = {
-  draft: 'bg-stone-300',
-  sent: 'bg-blue-400',
-  viewed: 'bg-violet-400',
-  accepted: 'bg-green-500',
-  rejected: 'bg-red-400',
-  expired: 'bg-amber-400',
-};
-
-const INVOICE_ACCENTS: Record<InvoiceStatus, string> = {
-  draft: 'bg-stone-300',
-  sent: 'bg-blue-400',
-  partially_paid: 'bg-amber-400',
-  paid: 'bg-green-500',
-  overdue: 'bg-red-400',
-  cancelled: 'bg-stone-300',
-};
-
+/** A quote's status as a hang-tag chip. */
 export function QuoteStatusBadge({ status }: { status: QuoteStatus }) {
-  return <Badge tone={QUOTE_TONES[status]}>{QUOTE_STATUS_LABELS[status]}</Badge>;
+  return <HangTag tone={QUOTE_TONES[status]}>{QUOTE_STATUS_LABELS[status]}</HangTag>;
 }
 
+/** An invoice's status as a hang-tag chip: solid red when overdue, solid green when paid. */
 export function InvoiceStatusBadge({ status }: { status: InvoiceStatus }) {
-  return <Badge tone={INVOICE_TONES[status]}>{INVOICE_STATUS_LABELS[status]}</Badge>;
+  return <HangTag tone={INVOICE_TONES[status]}>{INVOICE_STATUS_LABELS[status]}</HangTag>;
 }
 
-/** A thin status-coloured bar at the start of a list row. Decorative: the badge names the status. */
-function StatusAccent({ color }: { color: string }) {
+const ACCENTS: Record<HangTagTone, string> = {
+  draft: 'bg-line-strong',
+  sent: 'bg-sent',
+  viewed: 'bg-viewed',
+  accepted: 'bg-accepted',
+  declined: 'bg-declined',
+  expired: 'bg-expired',
+  partial: 'bg-partial',
+  // Overdue rows carry the red hazard tape.
+  overdue: 'hazard-tape-overdue',
+  paid: 'bg-paid-fill',
+};
+
+/** A thin status-coloured edge at the start of a list row. Decorative: the tag names the status. */
+function StatusAccent({ tone }: { tone: HangTagTone }) {
   return (
-    <span aria-hidden="true" className={cn('w-0.5 shrink-0 self-stretch rounded-full', color)} />
+    <span
+      aria-hidden="true"
+      className={cn('w-1 shrink-0 self-stretch rounded-full', ACCENTS[tone])}
+    />
   );
 }
 
 export function QuoteStatusAccent({ status }: { status: QuoteStatus }) {
-  return <StatusAccent color={QUOTE_ACCENTS[status]} />;
+  return <StatusAccent tone={QUOTE_TONES[status]} />;
 }
 
 export function InvoiceStatusAccent({ status }: { status: InvoiceStatus }) {
-  return <StatusAccent color={INVOICE_ACCENTS[status]} />;
+  return <StatusAccent tone={INVOICE_TONES[status]} />;
 }

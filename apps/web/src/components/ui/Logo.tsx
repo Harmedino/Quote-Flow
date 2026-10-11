@@ -1,38 +1,44 @@
 import { APP_NAME } from '@/app/constants';
 import { cn } from '@/lib/cn';
 
-export interface LogoMarkProps {
-  className?: string;
-  /** Lifts the tile off ink backgrounds (sidebar, top bar, dark sections). */
-  onDark?: boolean;
-}
-
 /**
- * The QuoteFlow mark: a "Q" whose lime tail is the quote moving on. public/favicon.svg is the
- * same drawing on the ink tile; keep the two in step.
+ * The QuoteFlow mark: an orange job ticket with side notches and a navy "Q". public/favicon.svg
+ * is the same drawing in its light colours; keep the two in step.
  */
-export function LogoMark({ className, onDark = false }: LogoMarkProps) {
-  // The raised tile also keeps the mark distinct on the near-black dark-mode page.
-  const tile = onDark ? 'fill-ink-700' : 'fill-ink dark:fill-ink-700';
+export function LogoMark({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 64 64" aria-hidden="true" className={cn('shrink-0', className)}>
-      <rect width="64" height="64" rx="16" className={tile} />
-      <circle cx="29.5" cy="30" r="12.5" fill="none" stroke="#fff" strokeWidth="8" />
-      <rect x="29" y="39.5" width="24" height="12" rx="6" className={tile} />
-      <rect x="30.5" y="41" width="21" height="9" rx="4.5" className="fill-highlight" />
+    <svg viewBox="0 0 32 32" aria-hidden="true" className={cn('shrink-0', className)}>
+      <path
+        className="fill-primary"
+        d="M7 2H25A5 5 0 0 1 30 7V12A4 4 0 0 0 30 20V25A5 5 0 0 1 25 30H7A5 5 0 0 1 2 25V20A4 4 0 0 0 2 12V7A5 5 0 0 1 7 2Z"
+      />
+      <circle
+        className="stroke-on-primary"
+        cx="15.6"
+        cy="15.4"
+        r="5.2"
+        fill="none"
+        strokeWidth="3.1"
+      />
+      <path
+        className="stroke-on-primary"
+        d="M18.7 18.6L21.9 21.8"
+        strokeWidth="3.1"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
 
 const SIZES = {
-  sm: { mark: 'size-6', wordmark: 'text-[0.9375rem]', gap: 'gap-2' },
-  md: { mark: 'size-8', wordmark: 'text-lg', gap: 'gap-2.5' },
+  sm: { mark: 'size-6', wordmark: 'text-[15px]', gap: 'gap-2' },
+  md: { mark: 'size-8', wordmark: 'text-[19px]', gap: 'gap-2.5' },
   lg: { mark: 'size-10', wordmark: 'text-2xl', gap: 'gap-3' },
 } as const;
 
 export interface LogoProps {
   size?: keyof typeof SIZES;
-  /** `light` for ink backgrounds: a white wordmark and a raised tile. */
+  /** `light` for navy bands: a paper-coloured wordmark. */
   tone?: 'default' | 'light';
   /** Show only the mark; the name stays available to screen readers. */
   markOnly?: boolean;
@@ -41,17 +47,16 @@ export interface LogoProps {
 
 export function Logo({ size = 'md', tone = 'default', markOnly = false, className }: LogoProps) {
   const styles = SIZES[size];
-  const light = tone === 'light';
   return (
     <span className={cn('inline-flex items-center', styles.gap, className)}>
-      <LogoMark className={styles.mark} onDark={light} />
+      <LogoMark className={styles.mark} />
       <span
         className={
           markOnly
             ? 'sr-only'
             : cn(
-                'font-display font-bold tracking-tight',
-                light ? 'text-white' : 'text-stone-900',
+                'leading-none font-extrabold tracking-[-0.01em] font-stretch-118%',
+                tone === 'light' ? 'text-on-navy' : 'text-ink',
                 styles.wordmark,
               )
         }

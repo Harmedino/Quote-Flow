@@ -77,6 +77,8 @@ export default function InvoicesPage() {
 
   const query = useInvoicesQuery(toInvoiceListQuery(params));
   const filtered = params.status !== null || params.search !== '';
+  // With no invoices yet, the empty state holds the only call to action and there is nothing to filter.
+  const empty = query.data?.meta.total === 0 && !filtered;
 
   function clearFilters() {
     update({ status: null, search: '' });
@@ -129,24 +131,30 @@ export default function InvoicesPage() {
         title="Invoices"
         description="Track what you’re owed and record payments as they come in."
         actions={
-          <ButtonLink to={paths.newInvoice}>
-            <Plus aria-hidden="true" />
-            New invoice
-          </ButtonLink>
+          !empty && (
+            <ButtonLink to={paths.newInvoice}>
+              <Plus aria-hidden="true" />
+              New invoice
+            </ButtonLink>
+          )
         }
       />
 
       <div className="space-y-4">
-        <InvoiceStatusTabs value={params.status} onChange={(status) => update({ status })} />
-        <ListToolbar>
-          <ListSearch
-            value={params.search}
-            onSearch={(search) => update({ search })}
-            label="Search invoices"
-            placeholder="Search number or customer"
-            className="w-full sm:max-w-xs"
-          />
-        </ListToolbar>
+        {!empty && (
+          <>
+            <InvoiceStatusTabs value={params.status} onChange={(status) => update({ status })} />
+            <ListToolbar>
+              <ListSearch
+                value={params.search}
+                onSearch={(search) => update({ search })}
+                label="Search invoices"
+                placeholder="Search number or customer"
+                className="w-full sm:max-w-xs"
+              />
+            </ListToolbar>
+          </>
+        )}
         {content}
       </div>
     </>

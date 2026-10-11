@@ -3,9 +3,13 @@ import { describe, expect, it } from 'vitest';
 import { buildPublicPdfUrl } from './public-api';
 import {
   businessContactLinks,
+  dueNote,
+  invoiceStamp,
   invoiceStatusBanner,
   isAwaitingPayment,
+  quoteStamp,
   quoteStatusBanner,
+  validityNote,
 } from './public-status';
 
 const business: PublicQuoteDto['business'] = {
@@ -130,6 +134,89 @@ describe('invoiceStatusBanner', () => {
   });
 });
 
+describe('quoteStamp', () => {
+  it('stamps an answer with its moment in the viewer’s time zone', () => {
+    expect(
+      quoteStamp(
+        quoteDto({ status: 'accepted', acceptedAt: '2026-10-05T09:47:00.000Z' }).quote,
+        'Africa/Lagos',
+      ),
+    ).toEqual({ tone: 'accepted', label: 'Accepted', detail: 'Oct 5 · 10:47' });
+    expect(
+      quoteStamp(
+        quoteDto({ status: 'rejected', rejectedAt: '2026-10-05T09:47:00.000Z' }).quote,
+        'UTC',
+      ),
+    ).toEqual({ tone: 'declined', label: 'Declined', detail: 'Oct 5 · 09:47' });
+    expect(quoteStamp(quoteDto({ status: 'expired' }).quote, 'UTC')).toEqual({
+      tone: 'expired',
+      label: 'Expired',
+      detail: 'Oct 15, 2026',
+    });
+  });
+
+  it('leaves a quote that is waiting for an answer unstamped', () => {
+    expect(quoteStamp(quoteDto({ status: 'viewed' }).quote, 'UTC')).toBeUndefined();
+  });
+});
+
+describe('invoiceStamp', () => {
+  it('stamps paid, overdue and cancelled invoices', () => {
+    const today = '2026-10-19';
+    expect(
+      invoiceStamp(
+        { status: 'paid', dueDate: '2026-10-15', paidAt: '2026-10-08T00:00:00.000Z' },
+        today,
+      ),
+    ).toEqual({
+      tone: 'paid',
+      label: 'Paid',
+      detail: 'Oct 8, 2026',
+    });
+    expect(invoiceStamp({ status: 'overdue', dueDate: '2026-10-15', paidAt: null }, today)).toEqual(
+      {
+        tone: 'overdue',
+        label: 'Overdue',
+        detail: '4 days',
+      },
+    );
+    expect(
+      invoiceStamp({ status: 'cancelled', dueDate: '2026-10-15', paidAt: null }, today),
+    ).toEqual({
+      tone: 'declined',
+      label: 'Cancelled',
+    });
+    expect(
+      invoiceStamp({ status: 'sent', dueDate: '2026-10-25', paidAt: null }, today),
+    ).toBeUndefined();
+  });
+});
+
+describe('validityNote and dueNote', () => {
+  it('counts the days a waiting quote is still valid', () => {
+    expect(validityNote({ status: 'viewed', expiryDate: '2026-10-19' }, '2026-10-10')).toBe(
+      '9 days left',
+    );
+    expect(validityNote({ status: 'sent', expiryDate: '2026-10-11' }, '2026-10-10')).toBe(
+      '1 day left',
+    );
+    expect(validityNote({ status: 'sent', expiryDate: '2026-10-10' }, '2026-10-10')).toBe(
+      'Last day today',
+    );
+    expect(
+      validityNote({ status: 'accepted', expiryDate: '2026-10-19' }, '2026-10-10'),
+    ).toBeUndefined();
+  });
+
+  it('says when an unpaid invoice is due, but not once it is overdue', () => {
+    expect(dueNote({ status: 'sent', dueDate: '2026-10-13' }, '2026-10-10')).toBe('Due in 3 days');
+    expect(dueNote({ status: 'partially_paid', dueDate: '2026-10-10' }, '2026-10-10')).toBe(
+      'Due today',
+    );
+    expect(dueNote({ status: 'overdue', dueDate: '2026-10-01' }, '2026-10-10')).toBeUndefined();
+  });
+});
+
 describe('isAwaitingPayment', () => {
   it('is true while something is left to pay, overdue included', () => {
     expect(isAwaitingPayment({ status: 'sent' })).toBe(true);
@@ -149,6 +236,8 @@ describe('businessContactLinks', () => {
     const links = businessContactLinks(business, 'Quote QT-0001');
 
     expect(links.map((link) => link.kind)).toEqual(['phone', 'whatsapp', 'email']);
+    expect(links.map((link) => link.label)).toEqual(['Call', 'WhatsApp', 'Email']);
+    expect(links[0]?.detail).toBe('+234 801 234 5678');
     expect(links[0]?.href).toBe('tel:+2348012345678');
     expect(links[1]?.href).toMatch(/^https:\/\/wa\.me\/2348012345678\?text=/);
     expect(links[2]?.href).toBe('mailto:hello@sparkle.example?subject=Quote%20QT-0001');

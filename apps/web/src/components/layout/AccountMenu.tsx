@@ -1,9 +1,9 @@
-import { ChevronsUpDown, LogOut, type LucideIcon, Store, UserRound } from 'lucide-react';
+import { USER_ROLE_LABELS } from '@quoteflow/shared';
+import { ChevronDown, LogOut, type LucideIcon, Store, UserRound } from 'lucide-react';
 import { type KeyboardEvent, useEffect, useId, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { paths } from '@/app/paths';
 import { Avatar } from '@/components/ui/Avatar';
-import { Spinner } from '@/components/ui/Spinner';
 import { useSignOut } from '@/features/auth/use-sign-out';
 import { useAuthenticatedSession } from '@/features/auth/use-session';
 import { getErrorMessage } from '@/lib/api-error';
@@ -17,15 +17,15 @@ const LINKS: readonly { label: string; to: string; icon: LucideIcon }[] = [
 ];
 
 const ITEM_CLASSES =
-  'flex h-9 w-full items-center gap-3 rounded-lg px-2.5 text-sm font-medium text-stone-700 outline-none hover:bg-stone-100 hover:text-stone-900 focus-visible:bg-stone-100 focus-visible:text-stone-900 aria-disabled:cursor-wait [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-stone-500';
+  'flex h-10 w-full items-center gap-3 rounded-lg px-2.5 text-sm font-semibold text-ink-2 outline-none hover:bg-surface-muted hover:text-ink focus-visible:bg-surface-muted focus-visible:text-ink focus-visible:shadow-[inset_0_0_0_2px_var(--color-focus)] aria-disabled:cursor-wait [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-muted';
 
 function menuItems(menu: HTMLElement | null): HTMLElement[] {
   return Array.from(menu?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? []);
 }
 
 /**
- * The business and signed-in user at the foot of the ink sidebar, opening a menu with the
- * settings pages and sign out. It follows the ARIA menu button pattern: arrow keys move
+ * The business chip at the end of the desktop top bar (its monogram in its brand colour, the
+ * owner's name and role), opening a menu with the settings pages and sign out. It follows the ARIA menu button pattern: arrow keys move
  * between items, Escape closes and returns focus to the button, Tab or a click outside closes it.
  */
 export function AccountMenu() {
@@ -117,10 +117,10 @@ export function AccountMenu() {
   }
 
   return (
-    <div ref={rootRef} className="relative border-t border-white/10 p-3">
+    <div ref={rootRef} className="relative">
       {open && (
-        <div className="absolute bottom-full left-3 z-40 mb-1 w-72 animate-fade-in-up rounded-xl border border-stone-200 bg-surface p-1.5 text-stone-900 shadow-[var(--shadow-elevated)]">
-          <div className="border-b border-stone-200 px-2.5 pt-2.5 pb-3">
+        <div className="absolute top-full right-0 z-40 mt-2 w-80 animate-fade-in-up rounded-xl bg-surface p-1.5 text-ink shadow-(--shadow-elevated)">
+          <div className="border-b border-line px-2.5 pt-2.5 pb-3">
             <AccountSummary session={session} />
           </div>
           <div
@@ -144,7 +144,7 @@ export function AccountMenu() {
                 {label}
               </Link>
             ))}
-            <div role="separator" className="mx-1 my-1.5 h-px bg-stone-200" />
+            <div role="separator" className="mx-1 my-1.5 h-px bg-line" />
             <button
               type="button"
               role="menuitem"
@@ -157,12 +157,12 @@ export function AccountMenu() {
               }}
               className={ITEM_CLASSES}
             >
-              {signOut.isPending ? <Spinner /> : <LogOut aria-hidden="true" />}
+              <LogOut aria-hidden="true" />
               {signOut.isPending ? 'Signing out…' : 'Sign out'}
             </button>
           </div>
           {signOut.isError && (
-            <p role="alert" className="px-2.5 pt-1 pb-2 text-xs text-red-700">
+            <p role="alert" className="px-2.5 pt-1 pb-2 text-xs font-medium text-danger">
               Couldn’t sign out. {getErrorMessage(signOut.error)}
             </p>
           )}
@@ -178,16 +178,23 @@ export function AccountMenu() {
         aria-controls={open ? menuId : undefined}
         onClick={() => (open ? closeMenu(false) : openMenu('first'))}
         onKeyDown={handleTriggerKeyDown}
-        className="flex w-full items-center gap-2.5 rounded-xl px-2 py-2 text-left transition-colors hover:bg-white/5 focus-visible:outline-highlight aria-expanded:bg-white/[0.09]"
+        className="flex h-11 items-center gap-2.5 rounded-[11px] bg-surface py-1.5 pr-2.5 pl-1.5 text-left shadow-[inset_0_0_0_1px_var(--color-line)] transition-colors hover:bg-surface-muted aria-expanded:bg-surface-muted"
       >
-        <Avatar name={session.business.name} tone="highlight" size="md" />
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-semibold text-white">
+        <Avatar
+          name={session.business.name}
+          kind="business"
+          brandColor={session.business.brandColor}
+          size="sm"
+        />
+        <span className="hidden max-w-44 min-w-0 xl:block">
+          <span className="block truncate text-[13.5px] leading-tight font-semibold text-ink">
             {session.business.name}
           </span>
-          <span className="block truncate text-xs text-white/55">{session.user.name}</span>
+          <span className="block truncate text-xs leading-tight text-muted">
+            {session.user.name} · {USER_ROLE_LABELS[session.user.role]}
+          </span>
         </span>
-        <ChevronsUpDown aria-hidden="true" className="size-4 shrink-0 text-white/45" />
+        <ChevronDown aria-hidden="true" className="size-4 shrink-0 text-muted" />
         <span className="sr-only">Account menu</span>
       </button>
     </div>

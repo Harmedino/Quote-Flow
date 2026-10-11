@@ -19,20 +19,20 @@ export function DocumentCustomerCard({ customerId, customer }: DocumentCustomerC
     <PanelCard title="Customer">
       <Link
         to={paths.customer(customerId)}
-        className="group -m-1.5 flex items-center gap-3 rounded-xl p-1.5 transition-colors hover:bg-stone-50"
+        className="group -m-1.5 flex items-center gap-3 rounded-xl p-1.5 transition-colors hover:bg-surface-muted"
       >
         <Avatar name={customer.name} />
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-semibold text-stone-900">
+          <span className="block truncate text-[14.5px] font-semibold text-ink">
             {customer.name}
           </span>
-          <span className="block truncate text-sm text-stone-500">
+          <span className="block truncate text-[13px] text-muted">
             {customerSummaryLine(customer) || 'No contact details'}
           </span>
         </span>
         <ChevronRight
           aria-hidden="true"
-          className="size-4 shrink-0 text-stone-400 transition-transform group-hover:translate-x-0.5"
+          className="size-4 shrink-0 text-muted transition-transform group-hover:translate-x-0.5"
         />
       </Link>
       <ContactTiles phone={customer.phone} email={customer.email} className="mt-4" />

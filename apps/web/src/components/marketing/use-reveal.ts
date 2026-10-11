@@ -2,7 +2,7 @@ import { type RefCallback, useCallback } from 'react';
 
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 
-/** Reveal a little before the element is fully in view, as ServiceBook does. */
+/** Reveal a little before the element is fully in view. */
 const ROOT_MARGIN = '0px 0px -80px 0px';
 
 let observer: IntersectionObserver | undefined;

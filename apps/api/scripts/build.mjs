@@ -4,7 +4,7 @@
 // Workspace packages (@quoteflow/*) ship TypeScript source, so they are bundled.
 import { copyFile, mkdir, readFile, rm } from 'node:fs/promises';
 import { createRequire } from 'node:module';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 
@@ -35,11 +35,14 @@ await build({
 });
 
 // PDF fonts ship next to the bundle (see src/services/pdf/fonts.ts).
-const PDF_FONT_FILES = ['Inter-Regular.woff', 'Inter-Medium.woff', 'Inter-SemiBold.woff'];
+const fontFiles = JSON.parse(
+  await readFile(new URL('../src/services/pdf/font-files.json', import.meta.url), 'utf8'),
+);
 const require = createRequire(import.meta.url);
-const fontSource = join(dirname(require.resolve('inter-ui/package.json')), 'Inter (web)');
 const fontTarget = fileURLToPath(new URL('../dist/fonts/', import.meta.url));
 await mkdir(fontTarget, { recursive: true });
 await Promise.all(
-  PDF_FONT_FILES.map((file) => copyFile(join(fontSource, file), join(fontTarget, file))),
+  fontFiles.map(({ name, source }) =>
+    copyFile(require.resolve(source), join(fontTarget, `${name}.woff`)),
+  ),
 );

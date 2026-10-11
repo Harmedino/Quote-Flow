@@ -19,10 +19,10 @@ export function SessionsSection() {
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-stone-100 text-stone-600">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-[9px] bg-surface-muted text-ink-2">
             <MonitorSmartphone aria-hidden="true" className="size-5" />
           </span>
-          <p className="pt-0.5 text-sm text-pretty text-stone-600">
+          <p className="pt-0.5 text-sm text-pretty text-ink-2">
             Sign out of QuoteFlow on every device and browser, including this one.
           </p>
         </div>

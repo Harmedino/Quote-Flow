@@ -1,31 +1,30 @@
+import { normalizeBrandColor, textColorOn } from '@/components/documents/brand-color';
+import { businessInitials } from '@/components/documents/document-format';
 import { initials } from '@/features/auth/user-display';
 import { cn } from '@/lib/cn';
 
 const SIZES = {
-  xs: 'size-6 text-[10px]',
-  sm: 'size-8 text-xs',
-  md: 'size-10 text-sm',
-  lg: 'size-12 text-base',
+  xs: { box: 'size-6 text-[10px]', square: 'rounded-md' },
+  sm: { box: 'size-8 text-[11.5px]', square: 'rounded-lg' },
+  md: { box: 'size-9 text-[12.5px]', square: 'rounded-[9px]' },
+  lg: { box: 'size-12 text-base', square: 'rounded-xl' },
 } as const;
 
-// Soft washes that keep their contrast in dark mode (see styles/index.css).
+// Six soft tiles with navy letters (paper letters in dark mode), see styles/index.css.
 const PALETTE = [
-  'bg-brand-100 text-brand-800',
-  'bg-amber-100 text-amber-800',
-  'bg-sky-100 text-sky-700',
-  'bg-rose-100 text-rose-700',
-  'bg-violet-100 text-violet-700',
-  'bg-stone-200 text-stone-700',
-  'bg-emerald-100 text-emerald-800',
+  'bg-avatar-1',
+  'bg-avatar-2',
+  'bg-avatar-3',
+  'bg-avatar-4',
+  'bg-avatar-5',
+  'bg-avatar-6',
 ] as const;
 
 const TONES = {
-  /** A colour picked from the name, so the same person always gets the same tile. */
+  /** A tile picked from the name, so the same person always gets the same colour. */
   auto: '',
-  /** Lime on ink, for the sidebar and other dark surfaces. */
-  highlight: 'bg-highlight text-ink',
-  /** Ink with a lime letter, e.g. the business tile on a light surface. */
-  ink: 'bg-ink text-highlight dark:bg-ink-700',
+  /** Navy with paper letters, e.g. a person on a navy band. */
+  navy: 'bg-navy text-on-navy',
 } as const;
 
 function paletteFor(name: string): string {
@@ -40,7 +39,11 @@ export interface AvatarProps {
   name: string;
   size?: keyof typeof SIZES;
   tone?: keyof typeof TONES;
-  /** `square` is a rounded tile, used for businesses; people get a circle. */
+  /** A business takes the first letters of its first two words, as on its documents ("LH"). */
+  kind?: 'person' | 'business';
+  /** Fills the tile with a business's brand colour (letters in white or navy, whichever reads). */
+  brandColor?: string;
+  /** `square` (default) is Signal's rounded tile; `circle` is available for photos-style use. */
   shape?: 'circle' | 'square';
   className?: string;
 }
@@ -50,21 +53,25 @@ export function Avatar({
   name,
   size = 'md',
   tone = 'auto',
-  shape = 'circle',
+  kind = 'person',
+  brandColor,
+  shape = 'square',
   className,
 }: AvatarProps) {
+  const brand = brandColor === undefined ? undefined : normalizeBrandColor(brandColor);
   return (
     <span
       aria-hidden="true"
+      style={brand ? { backgroundColor: brand, color: textColorOn(brand) } : undefined}
       className={cn(
-        'inline-flex shrink-0 items-center justify-center font-semibold select-none',
-        shape === 'square' ? 'rounded-xl' : 'rounded-full',
-        tone === 'auto' ? paletteFor(name) : TONES[tone],
-        SIZES[size],
+        'inline-flex shrink-0 items-center justify-center font-[750] tracking-[0.02em] font-stretch-112% select-none',
+        shape === 'square' ? SIZES[size].square : 'rounded-full',
+        !brand && (tone === 'auto' ? cn(paletteFor(name), 'text-ink') : TONES[tone]),
+        SIZES[size].box,
         className,
       )}
     >
-      {initials(name) || '?'}
+      {kind === 'business' ? businessInitials(name) : initials(name) || '?'}
     </span>
   );
 }

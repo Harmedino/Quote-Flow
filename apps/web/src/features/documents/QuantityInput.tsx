@@ -33,7 +33,7 @@ export function QuantityInput({
       autoComplete="off"
       aria-invalid={invalid || undefined}
       aria-describedby={describedBy}
-      className={cn(CONTROL_CLASSES, 'h-10 text-right tabular-nums', className)}
+      className={cn(CONTROL_CLASSES, 'h-10.5 text-right font-mono tabular-nums', className)}
       value={shown}
       onFocus={(event) => {
         setText(value === null ? '' : String(value));

@@ -180,12 +180,12 @@ export function QuoteEditor({ business, initialValues, initialCustomer, quote }:
     <form id={formId} noValidate onSubmit={(event) => event.preventDefault()}>
       <UnsavedChangesGuard dirty={dirty} shouldBlock={() => dirty && !leaving.current} />
       {formError && (
-        <Alert tone="danger" className="mb-6">
+        <Alert tone="danger" className="mb-5">
           {formError}
         </Alert>
       )}
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start">
-        <div className="min-w-0 space-y-6">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_21rem] xl:items-start">
+        <div className="min-w-0 space-y-5">
           <EditorSection
             step={1}
             title="Customer"
@@ -252,7 +252,7 @@ export function QuoteEditor({ business, initialValues, initialCustomer, quote }:
               ? 'Drafts stay private. Sending gives you a link to share on WhatsApp or anywhere else.'
               : undefined
           }
-          className="sticky top-8 hidden xl:block"
+          className="sticky top-[5.75rem] max-xl:hidden"
         >
           <EditorActionButtons {...actionButtons} size="lg" className="w-full" />
         </QuoteSummaryPanel>

@@ -13,13 +13,23 @@ describe('Alert', () => {
   it('renders the banner as a slim line with a coloured edge and an action at the end', () => {
     const html = renderToStaticMarkup(
       <Alert variant="banner" tone="warning" action={<a href="/invoices">Review</a>}>
+        A quote expires tomorrow.
+      </Alert>,
+    );
+
+    expect(html).toContain('bg-warning-tint');
+    expect(html).toContain('bg-warning');
+    expect(html).not.toContain('<svg');
+    expect(html.indexOf('expires')).toBeLessThan(html.indexOf('Review'));
+  });
+
+  it('edges a danger banner with the red hazard tape', () => {
+    const html = renderToStaticMarkup(
+      <Alert variant="banner" tone="danger">
         2 invoices are overdue.
       </Alert>,
     );
 
-    expect(html).toContain('border-l-2');
-    expect(html).toContain('border-amber-400');
-    expect(html).not.toContain('<svg');
-    expect(html.indexOf('overdue')).toBeLessThan(html.indexOf('Review'));
+    expect(html).toContain('hazard-tape-overdue');
   });
 });

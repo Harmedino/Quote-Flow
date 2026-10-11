@@ -75,9 +75,9 @@ describe('brand colors', () => {
     expect(contrastRatio(yellow, '#ffffff')).toBeGreaterThanOrEqual(4.5);
   });
 
-  it('picks white or ink for text on a brand fill', () => {
+  it('picks white or navy for text on a brand fill', () => {
     expect(textColorOn('#0f766e')).toBe('#ffffff');
-    expect(textColorOn('#facc15')).toBe('#18181b');
+    expect(textColorOn('#facc15')).toBe('#0e1b33');
   });
 
   it('falls back to the default brand color for invalid input', () => {

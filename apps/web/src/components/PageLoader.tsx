@@ -1,10 +1,12 @@
-import { Spinner } from './ui/Spinner';
-
-/** Shown while the first route loads; fades in late so fast loads never flash a spinner. */
+/**
+ * Shown while the first route loads: the hazard tape scrolling along the top of an empty page.
+ * It fades in late, so fast loads never flash it.
+ */
 export function PageLoader() {
   return (
-    <div className="flex min-h-dvh animate-fade-in items-center justify-center text-brand-600 [animation-delay:300ms]">
-      <Spinner label="Loading" className="size-6" />
+    <div role="status" className="min-h-dvh animate-fade-in [animation-delay:300ms]">
+      <div aria-hidden="true" className="h-1 hazard-tape animate-hazard-scroll" />
+      <span className="sr-only">Loading</span>
     </div>
   );
 }

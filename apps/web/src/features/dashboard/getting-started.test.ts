@@ -3,8 +3,8 @@ import { gettingStartedChecklist, hasBusinessDetails } from './getting-started';
 
 const emptyBusiness = { email: null, phone: null, address: {} };
 const emptyDashboard = {
-  quotes: { total: 0, pending: 0, accepted: 0, acceptedNotInvoiced: 0 },
-  recentCustomers: [],
+  quotes: { total: 0, pending: 0, viewed: 0, accepted: 0, acceptedNotInvoiced: 0 },
+  customers: { total: 0 },
 };
 
 describe('gettingStartedChecklist', () => {
@@ -22,21 +22,8 @@ describe('gettingStartedChecklist', () => {
     const items = gettingStartedChecklist(
       { email: 'hi@example.com', phone: null, address: { city: 'Lagos' } },
       {
-        quotes: { total: 1, pending: 1, accepted: 0, acceptedNotInvoiced: 0 },
-        recentCustomers: [
-          {
-            id: 'c1',
-            name: 'Ada',
-            email: null,
-            phone: null,
-            company: null,
-            address: {},
-            notes: null,
-            archivedAt: null,
-            createdAt: '2026-10-08T00:00:00.000Z',
-            updatedAt: '2026-10-08T00:00:00.000Z',
-          },
-        ],
+        quotes: { total: 1, pending: 1, viewed: 0, accepted: 0, acceptedNotInvoiced: 0 },
+        customers: { total: 1 },
       },
       3,
     );

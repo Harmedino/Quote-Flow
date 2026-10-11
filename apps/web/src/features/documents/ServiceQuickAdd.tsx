@@ -14,8 +14,8 @@ export function ServiceQuickAdd({ services, currency, onAdd }: ServiceQuickAddPr
   const suggestions = matchServices(services, '');
   if (suggestions.length === 0) return null;
   return (
-    <div className="mt-5 border-t border-stone-100 pt-4">
-      <p className="section-label">Add from your services</p>
+    <div className="mt-5 border-t border-line pt-4">
+      <p className="label-mono text-muted">Add from your services</p>
       {/* One swipeable row on phones; wrapped from sm up. */}
       <ul className="no-scrollbar -mx-5 mt-1.5 flex gap-2 overflow-x-auto px-5 py-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
         {suggestions.map((service) => {
@@ -25,14 +25,17 @@ export function ServiceQuickAdd({ services, currency, onAdd }: ServiceQuickAddPr
               <button
                 type="button"
                 onClick={() => onAdd(service)}
-                className="group relative inline-flex max-w-full items-center gap-1.5 rounded-full border border-stone-200 bg-surface py-1.5 pr-3 pl-2 text-sm whitespace-nowrap text-stone-700 transition-colors hover:border-brand-400 hover:bg-brand-50 hover:text-stone-900"
+                className="group relative inline-flex max-w-full items-center gap-1.5 rounded-lg bg-surface py-1.5 pr-3 pl-2 text-[13.5px] whitespace-nowrap text-ink-2 shadow-[inset_0_0_0_1px_var(--color-line-strong)] transition-colors hover:bg-primary-tint hover:text-ink"
               >
                 <Plus
                   aria-hidden="true"
-                  className="size-3.5 shrink-0 text-stone-500 group-hover:text-brand-700"
+                  className="size-3.5 shrink-0 text-primary-ink"
+                  strokeWidth={2.5}
                 />
-                <span className="truncate font-medium">{service.name}</span>
-                <span className="shrink-0 text-stone-500 tabular-nums">{price}</span>
+                <span className="truncate font-semibold">{service.name}</span>
+                <span className="shrink-0 font-mono text-[12px] text-muted tabular-nums">
+                  {price}
+                </span>
                 <span className="sr-only"> (add as an item)</span>
               </button>
             </li>

@@ -7,10 +7,13 @@ export default function AccountSettingsPage() {
   return (
     <>
       <DocumentTitle title="Account settings" />
-      <div className="space-y-6">
+      {/* Profile and password side by side from `lg`, so the page fills the app's column. */}
+      <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
         <ProfileSection />
         <ChangePasswordSection />
-        <SessionsSection />
+        <div className="lg:col-span-2">
+          <SessionsSection />
+        </div>
       </div>
     </>
   );

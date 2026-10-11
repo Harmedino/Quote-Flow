@@ -21,6 +21,7 @@ import {
 import { useCustomersQuery } from '@/features/customers/use-customers';
 import { cn } from '@/lib/cn';
 import { useSearchFlag } from '@/lib/use-search-flag';
+import { ArchiveFilter } from './ArchiveFilter';
 import { CustomerList, CustomerListSkeleton } from './CustomerList';
 
 const PAGE_SIZE = 20;
@@ -56,6 +57,8 @@ export default function CustomersPage() {
   });
 
   const filtered = Boolean(params.search) || params.archived;
+  // With no customers yet, the empty state holds the only call to action and there is nothing to search.
+  const empty = customers.data?.meta.total === 0 && !filtered;
   const addButton = (
     <Button onClick={() => setDialogOpen(true)}>
       <Plus aria-hidden="true" />
@@ -102,12 +105,14 @@ export default function CustomersPage() {
           description={
             params.search
               ? `Nothing matches “${params.search}”. Check the spelling or try a phone number or company.`
-              : 'There are no customers to show.'
+              : 'You have no archived customers.'
           }
           action={
-            <Button variant="secondary" onClick={() => update({ search: '' })}>
-              Clear search
-            </Button>
+            params.search && (
+              <Button variant="secondary" onClick={() => update({ search: '' })}>
+                Clear search
+              </Button>
+            )
           }
         />
       );
@@ -131,28 +136,23 @@ export default function CustomersPage() {
       <PageHeader
         title="Customers"
         description="Keep your customers’ contact details and history in one place."
-        actions={addButton}
+        actions={empty ? undefined : addButton}
       />
 
       <div className="space-y-4">
-        <ListToolbar>
-          <ListSearch
-            value={params.search}
-            onSearch={(search) => update({ search }, true)}
-            label="Search customers"
-            placeholder="Search name, phone or company"
-            className="w-full sm:max-w-xs"
-          />
-          <label className="inline-flex items-center gap-2.5 text-sm font-medium text-stone-700 select-none">
-            <input
-              type="checkbox"
-              checked={params.archived}
-              onChange={(event) => update({ archived: event.target.checked })}
-              className="size-4 rounded border-stone-400 accent-brand-600"
+        {/* Kept when empty: archived customers may still be there. */}
+        <ArchiveFilter archived={params.archived} onChange={(archived) => update({ archived })} />
+        {!empty && (
+          <ListToolbar>
+            <ListSearch
+              value={params.search}
+              onSearch={(search) => update({ search }, true)}
+              label="Search customers"
+              placeholder="Search name, phone or company"
+              className="w-full sm:max-w-xs"
             />
-            Show archived
-          </label>
-        </ListToolbar>
+          </ListToolbar>
+        )}
         <p className="sr-only" aria-live="polite">
           {customers.data && !customers.isPlaceholderData
             ? `${customers.data.meta.total} ${customers.data.meta.total === 1 ? 'customer' : 'customers'}`

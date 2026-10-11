@@ -1,6 +1,8 @@
 import type { CurrencyCode, ServiceDto } from '@quoteflow/shared';
 import { CircleAlert, Plus } from 'lucide-react';
 import { useEffect, useRef } from 'react';
+import { cn } from '@/lib/cn';
+import { LINE_ITEM_COLUMNS } from './line-item-columns';
 import { LineItemRow } from './LineItemRow';
 import {
   addServiceLineItem,
@@ -20,7 +22,7 @@ export interface LineItemsEditorProps {
   errors?: Record<string, string>;
 }
 
-const HEADER_CELL = 'text-xs font-medium tracking-wide text-stone-500 uppercase';
+const HEADER_CELL = 'label-mono text-muted';
 
 /** Editable line items for quotes and invoices, as a table on wide containers and cards on narrow ones. */
 export function LineItemsEditor({
@@ -78,7 +80,7 @@ export function LineItemsEditor({
     <div className="@container">
       <div
         aria-hidden="true"
-        className="hidden border-b border-stone-200 pb-2 @2xl:grid @2xl:grid-cols-[minmax(0,1fr)_4rem_4.5rem_9.5rem_7rem_4rem] @2xl:gap-x-2"
+        className={cn('hidden border-b border-line pb-2.5 @3xl:grid', LINE_ITEM_COLUMNS)}
       >
         <span className={HEADER_CELL}>Item</span>
         <span className={`${HEADER_CELL} text-right`}>Qty</span>
@@ -87,7 +89,7 @@ export function LineItemsEditor({
         <span className={`${HEADER_CELL} text-right`}>Amount</span>
         <span />
       </div>
-      <ul className="space-y-3 @2xl:space-y-0" aria-label="Line items">
+      <ul className="space-y-3 @3xl:space-y-0" aria-label="Line items">
         {items.map((item, index) => (
           <LineItemRow
             key={item.key}
@@ -108,7 +110,10 @@ export function LineItemsEditor({
         ))}
       </ul>
       {errors.items && (
-        <p role="alert" className="mt-3 flex items-center gap-1.5 text-sm text-red-700">
+        <p
+          role="alert"
+          className="mt-3 flex items-center gap-1.5 text-[13px] font-medium text-danger"
+        >
           <CircleAlert aria-hidden="true" className="size-4 shrink-0" />
           {errors.items}
         </p>
@@ -117,9 +122,9 @@ export function LineItemsEditor({
         ref={addButton}
         type="button"
         onClick={add}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-stone-300 py-3 text-sm font-medium text-stone-600 transition-colors hover:border-brand-400 hover:bg-brand-50 hover:text-brand-700"
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border-[1.5px] border-dashed border-line-strong py-3 text-sm font-semibold text-ink-2 transition-colors hover:border-primary-ink hover:bg-primary-tint hover:text-ink"
       >
-        <Plus aria-hidden="true" className="size-4" />
+        <Plus aria-hidden="true" className="size-4 text-primary-ink" strokeWidth={2.5} />
         Add item
       </button>
       <ServiceQuickAdd

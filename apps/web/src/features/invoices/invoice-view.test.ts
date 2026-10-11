@@ -5,6 +5,7 @@ import {
   getInvoiceActions,
   invoiceOutlook,
   invoicePublicUrl,
+  invoiceStamp,
 } from './invoice-view';
 
 function invoice(overrides: Partial<InvoiceDto> = {}): InvoiceDto {
@@ -153,5 +154,36 @@ describe('invoiceOutlook', () => {
         'UTC',
       ),
     ).toMatchObject({ label: 'Cancelled', amount: 125_000, paidShare: null });
+  });
+});
+
+describe('invoiceStamp', () => {
+  const today = '2026-11-20';
+
+  it('stamps drafts, paid, overdue and cancelled invoices, and leaves the rest to the tag', () => {
+    expect(invoiceStamp(invoice({ status: 'draft' }), today, 'UTC')).toEqual({
+      tone: 'draft',
+      label: 'Draft',
+    });
+    expect(
+      invoiceStamp(invoice({ status: 'paid', paidAt: '2026-11-12T00:00:00.000Z' }), today, 'UTC'),
+    ).toEqual({ tone: 'paid', label: 'Paid', detail: 'Nov 12, 2026' });
+    expect(invoiceStamp(invoice({ status: 'overdue' }), today, 'UTC')).toEqual({
+      tone: 'overdue',
+      label: 'Overdue',
+      detail: '5 days',
+    });
+    expect(invoiceStamp(invoice({ status: 'sent' }), today, 'UTC')).toBeUndefined();
+    expect(invoiceStamp(invoice({ status: 'partially_paid' }), today, 'UTC')).toBeUndefined();
+  });
+
+  it('stamps a cancelled invoice like a declined quote, dated in the business time zone', () => {
+    expect(
+      invoiceStamp(
+        invoice({ status: 'cancelled', cancelledAt: '2026-11-03T02:00:00.000Z' }),
+        today,
+        'America/Chicago',
+      ),
+    ).toEqual({ tone: 'declined', label: 'Cancelled', detail: 'Nov 2, 2026' });
   });
 });

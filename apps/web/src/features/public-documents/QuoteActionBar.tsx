@@ -8,40 +8,38 @@ export interface QuoteActionBarProps {
   onDecline: () => void;
 }
 
+/** Said under both ways of answering, on phones and beside the quote alike. */
+export const NO_ACCOUNT_NOTE = 'One tap. No app or account needed.';
+
 /**
- * Accept / Decline, always within reach below the wide layout (where QuoteSummary takes over):
- * pinned to the bottom of the screen on phones, with the total on its own line so a long
- * amount is never cut short, and floating at the bottom of the viewport on tablets.
+ * Decline / Accept, always within reach below the wide layout (where QuoteSummary takes over):
+ * pinned to the bottom of the screen on phones and floating there on tablets, with the total
+ * above the buttons so a long amount is never cut short. Render it in an AnswerBarSlot.
  */
 export function QuoteActionBar({ total, validUntil, onAccept, onDecline }: QuoteActionBarProps) {
   return (
     <section
-      aria-label="Respond to this quote"
-      className="sticky bottom-0 z-20 -mx-4 mt-6 sm:bottom-4 sm:mx-0 lg:hidden print:hidden"
+      aria-label="Your answer"
+      // The tablet's margin around the floating bar lets clicks through to the page.
+      className="pointer-events-none sm:px-6 sm:pb-4 lg:hidden print:hidden"
     >
-      <div className="border-t border-stone-200 bg-surface/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_-12px_rgb(12_26_20/0.18)] backdrop-blur-md sm:rounded-2xl sm:border sm:py-4 sm:pr-4 sm:pl-6 sm:shadow-[var(--shadow-elevated)]">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2.5 sm:flex-nowrap sm:gap-4">
-          <div className="flex min-w-0 basis-full items-baseline justify-between gap-3 sm:block sm:flex-1 sm:basis-auto">
-            <p className="text-sm text-stone-500">
-              Total<span className="hidden sm:inline"> · valid until {validUntil}</span>
-            </p>
-            <p className="min-w-0 text-right font-display text-xl font-semibold tracking-tight wrap-break-word text-stone-900 tabular-nums sm:text-left sm:text-2xl">
-              {total}
-            </p>
-          </div>
-          <Button
-            variant="secondary"
-            size="xl"
-            onClick={onDecline}
-            className="flex-1 px-4 sm:flex-none sm:px-5"
-          >
+      <div className="pointer-events-auto mx-auto max-w-3xl bg-surface px-4 pt-3 pb-[max(1.125rem,env(safe-area-inset-bottom))] shadow-[0_-1px_0_var(--color-line),0_-10px_30px_rgb(14_27_51/0.08)] sm:rounded-xl sm:px-5 sm:pb-4 sm:shadow-(--shadow-elevated)">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+          <p className="text-[13px] text-muted">Total · valid until {validUntil}</p>
+          <p className="text-xl font-extrabold tracking-[-0.01em] tabular-nums font-stretch-112%">
+            {total}
+          </p>
+        </div>
+        <div className="mt-2.5 grid grid-cols-[1fr_1.7fr] gap-2.5">
+          <Button variant="secondary" size="xl" onClick={onDecline} className="max-[359px]:px-3">
             Decline
           </Button>
-          <AcceptButton onClick={onAccept} className="flex-1 px-4 sm:flex-none sm:px-6">
-            <span className="sm:hidden">Accept</span>
-            <span className="hidden sm:inline">Accept quote</span>
-          </AcceptButton>
+          <AcceptButton
+            onClick={onAccept}
+            className="max-[359px]:px-3 max-[359px]:[&_svg]:hidden"
+          />
         </div>
+        <p className="mt-2 text-center text-xs text-muted">{NO_ACCOUNT_NOTE}</p>
       </div>
     </section>
   );

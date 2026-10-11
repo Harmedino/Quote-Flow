@@ -7,7 +7,8 @@
       name="description"
       content="QuoteFlow helps service businesses create, send, track, and convert quotes into invoices."
     />
-    <meta name="theme-color" content="#0c1a14" />
+    <!-- The toolbar follows the app's theme, set below and by lib/theme.ts. -->
+    <meta name="theme-color" content="#fffdf9" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <title>QuoteFlow</title>
@@ -26,6 +27,9 @@
               : 'light';
         }
         document.documentElement.classList.toggle('dark', theme === 'dark');
+        document
+          .querySelector('meta[name="theme-color"]')
+          .setAttribute('content', theme === 'dark' ? '#111b2d' : '#fffdf9');
       })();
     </script>
   </head>

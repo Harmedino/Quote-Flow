@@ -45,16 +45,20 @@ export function QuoteAnswerDialogs({
         onConfirm={onAccept}
         onCancel={onClose}
       >
-        {/* Tinted from the surface, not white, so the summary also reads in dark mode. */}
-        <dl className="flex items-center justify-between gap-4 rounded-r-xl border-l-[3px] border-(--doc-fill) bg-[color-mix(in_srgb,var(--doc-fill)_8%,var(--color-surface))] px-4 py-3.5">
+        {/* A stub of the quote being accepted, in the business's colour. */}
+        <dl className="flex items-center justify-between gap-4 rounded-[10px] bg-(--doc-accent-soft) px-4 py-3.5">
           <div className="min-w-0">
-            <dt className="text-xs font-medium text-stone-500">Quote</dt>
-            <dd className="truncate font-medium text-stone-900">{quoteNumber}</dd>
+            <dt className="label-mono text-muted">Quote</dt>
+            <dd className="mt-1 truncate font-mono text-[13px] font-medium text-ink-2">
+              {quoteNumber}
+            </dd>
           </div>
           <div className="text-right">
-            <dt className="text-xs font-medium text-stone-500">Total</dt>
-            <dd className="font-display text-xl font-semibold tracking-tight text-stone-900 tabular-nums">
-              {total}
+            <dt className="label-mono text-muted">Total</dt>
+            <dd className="mt-1 text-xl leading-none font-[820] tabular-nums font-stretch-115%">
+              <span className="shadow-[inset_0_-4px_0_color-mix(in_srgb,var(--doc-accent)_30%,transparent)]">
+                {total}
+              </span>
             </dd>
           </div>
         </dl>

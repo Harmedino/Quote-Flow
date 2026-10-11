@@ -1,4 +1,8 @@
 import type { PublicInvoiceDto } from '@quoteflow/shared';
+import { Card } from '@/components/ui/Card';
+import { TapeMeasure } from '@/components/ui/TapeMeasure';
+import { TicketPart } from '@/components/ui/Ticket';
+import { dueLabel } from '@/features/dashboard/dashboard-format';
 import { cn } from '@/lib/cn';
 import { formatCalendarDate, formatMoney } from '@/lib/format';
 import { SummaryFigure } from './SummaryAside';
@@ -6,85 +10,108 @@ import { isAwaitingPayment } from './public-status';
 
 type PublicInvoice = PublicInvoiceDto['invoice'];
 
-function DueDate({ invoice, className }: { invoice: PublicInvoice; className?: string }) {
+interface InvoiceAmountProps {
+  invoice: PublicInvoice;
+  businessName: string;
+  /** 'YYYY-MM-DD' where the customer is. */
+  today: string;
+}
+
+/** "Due in 10 days · Oct 20, 2026", or in red once it is overdue. */
+function DueLine({ invoice, today }: { invoice: PublicInvoice; today: string }) {
   const overdue = invoice.status === 'overdue';
+  const due = formatCalendarDate(invoice.dueDate);
   return (
-    <p
-      className={cn('text-sm font-medium', overdue ? 'text-red-700' : 'text-stone-700', className)}
-    >
-      {overdue ? 'Was due' : 'Due'} {formatCalendarDate(invoice.dueDate)}
+    <p className={cn('mt-3.5 text-sm', overdue ? 'font-semibold text-overdue' : 'text-ink-2')}>
+      {dueLabel(invoice.dueDate, today)} · {overdue ? `was due ${due}` : due}
     </p>
   );
 }
 
+/**
+ * How much is paid so far, on a tape measure in the business's colour: the shade that reads on
+ * paper, so even a white or pale brand shows how far the payments have come.
+ */
 function PaidProgress({ invoice }: { invoice: PublicInvoice }) {
   const { total } = invoice.totals;
-  if (invoice.amountPaid <= 0) return null;
+  if (invoice.amountPaid <= 0 || total <= 0) return null;
   const money = (amount: number) => formatMoney(amount, invoice.currency);
-  const paidPercent = total > 0 ? Math.min(100, Math.round((invoice.amountPaid / total) * 100)) : 0;
   return (
-    <div className="mt-5">
-      <div aria-hidden="true" className="h-2 overflow-hidden rounded-full bg-stone-200">
-        <div
-          className="h-full animate-grow-width rounded-full bg-(--doc-fill)"
-          style={{ width: `${paidPercent}%` }}
-        />
-      </div>
-      <p className="mt-2 text-sm text-stone-600">
-        {money(invoice.amountPaid)} of {money(total)} paid
+    <div className="mt-4">
+      <TapeMeasure
+        value={invoice.amountPaid / total}
+        label={`${money(invoice.amountPaid)} of ${money(total)} paid`}
+        className="[--color-primary:var(--doc-accent-text)]"
+      />
+      <p className="mt-2 flex flex-wrap justify-between gap-x-4 font-mono text-xs text-muted">
+        <span>
+          Paid <b className="font-semibold text-ink">{money(invoice.amountPaid)}</b>
+        </span>
+        <span>
+          Total <b className="font-semibold text-ink">{money(total)}</b>
+        </span>
       </p>
     </div>
   );
 }
 
-/**
- * The figure a customer opening an unpaid invoice is looking for, at a glance: below the wide
- * layout, where the summary beside the document shows it instead.
- */
-export function AmountDueCard({ invoice }: { invoice: PublicInvoice }) {
+/** Payments happen outside QuoteFlow: the business records them, and the page then shows them. */
+function PayDirectlyNote({ businessName }: { businessName: string }) {
   return (
-    <section
-      aria-label="Amount due"
-      className="animate-fade-in-up rounded-3xl border border-stone-200 bg-surface p-5 sm:p-6 lg:hidden print:hidden"
-    >
-      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-1">
-        <div className="min-w-0">
-          <p className="text-sm text-stone-500">Amount due</p>
-          <p className="mt-1 font-display text-4xl font-semibold tracking-tight wrap-anywhere text-stone-900 tabular-nums">
-            {formatMoney(invoice.balanceDue, invoice.currency)}
-          </p>
-        </div>
-        <DueDate invoice={invoice} />
-      </div>
-      <PaidProgress invoice={invoice} />
-    </section>
+    <p className="mt-4 text-[13px] text-pretty text-muted">
+      Pay {businessName} directly. Payments they record show here.
+    </p>
   );
 }
 
-/** The invoice's headline in the summary beside the document. */
-export function InvoiceSummaryFigure({ invoice }: { invoice: PublicInvoice }) {
-  if (isAwaitingPayment(invoice)) {
-    return (
-      <div>
-        <SummaryFigure
-          label="Amount due"
-          amount={formatMoney(invoice.balanceDue, invoice.currency)}
-        >
-          <DueDate invoice={invoice} className="mt-1" />
-        </SummaryFigure>
-        <PaidProgress invoice={invoice} />
-      </div>
-    );
-  }
-  const note =
-    invoice.status === 'paid'
-      ? 'Paid in full'
-      : invoice.status === 'cancelled'
-        ? 'Cancelled: nothing to pay'
-        : null;
+/**
+ * The figure a customer opening an unpaid invoice is looking for, above the document on phones
+ * and tablets (the summary beside the document shows it on wide screens).
+ */
+export function AmountDueCard({ invoice, businessName, today }: InvoiceAmountProps) {
   return (
-    <SummaryFigure label="Total" amount={formatMoney(invoice.totals.total, invoice.currency)}>
-      {note && <p className="mt-1 text-sm font-medium text-stone-700">{note}</p>}
-    </SummaryFigure>
+    <Card
+      elevated
+      aria-label="Amount due"
+      role="region"
+      className="animate-fade-in-up p-5 lg:hidden print:hidden"
+    >
+      <SummaryFigure label="Amount due" amount={formatMoney(invoice.balanceDue, invoice.currency)}>
+        <DueLine invoice={invoice} today={today} />
+      </SummaryFigure>
+      <PaidProgress invoice={invoice} />
+      <PayDirectlyNote businessName={businessName} />
+    </Card>
+  );
+}
+
+/** The invoice's figure as the first part of the summary beside the document. */
+export function InvoiceSummaryPart({ invoice, businessName, today }: InvoiceAmountProps) {
+  const awaiting = isAwaitingPayment(invoice);
+  return (
+    <TicketPart className="bg-(--doc-accent-soft) p-6">
+      {awaiting ? (
+        <>
+          <SummaryFigure
+            label="Amount due"
+            amount={formatMoney(invoice.balanceDue, invoice.currency)}
+          >
+            <DueLine invoice={invoice} today={today} />
+          </SummaryFigure>
+          <PaidProgress invoice={invoice} />
+          <PayDirectlyNote businessName={businessName} />
+        </>
+      ) : (
+        <SummaryFigure
+          label="Total"
+          amount={formatMoney(invoice.totals.total, invoice.currency)}
+          struck={invoice.status === 'cancelled'}
+        >
+          <p className="mt-3.5 text-sm text-ink-2">
+            {invoice.status === 'cancelled' ? 'Cancelled: nothing to pay' : 'Paid in full'}
+          </p>
+        </SummaryFigure>
+      )}
+    </TicketPart>
   );
 }

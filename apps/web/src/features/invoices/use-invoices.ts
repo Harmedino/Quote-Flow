@@ -97,11 +97,16 @@ export function useConvertQuote() {
   return useMutation({ mutationFn: convertQuote, onSuccess: onChanged });
 }
 
-export function useDeleteInvoice(id: string) {
+/**
+ * Deletes a draft invoice. `leave` moves off its page first: dropping the cached invoice while
+ * that page still shows it would make the page fetch it again, and get a 404.
+ */
+export function useDeleteInvoice(id: string, leave: () => void | Promise<void>) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => deleteInvoice(id),
-    onSuccess: () => {
+    onSuccess: async () => {
+      await leave();
       queryClient.removeQueries({ queryKey: invoiceKeys.detail(id) });
       return Promise.all([
         queryClient.invalidateQueries({ queryKey: invoiceKeys.lists() }),

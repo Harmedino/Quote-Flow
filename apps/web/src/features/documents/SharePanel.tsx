@@ -54,7 +54,7 @@ export function SharePanel({
         <div className="grid grid-cols-2 gap-2.5">
           <Button variant="secondary" aria-disabled={sending || undefined} onClick={onCopyLink}>
             {copied ? (
-              <Check aria-hidden="true" className="text-emerald-700" />
+              <Check aria-hidden="true" className="text-success" />
             ) : (
               <Link2 aria-hidden="true" />
             )}
@@ -84,7 +84,7 @@ export function SharePanel({
         </div>
         <p
           title={url}
-          className="truncate rounded-lg bg-surface-muted px-3 py-2 font-mono text-[13px] text-stone-600 select-all"
+          className="truncate rounded-lg border-[1.5px] border-dashed border-line-strong bg-surface-muted px-3 py-2 font-mono text-[12.5px] text-ink-2 select-all"
         >
           {url.replace(/^https?:\/\//, '')}
         </p>

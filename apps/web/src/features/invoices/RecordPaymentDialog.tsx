@@ -156,9 +156,9 @@ function PaymentForm({
                   type="button"
                   aria-pressed={values.amount === amount}
                   onClick={() => change('amount', amount)}
-                  className="rounded-full border border-stone-200 px-3 py-1 text-xs font-medium text-stone-700 transition-colors hover:border-stone-300 hover:bg-stone-50 aria-pressed:border-brand-600 aria-pressed:bg-brand-50 aria-pressed:text-brand-800"
+                  className="rounded-[7px] bg-surface-muted px-3 py-1.5 text-[13px] font-semibold text-ink-2 shadow-[inset_0_0_0_1px_var(--color-line-strong)] transition-colors hover:text-ink aria-pressed:bg-primary-tint aria-pressed:text-ink aria-pressed:shadow-[inset_0_0_0_1.5px_var(--color-ink)]"
                 >
-                  {label} · <span className="tabular-nums">{money(amount)}</span>
+                  {label} · <span className="font-mono tabular-nums">{money(amount)}</span>
                 </button>
               ))}
             </div>

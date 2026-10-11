@@ -1,8 +1,11 @@
 import { DocumentTitle } from '@/components/DocumentTitle';
 import { CtaBand } from '@/components/marketing/CtaBand';
 import { PageHero } from '@/components/marketing/PageHero';
+import { SectionHeading } from '@/components/marketing/SectionHeading';
 import { DEMO_TOUR_LABEL } from '@/components/marketing/marketing-nav';
+import { SITE_CONTAINER } from '@/components/marketing/site-container';
 import { useDemoStatus } from '@/components/marketing/use-demo-status';
+import { cn } from '@/lib/cn';
 import { DemoActions } from './demo/DemoActions';
 import { DemoTour } from './demo/DemoTour';
 
@@ -16,37 +19,30 @@ export default function DemoPage() {
       <DocumentTitle title={liveDemo ? 'Live demo' : DEMO_TOUR_LABEL} />
       {liveDemo ? (
         <PageHero
+          eyebrow="Live demo"
           title="Open a quote as the customer. Then see the owner’s side."
           description="The demo is a sample business in Lagos with a few months of quotes, invoices and payments. Nothing you do reaches a real person, and it starts fresh every day."
         />
       ) : (
         <PageHero
+          eyebrow={DEMO_TOUR_LABEL}
           title="See a quote’s whole life on a phone."
           description="Walk through what a quote looks like on each side, from building it to recording the payment."
         />
       )}
 
-      <section
-        aria-label="Try the demo"
-        className="mx-auto max-w-6xl px-4 pt-12 sm:px-6 lg:px-8 lg:pt-16"
-      >
+      <section aria-label="Try the demo" className={cn(SITE_CONTAINER, 'pt-12 sm:pt-16')}>
         <DemoActions status={status} />
       </section>
 
-      <section
-        aria-labelledby="tour-title"
-        className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20"
-      >
-        <h2
+      <section aria-labelledby="tour-title" className={cn(SITE_CONTAINER, 'py-20 sm:py-24')}>
+        <SectionHeading
           id="tour-title"
-          className="text-3xl font-semibold tracking-tight text-stone-900 sm:text-4xl"
-        >
-          What you’ll see
-        </h2>
-        <p className="mt-3 max-w-2xl text-pretty text-stone-600">
-          A quote’s whole life in four steps. Pick one to see it on a phone.
-        </p>
-        <div className="mt-8">
+          eyebrow="The tour"
+          title="What you’ll see"
+          description="A quote’s whole life in four steps. Pick one to see it on a phone."
+        />
+        <div className="mt-10">
           <DemoTour liveDemo={liveDemo} />
         </div>
       </section>

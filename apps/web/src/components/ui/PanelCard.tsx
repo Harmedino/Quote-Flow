@@ -16,10 +16,10 @@ export function PanelCard({ title, description, action, children, className }: P
   return (
     <Card className={cn('p-5', className)}>
       <div className="flex items-start justify-between gap-3">
-        <h2 className="text-base font-semibold text-stone-900">{title}</h2>
-        {action && <div className="shrink-0 text-sm">{action}</div>}
+        <h2 className="heading-card text-ink">{title}</h2>
+        {action && <div className="shrink-0 pt-0.5 text-sm">{action}</div>}
       </div>
-      {description && <p className="mt-1 text-sm text-pretty text-stone-500">{description}</p>}
+      {description && <p className="mt-1 text-sm text-pretty text-muted">{description}</p>}
       {children && <div className="mt-4">{children}</div>}
     </Card>
   );

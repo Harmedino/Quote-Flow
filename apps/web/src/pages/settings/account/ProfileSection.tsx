@@ -53,10 +53,10 @@ export function ProfileSection() {
         <Avatar name={user.name} size="lg" />
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-            <p className="truncate font-semibold text-stone-900">{user.name}</p>
+            <p className="truncate text-base font-bold text-ink">{user.name}</p>
             <Badge tone="brand">{USER_ROLE_LABELS[user.role]}</Badge>
           </div>
-          <p className="truncate text-sm text-stone-500">{business.name}</p>
+          <p className="truncate text-sm text-muted">{business.name}</p>
         </div>
       </div>
       <form id={form.id} noValidate onSubmit={handleSubmit} className="space-y-5">
@@ -72,13 +72,13 @@ export function ProfileSection() {
           />
         </Field>
         <Field label="Email" hint="Changing your email address isn’t available yet.">
-          <Input value={user.email} readOnly className="bg-surface-muted text-stone-600" />
+          <Input value={user.email} readOnly className="bg-surface-muted text-ink-2" />
         </Field>
-        <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-3 border-t border-stone-100 pt-5">
-          <p role="status" className="mr-auto flex items-center gap-2 text-sm text-stone-600">
+        <div className="-mx-5 flex flex-wrap items-center justify-end gap-x-4 gap-y-3 border-t-[1.5px] border-dashed border-line-strong px-5 pt-5 sm:-mx-6 sm:px-6">
+          <p role="status" className="mr-auto flex items-center gap-2 text-sm text-ink-2">
             {saved && !dirty && (
               <>
-                <CircleCheck aria-hidden="true" className="size-4 text-emerald-700" />
+                <CircleCheck aria-hidden="true" className="size-4 text-success" />
                 Profile updated
               </>
             )}

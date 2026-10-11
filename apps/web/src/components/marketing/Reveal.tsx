@@ -17,7 +17,7 @@ export function Reveal({ children, delay = 0, className }: RevealProps) {
       ref={ref}
       style={delay ? { transitionDelay: `${delay}ms` } : undefined}
       className={cn(
-        'transition-[opacity,translate] duration-600 ease-[cubic-bezier(0.22,1,0.36,1)] data-[reveal=pending]:translate-y-6 data-[reveal=pending]:opacity-0',
+        'transition-[opacity,translate] duration-600 ease-[cubic-bezier(0.22,1,0.36,1)] data-[reveal=pending]:translate-y-4 data-[reveal=pending]:opacity-0',
         className,
       )}
     >

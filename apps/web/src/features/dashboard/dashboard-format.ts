@@ -12,14 +12,17 @@ export function greeting(now: Date, timeZone: string): string {
   return 'Good evening';
 }
 
-/** Today's date in the business's zone, e.g. "Friday, October 9". */
-export function formatLongToday(now: Date, timeZone: string, locale?: string): string {
-  return new Intl.DateTimeFormat(locale, {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    timeZone,
-  }).format(now);
+/** Today in the business's zone, e.g. "Saturday · 10 Oct 2026" (the date in the locale's order). */
+export function formatToday(now: Date, timeZone: string, locale?: string): string {
+  const weekday = new Intl.DateTimeFormat(locale, { weekday: 'long', timeZone }).format(now);
+  const date = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone }).format(now);
+  return `${weekday} · ${date}`;
+}
+
+/** Where the business is, e.g. "Victoria Island, Lagos", or null without a city or state. */
+export function formatPlace(address: { city?: string; state?: string }): string | null {
+  const parts = [address.city, address.state].map((part) => part?.trim()).filter(Boolean);
+  return parts.length ? parts.join(', ') : null;
 }
 
 /** A 'YYYY-MM-DD' calendar date as a short label, e.g. "Oct 9". */
@@ -50,10 +53,16 @@ export function formatMoneyShort(minor: number, currency: CurrencyCode, locale?:
   }).format(major);
 }
 
-/** Whole-percent change, or null when there is nothing to compare with. */
-export function percentChange(current: number, previous: number): number | null {
-  if (previous === 0) return null;
-  return Math.round(((current - previous) / previous) * 100);
+/** An amount for a chart axis: always compact, e.g. ₦0, ₦100K, ₦1.5M. */
+export function formatMoneyAxis(minor: number, currency: CurrencyCode, locale?: string): string {
+  return new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency,
+    currencyDisplay: 'narrowSymbol',
+    notation: 'compact',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 1,
+  }).format(fromMinorUnits(minor, currency));
 }
 
 /** Calendar days from `today` to `isoDate` (negative when it is in the past). */

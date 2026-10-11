@@ -1,35 +1,46 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/cn';
+import { Ruler } from './Ruler';
+import { Eyebrow } from './SectionHeading';
+import { SITE_CONTAINER } from './site-container';
 
 export interface PageHeroProps {
+  /** The mono label above the title, e.g. "Features". */
+  eyebrow: string;
   title: ReactNode;
   description: ReactNode;
-  /** The faint grid of the product pages (Features, Solutions, Pricing); plain ink otherwise. */
-  grid?: boolean;
-  /** Under the description: actions or anchor chips. */
+  /** Under the description: actions or anchor links. */
   children?: ReactNode;
+  /** Centred, for a page that is one statement (Pricing). */
+  align?: 'left' | 'center';
 }
 
-/** The ink band at the top of every marketing page but the home page. */
-export function PageHero({ title, description, grid = false, children }: PageHeroProps) {
+/** The top of every website page but the home page: a big headline on site paper, over a ruler. */
+export function PageHero({ eyebrow, title, description, children, align = 'left' }: PageHeroProps) {
+  const centred = align === 'center';
   return (
-    <section className={grid ? 'bg-ink-grid' : 'bg-ink'}>
+    <section className={cn(SITE_CONTAINER, 'pt-12 sm:pt-16 lg:pt-20')}>
       <div
         className={cn(
-          'mx-auto max-w-6xl px-4 sm:px-6 lg:px-8',
-          grid ? 'pt-14 pb-16 sm:pt-20 sm:pb-20' : 'pt-12 pb-14 sm:pt-16 sm:pb-20',
+          'animate-fade-in-up',
+          centred ? 'mx-auto max-w-4xl text-center' : 'max-w-5xl',
         )}
       >
-        <div className="max-w-3xl animate-fade-in-up">
-          <h1 className="text-4xl leading-[1.05] font-semibold tracking-tight text-balance text-white sm:text-6xl">
-            {title}
-          </h1>
-          <p className="mt-5 max-w-2xl text-base leading-relaxed text-pretty text-white/70 sm:text-lg">
-            {description}
-          </p>
-        </div>
-        {children}
+        <Eyebrow marker className={centred ? 'justify-center' : undefined}>
+          {eyebrow}
+        </Eyebrow>
+        <h1 className="mt-5 heading-display text-balance text-ink">{title}</h1>
+        <p
+          className={cn(
+            'mt-6 max-w-2xl text-[1.0625rem] leading-[1.55] text-pretty text-ink-2 sm:text-[1.1875rem]',
+            centred && 'mx-auto',
+          )}
+        >
+          {description}
+        </p>
       </div>
+      {children}
+      <Ruler className="mt-12 sm:mt-16" />
     </section>
   );
 }

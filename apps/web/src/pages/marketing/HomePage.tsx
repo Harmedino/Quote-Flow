@@ -2,19 +2,19 @@ import { DocumentTitle } from '@/components/DocumentTitle';
 import { CtaBand } from '@/components/marketing/CtaBand';
 import { FeatureRows } from './home/FeatureRows';
 import { HomeHero } from './home/HomeHero';
+import { JobFlow } from './home/JobFlow';
 import { ProblemSection } from './home/ProblemSection';
-import { QuoteJourney } from './home/QuoteJourney';
-import { TradesSection } from './home/TradesSection';
+import { TradesBand } from './home/TradesBand';
 
 export default function HomePage() {
   return (
     <>
       <DocumentTitle title="Quotes and invoices for service businesses" />
       <HomeHero />
+      <TradesBand />
+      <JobFlow />
       <ProblemSection />
-      <QuoteJourney />
       <FeatureRows />
-      <TradesSection />
       <CtaBand />
     </>
   );
