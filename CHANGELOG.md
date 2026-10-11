@@ -18,7 +18,8 @@ This work is in progress and not ready for clients yet.
 - The build checks the environment first (`pnpm env:check`, the first step of the Vercel build
   command). A missing or invalid variable fails the build, the build log names it, and the current
   deployment keeps serving instead of a new one that answers every request with an error. A
-  production deployment gets the production rules even when `NODE_ENV` is missing.
+  production deployment gets the production rules even when `NODE_ENV` is missing. Vercel preview
+  and development builds skip the check.
 - The API warns at start-up when the production `APP_URL` is still a host's default address
   (`*.vercel.app`, `*.onrender.com`), because customer links would show the host's name.
 - Every page is sent with security headers: a strict Content-Security-Policy (no inline or

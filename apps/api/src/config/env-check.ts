@@ -24,8 +24,18 @@ function chooseRules(source: NodeJS.ProcessEnv): { production: boolean; reason: 
  * server's own validation, run before anything is deployed. Returns the exit code. A failure
  * names each variable (never a value) and fails the build, so the current deployment keeps
  * serving instead of a new one that answers 503.
+ *
+ * Vercel's preview and development builds are skipped: they often have no database or secrets
+ * (those are usually set for Production only), and a broken preview serves nobody.
  */
 export function checkEnv(source: NodeJS.ProcessEnv, output: EnvCheckOutput): 0 | 1 {
+  const vercelEnv = readVariable(source, 'VERCEL_ENV');
+  if (vercelEnv !== undefined && vercelEnv !== 'production') {
+    output.info(
+      `Environment check skipped: not a production deployment (VERCEL_ENV=${vercelEnv}).`,
+    );
+    return 0;
+  }
   const { production, reason } = chooseRules(source);
   let env: Env;
   try {

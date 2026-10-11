@@ -51,7 +51,7 @@ Lead / customer → Create quote → Send quote → Customer views public link
   every missing or invalid variable (names only — values are never printed). Production
   additionally requires `https` `CORS_ORIGIN` and `APP_URL` values, an explicit `TRUST_PROXY` and a
   random `JWT_SECRET`. The same check runs at build time (`pnpm env:check`), so a bad environment
-  fails the deploy instead of the running site. In production the API warns at start-up when
+  fails a production deploy instead of the running site (Vercel preview builds skip it). In production the API warns at start-up when
   `APP_URL` is a host's default address (`*.vercel.app`, `*.onrender.com`).
 - Security middleware: Helmet (strict JSON-API CSP), allow-list CORS with credentials, per-IP rate
   limiting, a 1 MB JSON body limit, and request ids (`X-Request-Id`).
@@ -439,7 +439,8 @@ bundle). `apps/web/vercel.json` holds the build command, the routing and the sec
 4. **Redeploy.** The build first runs `pnpm env:check`: a missing or invalid variable fails the
    build, the build log names it (never its value), and the current deployment keeps serving. A
    production deployment (`VERCEL_ENV=production`, set by Vercel) gets the production rules even if
-   `NODE_ENV` was forgotten, and then also fails until `NODE_ENV=production` is set. The first API
+   `NODE_ENV` was forgotten, and then also fails until `NODE_ENV=production` is set. Preview and
+   development builds skip the check, since they usually have no database or secrets. The first API
    request after a deploy connects to the database and creates any missing indexes. Check
    `https://<your-app>/api/health`: it should return `{"data":{"status":"ok",…}}`. If it returns 503,
    the function logs (_Deployments → Functions_) say why.

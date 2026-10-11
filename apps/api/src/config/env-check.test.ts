@@ -63,15 +63,29 @@ describe('checkEnv', () => {
     expect(result.stderr).toContain('  - NODE_ENV: must be production on a production deployment');
   });
 
-  it('applies the development rules elsewhere, such as a preview build', () => {
-    const preview = { MONGODB_URI: PRODUCTION.MONGODB_URI, JWT_SECRET: SECRET };
+  it("skips Vercel's preview and development builds, which often have no secrets", () => {
+    for (const vercelEnv of ['preview', 'development']) {
+      expect(runCheck({ VERCEL_ENV: vercelEnv })).toEqual({
+        exitCode: 0,
+        stdout: `Environment check skipped: not a production deployment (VERCEL_ENV=${vercelEnv}).`,
+        stderr: '',
+      });
+    }
+    // Even one set up with production values: only a production deployment is checked.
+    expect(runCheck({ ...PRODUCTION, APP_URL: undefined, VERCEL_ENV: 'preview' })).toMatchObject({
+      exitCode: 0,
+    });
+  });
 
-    expect(runCheck({ ...preview, VERCEL_ENV: 'preview' })).toMatchObject({
+  it('applies the development rules elsewhere, such as a local check', () => {
+    const local = { MONGODB_URI: PRODUCTION.MONGODB_URI, JWT_SECRET: SECRET };
+
+    expect(runCheck(local)).toMatchObject({
       exitCode: 0,
       stdout:
         'Environment check passed (development rules, because neither NODE_ENV nor VERCEL_ENV is production).',
     });
-    expect(runCheck({ VERCEL_ENV: 'preview' })).toMatchObject({ exitCode: 1 });
+    expect(runCheck({})).toMatchObject({ exitCode: 1 });
   });
 
   it("prints the boot warnings too, without failing, for a host's default address", () => {
@@ -115,6 +129,13 @@ describe('pnpm env:check', () => {
       '  - TRUST_PROXY',
     ]);
     expect(result.stderr).not.toContain('mongodb://db');
+  });
+
+  it('exits 0 on a preview build without any variables', async () => {
+    const result = await runScript({ VERCEL_ENV: 'preview' });
+
+    expect(result).toMatchObject({ exitCode: 0, stderr: '' });
+    expect(result.stdout).toContain('Environment check skipped');
   });
 
   it('exits 0 for a good one', async () => {
