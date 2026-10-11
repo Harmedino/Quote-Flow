@@ -1,4 +1,3 @@
-import { DEFAULT_BRAND_COLOR } from '@quoteflow/shared';
 import type { Business, User } from '../../models';
 
 /** Sign-ups may not use this domain, so only the demo builder creates its accounts. */
@@ -23,8 +22,8 @@ export const DEMO_BUSINESS = {
   },
   currency: 'NGN',
   timezone: 'Africa/Lagos',
-  // The default colour, like a business that hasn't picked one yet.
-  brandColor: DEFAULT_BRAND_COLOR,
+  // Lagoon teal rather than the default, so the demo shows off the brand-colour feature.
+  brandColor: '#0f6b78',
   quotePrefix: 'LHS-Q',
   invoicePrefix: 'LHS-INV',
   quoteValidityDays: 14,

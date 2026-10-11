@@ -1,23 +1,28 @@
 import { DEFAULT_BRAND_COLOR } from '@quoteflow/shared';
 import { Check } from 'lucide-react';
 import { useId } from 'react';
-import { brandColorVars, textColorOn } from '@/components/documents/brand-color';
-import { businessInitials } from '@/components/documents/document-format';
+import { textColorOn } from '@/components/documents/brand-color';
 import { Field } from '@/components/ui/Field';
 import { Input } from '@/components/ui/Input';
 import { pickerColor } from '@/features/business/business-form';
 import { cn } from '@/lib/cn';
+import { BrandPreview } from './BrandPreview';
 
-/** Colors an owner can pick with one tap; any hex color works too. */
+/**
+ * Colours an owner can pick with one tap; any hex colour works too. Signal navy (the default)
+ * comes first. The older presets stay, so a business that saved one still sees it selected.
+ */
 const PRESETS = [
-  { name: 'Near black', hex: '#0c1a14' },
-  { name: 'Green', hex: '#0f8250' },
+  { name: 'Navy', hex: DEFAULT_BRAND_COLOR },
+  { name: 'Lagoon', hex: '#0f6b78' },
   { name: 'Teal', hex: '#0f766e' },
+  { name: 'Green', hex: '#0f8250' },
   { name: 'Blue', hex: '#1d4ed8' },
   { name: 'Violet', hex: '#6d28d9' },
   { name: 'Pink', hex: '#be185d' },
   { name: 'Red', hex: '#b91c1c' },
   { name: 'Orange', hex: '#c2410c' },
+  { name: 'Marigold', hex: '#f5a524' },
 ] as const;
 
 export interface BrandColorFieldProps {
@@ -45,7 +50,7 @@ export function BrandColorField({
   return (
     <div className="space-y-5">
       <div role="group" aria-labelledby={groupLabelId} className="space-y-2.5">
-        <p id={groupLabelId} className="text-sm font-medium text-stone-800">
+        <p id={groupLabelId} className="text-sm font-semibold text-ink">
           Brand color
         </p>
         <div className="flex flex-wrap items-center gap-2.5">
@@ -61,19 +66,19 @@ export function BrandColorField({
                 onClick={() => onChange(preset.hex)}
                 style={{ backgroundColor: preset.hex, color: textColorOn(preset.hex) }}
                 className={cn(
-                  // The faint border keeps dark swatches visible on the dark surface.
-                  'flex size-9 items-center justify-center rounded-full border border-black/10 ring-offset-2 ring-offset-surface transition disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/20',
-                  active ? 'ring-2 ring-stone-900' : 'enabled:hover:scale-110',
+                  // The faint inner edge keeps dark swatches visible on the dark surface.
+                  'flex size-9 items-center justify-center rounded-[9px] inset-ring inset-ring-ink/30 ring-offset-2 ring-offset-surface transition disabled:cursor-not-allowed disabled:opacity-60',
+                  active ? 'ring-2 ring-ink' : 'enabled:hover:scale-110',
                 )}
               >
                 {active && <Check aria-hidden="true" className="size-4" strokeWidth={3} />}
               </button>
             );
           })}
-          <label className="relative inline-flex h-9 cursor-pointer items-center gap-2 rounded-full border border-stone-300 bg-surface px-3 text-sm font-medium text-stone-700 transition-colors has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-brand-500 hover:bg-stone-50 has-disabled:cursor-not-allowed has-disabled:opacity-60">
+          <label className="relative inline-flex h-9 cursor-pointer items-center gap-2 rounded-[9px] bg-surface px-3 text-sm font-semibold text-ink-2 shadow-[inset_0_0_0_1px_var(--color-line-strong)] transition-colors has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-focus hover:bg-surface-muted has-disabled:cursor-not-allowed has-disabled:opacity-60">
             <span
               aria-hidden="true"
-              className="size-4 rounded-full border border-stone-300"
+              className="size-4 rounded-[4px] inset-ring inset-ring-ink/20"
               style={{ backgroundColor: shown }}
             />
             Custom
@@ -105,35 +110,8 @@ export function BrandColorField({
         />
       </Field>
 
-      <BrandPreview color={shown} businessName={businessName} />
-    </div>
-  );
-}
-
-/** A miniature of the customer's quote page, so the owner sees the color in use. */
-function BrandPreview({ color, businessName }: { color: string; businessName: string }) {
-  return (
-    <div>
-      <p className="section-label">How customers see it</p>
-      <div
-        aria-hidden="true"
-        style={brandColorVars(color)}
-        className="mt-2 overflow-hidden rounded-xl border border-stone-200 bg-surface-muted"
-      >
-        <div className="h-1.5 bg-(--doc-accent)" />
-        <div className="flex items-center gap-3 p-4">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-(--doc-accent) font-display text-sm font-bold text-(--doc-on-accent)">
-            {businessInitials(businessName)}
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-stone-900">{businessName}</p>
-            <p className="text-xs text-stone-500">Your quote</p>
-          </div>
-          <span className="inline-flex h-8 shrink-0 items-center rounded-lg bg-(--doc-accent) px-3 text-xs font-semibold text-(--doc-on-accent)">
-            Accept quote
-          </span>
-        </div>
-      </div>
+      {/* From `lg` the preview sits in the rail beside the form instead. */}
+      <BrandPreview color={shown} businessName={businessName} className="lg:hidden" />
     </div>
   );
 }

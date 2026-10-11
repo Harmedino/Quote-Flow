@@ -1,49 +1,55 @@
-import { type CurrencyCode, DASHBOARD_ACTIVITY_DAYS, type DashboardDto } from '@quoteflow/shared';
-import { useId, useState } from 'react';
-import { formatShortDate, percentChange } from '@/features/dashboard/dashboard-format';
+import { DASHBOARD_ACTIVITY_DAYS, type DashboardDto } from '@quoteflow/shared';
+import { useState } from 'react';
+import { runningTotals } from '@/features/dashboard/chart-geometry';
+import { plural } from '@/features/dashboard/dashboard-format';
+import { SM_QUERY, useMediaQuery } from '@/features/dashboard/use-media-query';
 import { cn } from '@/lib/cn';
 import { formatMoney } from '@/lib/format';
-import { AreaChart, type ChartDay } from './AreaChart';
+import { DashboardPanel } from './DashboardPanel';
+import { type ChartNoun, RunningTotalChart } from './RunningTotalChart';
 
 type Series = 'paid' | 'quoted';
 
 const SERIES: Record<
   Series,
-  { option: string; title: string; other: string; emptyTitle: string; emptyHint: string }
+  {
+    option: string;
+    title: string;
+    noun: ChartNoun;
+    /** After the count, e.g. "3 payments recorded". */
+    done: string;
+    marker: string;
+    emptyTitle: string;
+    emptyHint: string;
+  }
 > = {
   paid: {
     option: 'Received',
     title: 'Payments received',
-    other: 'quoted',
-    emptyTitle: 'No payments recorded in the last 30 days',
+    noun: { one: 'payment', other: 'payments' },
+    done: 'recorded',
+    marker: 'Payment recorded',
+    emptyTitle: `No payments recorded in the last ${DASHBOARD_ACTIVITY_DAYS} days`,
     emptyHint: 'When a customer pays, record it on the invoice and it shows up here.',
   },
   quoted: {
     option: 'Quoted',
     title: 'Value quoted',
-    other: 'received',
-    emptyTitle: 'No quotes sent in the last 30 days',
-    emptyHint: 'Quotes you send appear here by the date they were issued.',
+    noun: { one: 'quote', other: 'quotes' },
+    done: 'sent',
+    marker: 'Quote sent',
+    emptyTitle: `No quotes sent in the last ${DASHBOARD_ACTIVITY_DAYS} days`,
+    emptyHint: 'Quotes you send appear here on the day they were issued.',
   },
 };
 
-function comparison(total: number, previous: number): { text: string; tone: string } | null {
-  const change = percentChange(total, previous);
-  if (change === null) return null;
-  if (change === 0)
-    return { text: `Same as the previous ${DASHBOARD_ACTIVITY_DAYS} days`, tone: 'text-stone-500' };
-  return {
-    text: `${change > 0 ? '+' : '−'}${Math.abs(change)}% vs the previous ${DASHBOARD_ACTIVITY_DAYS} days`,
-    tone: change > 0 ? 'text-emerald-700' : 'text-red-700',
-  };
-}
-
+/** The concept's segmented control: Received | Quoted. */
 function SeriesPicker({ value, onChange }: { value: Series; onChange: (series: Series) => void }) {
   return (
     <div
       role="group"
       aria-label="Show"
-      className="inline-flex shrink-0 rounded-lg bg-stone-100 p-1"
+      className="inline-flex shrink-0 rounded-[9px] bg-surface-muted p-[3px] shadow-[inset_0_0_0_1px_var(--color-line)]"
     >
       {(Object.keys(SERIES) as Series[]).map((series) => (
         <button
@@ -52,10 +58,10 @@ function SeriesPicker({ value, onChange }: { value: Series; onChange: (series: S
           aria-pressed={value === series}
           onClick={() => onChange(series)}
           className={cn(
-            'h-7 rounded-md px-2.5 text-xs font-medium transition-colors',
+            'rounded-[7px] px-3 py-1.5 text-[13px] font-semibold transition-colors max-sm:py-1',
             value === series
-              ? 'bg-surface text-stone-900 shadow-xs'
-              : 'text-stone-600 hover:text-stone-900',
+              ? 'bg-surface text-ink shadow-[0_0_0_1px_var(--color-line-strong)]'
+              : 'text-muted hover:text-ink',
           )}
         >
           {SERIES[series].option}
@@ -65,64 +71,81 @@ function SeriesPicker({ value, onChange }: { value: Series; onChange: (series: S
   );
 }
 
-/** Money received or value quoted per day over the last 30 days, ServiceBook's revenue card. */
+function Legend({ marker }: { marker: string }) {
+  return (
+    <p aria-hidden="true" className="ml-auto hidden gap-4.5 text-[12.5px] text-muted md:flex">
+      <span className="inline-flex items-center gap-1.5">
+        <span className="h-0 w-4 border-t-[2.5px] border-primary-ink" />
+        Running total
+      </span>
+      <span className="inline-flex items-center gap-1.5">
+        <span className="size-2.5 rounded-full border-[2.5px] border-ink" />
+        {marker}
+      </span>
+    </p>
+  );
+}
+
+/**
+ * Money received (or value quoted) over the last 30 days as a running total, with each payment
+ * pinned to the day it came in.
+ */
 export function ActivityCard({
   activity,
   currency,
+  className,
 }: {
   activity: DashboardDto['activity'];
-  currency: CurrencyCode;
+  currency: DashboardDto['currency'];
+  className?: string;
 }) {
   const [series, setSeries] = useState<Series>('paid');
-  const titleId = useId();
-  const { title, other, emptyTitle, emptyHint } = SERIES[series];
-  const otherSeries: Series = series === 'paid' ? 'quoted' : 'paid';
-  const money = (minor: number) => formatMoney(minor, currency);
-
-  const total = activity.days.reduce((sum, day) => sum + day[series], 0);
-  const best = activity.days.reduce((top, day) => (day[series] > top[series] ? day : top));
-  const compared = comparison(total, activity.previous[series]);
-  const days: ChartDay[] = activity.days.map((day) => ({
-    value: day[series],
-    valueLabel: money(day[series]),
-    detail: `${formatShortDate(day.date)} · ${money(day[otherSeries])} ${other}`,
-  }));
-  const firstDay = activity.days[0];
+  const compact = !useMediaQuery(SM_QUERY);
+  const { title, noun, done, marker, emptyTitle, emptyHint } = SERIES[series];
+  const days = runningTotals(
+    activity.days.map((day) => ({ date: day.date, value: day[series] })),
+    activity.entries[series],
+  );
+  const total = days.at(-1)?.total ?? 0;
+  const count = plural(activity.entries[series].length, noun.one);
 
   return (
-    <section
-      aria-labelledby={titleId}
-      className="rounded-2xl border border-stone-200 bg-surface p-4 sm:p-5"
+    <DashboardPanel
+      className={className}
+      title={
+        <>
+          {title}
+          <span className="max-lg:hidden"> · last {DASHBOARD_ACTIVITY_DAYS} days</span>
+        </>
+      }
+      // On the narrowest phones the picker drops under the title rather than squeezing it.
+      headerClassName="flex-wrap"
+      titleClassName="lg:label-mono lg:text-muted"
+      aside={<SeriesPicker value={series} onChange={setSeries} />}
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h2 id={titleId} className="font-sans text-sm font-normal tracking-normal text-stone-500">
-            {title} · last {DASHBOARD_ACTIVITY_DAYS} days
-          </h2>
-          <p className="mt-0.5 font-display text-2xl font-semibold tracking-tight text-stone-900 tabular-nums">
-            {money(total)}
+      <div className="px-4 pt-3.5 pb-2.5 lg:px-6 lg:pt-0 lg:pb-3.5">
+        <div className="flex flex-wrap items-baseline gap-x-3.5 gap-y-1">
+          <p className="figure text-[22px] text-ink sm:text-[28px]">
+            {formatMoney(total, currency)}
           </p>
-          {total > 0 && (
-            <p className="mt-1 text-xs text-stone-500">
-              {compared && <span className={compared.tone}>{compared.text} · </span>}
-              Best day {money(best[series])}, {formatShortDate(best.date)}
-            </p>
-          )}
+          <p className="text-[13px] text-muted max-sm:ml-auto max-sm:label-mono">
+            {count} <span className="max-sm:hidden">{done}</span>
+            <span className="sm:hidden">· {DASHBOARD_ACTIVITY_DAYS} days</span>
+          </p>
+          <Legend marker={marker} />
         </div>
-        <SeriesPicker value={series} onChange={setSeries} />
+        <div className="mt-2">
+          <RunningTotalChart
+            key={series}
+            days={days}
+            currency={currency}
+            noun={noun}
+            compact={compact}
+            label={`${title} by day, last ${DASHBOARD_ACTIVITY_DAYS} days`}
+            emptyMessage={total === 0 ? { title: emptyTitle, hint: emptyHint } : undefined}
+          />
+        </div>
       </div>
-      <AreaChart
-        key={series}
-        days={days}
-        label={`${title} per day`}
-        emptyMessage={total === 0 ? { title: emptyTitle, hint: emptyHint } : undefined}
-      />
-      {firstDay && (
-        <div aria-hidden="true" className="mt-2 flex justify-between text-[11px] text-stone-500">
-          <span>{formatShortDate(firstDay.date)}</span>
-          <span>Today</span>
-        </div>
-      )}
-    </section>
+    </DashboardPanel>
   );
 }

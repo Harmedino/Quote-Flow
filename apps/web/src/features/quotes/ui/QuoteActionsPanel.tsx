@@ -16,7 +16,7 @@ import { useDeleteQuote, useDuplicateQuote } from '../use-quotes';
 export function QuoteActionsPanel({ quote }: { quote: QuoteDto }) {
   const navigate = useNavigate();
   const duplicateQuote = useDuplicateQuote();
-  const deleteQuote = useDeleteQuote();
+  const deleteQuote = useDeleteQuote(() => navigate(paths.quotes, { replace: true }));
   const [downloading, setDownloading] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -100,7 +100,6 @@ export function QuoteActionsPanel({ quote }: { quote: QuoteDto }) {
         onConfirm={() =>
           void run(async () => {
             await deleteQuote.mutateAsync(quote.id);
-            void navigate(paths.quotes, { replace: true });
           })
         }
       />

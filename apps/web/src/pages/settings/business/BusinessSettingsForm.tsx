@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/Textarea';
 import {
   buildBusinessUpdate,
   changedBusinessFields,
+  pickerColor,
   previewDocumentNumber,
   rebaseBusinessFormValues,
   toBusinessFormValues,
@@ -24,6 +25,7 @@ import { CURRENCY_OPTIONS, timeZoneOptions } from '@/lib/locale';
 import { useForm } from '@/lib/use-form';
 import { SettingsSection } from '../SettingsSection';
 import { BrandColorField } from './BrandColorField';
+import { BusinessPreviewRail } from './BusinessPreviewRail';
 
 interface SavedState {
   /** The server copy the form was last reset from. */
@@ -89,186 +91,203 @@ export function BusinessSettingsForm({ business, canEdit }: BusinessSettingsForm
   const { bind, fieldErrors: errors } = form;
   const quotePreview = previewDocumentNumber(form.values.quotePrefix);
   const invoicePreview = previewDocumentNumber(form.values.invoicePrefix);
+  const businessName = form.values.name || saved.values.name;
 
   return (
     <form id={form.id} noValidate onSubmit={handleSubmit}>
-      <fieldset disabled={!canEdit} className="min-w-0 space-y-6">
-        <legend className="sr-only">Business settings</legend>
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start lg:gap-6">
+        <fieldset disabled={!canEdit} className="min-w-0 space-y-6">
+          <legend className="sr-only">Business settings</legend>
 
-        <SettingsSection
-          title="Business profile"
-          description="How your business appears on quotes and invoices."
-        >
-          <div className="grid gap-5 sm:grid-cols-2">
-            <Field label="Business name" error={errors.name} required className="sm:col-span-2">
-              <Input {...bind('name')} autoComplete="organization" />
-            </Field>
-            <Field label="Contact email" error={errors.email}>
-              <Input
-                {...bind('email')}
-                type="email"
-                inputMode="email"
-                autoComplete="email"
-                autoCapitalize="none"
-                spellCheck={false}
-              />
-            </Field>
-            <Field label="Phone" error={errors.phone}>
-              <Input {...bind('phone')} type="tel" autoComplete="tel" />
-            </Field>
-            <Field
-              label="Website"
-              hint="For example, example.com"
-              error={errors.website}
-              className="sm:col-span-2"
-            >
-              <Input
-                {...bind('website')}
-                inputMode="url"
-                autoComplete="url"
-                autoCapitalize="none"
-                spellCheck={false}
-              />
-            </Field>
-            <Field label="Address line 1" error={errors['address.line1']} className="sm:col-span-2">
-              <Input {...bind('address.line1')} autoComplete="address-line1" />
-            </Field>
-            <Field label="Address line 2" error={errors['address.line2']} className="sm:col-span-2">
-              <Input {...bind('address.line2')} autoComplete="address-line2" />
-            </Field>
-            <Field label="City" error={errors['address.city']}>
-              <Input {...bind('address.city')} autoComplete="address-level2" />
-            </Field>
-            <Field label="State or region" error={errors['address.state']}>
-              <Input {...bind('address.state')} autoComplete="address-level1" />
-            </Field>
-            <Field label="Postal code" error={errors['address.postalCode']}>
-              <Input {...bind('address.postalCode')} autoComplete="postal-code" />
-            </Field>
-            <Field label="Country" error={errors['address.country']}>
-              <Input {...bind('address.country')} autoComplete="country-name" />
-            </Field>
-          </div>
-        </SettingsSection>
+          <SettingsSection
+            title="Business profile"
+            description="How your business appears on quotes and invoices."
+          >
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Field label="Business name" error={errors.name} required className="sm:col-span-2">
+                <Input {...bind('name')} autoComplete="organization" />
+              </Field>
+              <Field label="Contact email" error={errors.email}>
+                <Input
+                  {...bind('email')}
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                />
+              </Field>
+              <Field label="Phone" error={errors.phone}>
+                <Input {...bind('phone')} type="tel" autoComplete="tel" />
+              </Field>
+              <Field
+                label="Website"
+                hint="For example, example.com"
+                error={errors.website}
+                className="sm:col-span-2"
+              >
+                <Input
+                  {...bind('website')}
+                  inputMode="url"
+                  autoComplete="url"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                />
+              </Field>
+              <Field
+                label="Address line 1"
+                error={errors['address.line1']}
+                className="sm:col-span-2"
+              >
+                <Input {...bind('address.line1')} autoComplete="address-line1" />
+              </Field>
+              <Field
+                label="Address line 2"
+                error={errors['address.line2']}
+                className="sm:col-span-2"
+              >
+                <Input {...bind('address.line2')} autoComplete="address-line2" />
+              </Field>
+              <Field label="City" error={errors['address.city']}>
+                <Input {...bind('address.city')} autoComplete="address-level2" />
+              </Field>
+              <Field label="State or region" error={errors['address.state']}>
+                <Input {...bind('address.state')} autoComplete="address-level1" />
+              </Field>
+              <Field label="Postal code" error={errors['address.postalCode']}>
+                <Input {...bind('address.postalCode')} autoComplete="postal-code" />
+              </Field>
+              <Field label="Country" error={errors['address.country']}>
+                <Input {...bind('address.country')} autoComplete="country-name" />
+              </Field>
+            </div>
+          </SettingsSection>
 
-        <SettingsSection
-          title="Branding"
-          description="The accent color on your quotes, invoices and the page your customers open."
-        >
-          <BrandColorField
-            value={form.values.brandColor}
-            savedValue={saved.values.brandColor}
-            businessName={form.values.name || saved.values.name}
-            error={errors.brandColor}
-            onChange={(value) => form.setValue('brandColor', value)}
-          />
-        </SettingsSection>
+          <SettingsSection
+            title="Branding"
+            description="The accent color on your quotes, invoices and the page your customers open."
+          >
+            <BrandColorField
+              value={form.values.brandColor}
+              savedValue={saved.values.brandColor}
+              businessName={businessName}
+              error={errors.brandColor}
+              onChange={(value) => form.setValue('brandColor', value)}
+            />
+          </SettingsSection>
 
-        <SettingsSection
-          title="Regional"
-          description="Currency and time zone for your documents and dates."
-        >
-          <div className="grid gap-5 sm:grid-cols-2">
-            <Field
-              label="Currency"
-              hint="Existing quotes and invoices keep their currency. Service prices aren’t converted: they’ll be read in the new currency, so check them."
-              error={errors.currency}
-            >
-              <Select {...bind('currency')}>
-                {CURRENCY_OPTIONS.map(({ value, label }) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <Field label="Time zone" error={errors.timezone}>
-              <Select {...bind('timezone')}>
-                {timeZones.map(({ value, label }) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-          </div>
-        </SettingsSection>
+          <SettingsSection
+            title="Regional"
+            description="Currency and time zone for your documents and dates."
+          >
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Field
+                label="Currency"
+                hint="Existing quotes and invoices keep their currency. Service prices aren’t converted: they’ll be read in the new currency, so check them."
+                error={errors.currency}
+              >
+                <Select {...bind('currency')}>
+                  {CURRENCY_OPTIONS.map(({ value, label }) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label="Time zone" error={errors.timezone}>
+                <Select {...bind('timezone')}>
+                  {timeZones.map(({ value, label }) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            </div>
+          </SettingsSection>
 
-        <SettingsSection
-          title="Documents"
-          description="Numbering and defaults for new quotes and invoices."
-        >
-          <div className="grid gap-5 sm:grid-cols-2">
-            <Field
-              label="Quote number prefix"
-              hint={quotePreview ? `Quotes are numbered like ${quotePreview}` : undefined}
-              error={errors.quotePrefix}
-            >
-              <Input
-                {...bind('quotePrefix')}
-                autoCapitalize="characters"
-                spellCheck={false}
-                maxLength={TEXT_LIMITS.documentPrefix}
-                className="uppercase"
-              />
-            </Field>
-            <Field
-              label="Invoice number prefix"
-              hint={invoicePreview ? `Invoices are numbered like ${invoicePreview}` : undefined}
-              error={errors.invoicePrefix}
-            >
-              <Input
-                {...bind('invoicePrefix')}
-                autoCapitalize="characters"
-                spellCheck={false}
-                maxLength={TEXT_LIMITS.documentPrefix}
-                className="uppercase"
-              />
-            </Field>
-            <Field
-              label="Quotes are valid for"
-              hint={`Days a customer has to accept (${QUOTE_VALIDITY_DAYS_RANGE.min}–${QUOTE_VALIDITY_DAYS_RANGE.max}).`}
-              error={errors.quoteValidityDays}
-            >
-              <Input {...bind('quoteValidityDays')} inputMode="numeric" suffix="days" />
-            </Field>
-            <Field
-              label="Invoice payment terms"
-              hint={`Days until an invoice is due; ${INVOICE_DUE_DAYS_RANGE.min} means due on receipt.`}
-              error={errors.invoiceDueDays}
-            >
-              <Input {...bind('invoiceDueDays')} inputMode="numeric" suffix="days" />
-            </Field>
-            <Field
-              label="Default tax rate"
-              hint="A percentage, pre-filled on new quotes and invoices."
-              error={errors.defaultTaxRate}
-            >
-              <Input {...bind('defaultTaxRate')} inputMode="decimal" suffix="%" />
-            </Field>
-          </div>
-        </SettingsSection>
+          <SettingsSection
+            title="Documents"
+            description="Numbering and defaults for new quotes and invoices."
+          >
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Field
+                label="Quote number prefix"
+                hint={quotePreview ? `Quotes are numbered like ${quotePreview}` : undefined}
+                error={errors.quotePrefix}
+              >
+                <Input
+                  {...bind('quotePrefix')}
+                  autoCapitalize="characters"
+                  spellCheck={false}
+                  maxLength={TEXT_LIMITS.documentPrefix}
+                  className="uppercase"
+                />
+              </Field>
+              <Field
+                label="Invoice number prefix"
+                hint={invoicePreview ? `Invoices are numbered like ${invoicePreview}` : undefined}
+                error={errors.invoicePrefix}
+              >
+                <Input
+                  {...bind('invoicePrefix')}
+                  autoCapitalize="characters"
+                  spellCheck={false}
+                  maxLength={TEXT_LIMITS.documentPrefix}
+                  className="uppercase"
+                />
+              </Field>
+              <Field
+                label="Quotes are valid for"
+                hint={`Days a customer has to accept (${QUOTE_VALIDITY_DAYS_RANGE.min}–${QUOTE_VALIDITY_DAYS_RANGE.max}).`}
+                error={errors.quoteValidityDays}
+              >
+                <Input {...bind('quoteValidityDays')} inputMode="numeric" suffix="days" />
+              </Field>
+              <Field
+                label="Invoice payment terms"
+                hint={`Days until an invoice is due; ${INVOICE_DUE_DAYS_RANGE.min} means due on receipt.`}
+                error={errors.invoiceDueDays}
+              >
+                <Input {...bind('invoiceDueDays')} inputMode="numeric" suffix="days" />
+              </Field>
+              <Field
+                label="Default tax rate"
+                hint="A percentage, pre-filled on new quotes and invoices."
+                error={errors.defaultTaxRate}
+              >
+                <Input {...bind('defaultTaxRate')} inputMode="decimal" suffix="%" />
+              </Field>
+            </div>
+          </SettingsSection>
 
-        <SettingsSection
-          title="Default text"
-          description="Pre-filled on every new quote or invoice, and editable on each one."
-        >
-          <div className="grid gap-5 sm:grid-cols-2">
-            <Field label="Quote notes" error={errors.defaultQuoteNotes}>
-              <Textarea {...bind('defaultQuoteNotes')} maxLength={TEXT_LIMITS.notes} />
-            </Field>
-            <Field label="Quote terms" error={errors.defaultQuoteTerms}>
-              <Textarea {...bind('defaultQuoteTerms')} maxLength={TEXT_LIMITS.terms} />
-            </Field>
-            <Field label="Invoice notes" error={errors.defaultInvoiceNotes}>
-              <Textarea {...bind('defaultInvoiceNotes')} maxLength={TEXT_LIMITS.notes} />
-            </Field>
-            <Field label="Invoice terms" error={errors.defaultInvoiceTerms}>
-              <Textarea {...bind('defaultInvoiceTerms')} maxLength={TEXT_LIMITS.terms} />
-            </Field>
-          </div>
-        </SettingsSection>
-      </fieldset>
+          <SettingsSection
+            title="Default text"
+            description="Pre-filled on every new quote or invoice, and editable on each one."
+          >
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Field label="Quote notes" error={errors.defaultQuoteNotes}>
+                <Textarea {...bind('defaultQuoteNotes')} maxLength={TEXT_LIMITS.notes} />
+              </Field>
+              <Field label="Quote terms" error={errors.defaultQuoteTerms}>
+                <Textarea {...bind('defaultQuoteTerms')} maxLength={TEXT_LIMITS.terms} />
+              </Field>
+              <Field label="Invoice notes" error={errors.defaultInvoiceNotes}>
+                <Textarea {...bind('defaultInvoiceNotes')} maxLength={TEXT_LIMITS.notes} />
+              </Field>
+              <Field label="Invoice terms" error={errors.defaultInvoiceTerms}>
+                <Textarea {...bind('defaultInvoiceTerms')} maxLength={TEXT_LIMITS.terms} />
+              </Field>
+            </div>
+          </SettingsSection>
+        </fieldset>
+        <BusinessPreviewRail
+          color={pickerColor(form.values.brandColor, saved.values.brandColor)}
+          businessName={businessName}
+          quoteNumber={quotePreview}
+          invoiceNumber={invoicePreview}
+        />
+      </div>
 
       {canEdit && (
         <FormActionBar

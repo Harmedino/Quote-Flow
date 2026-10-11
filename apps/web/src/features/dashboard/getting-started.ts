@@ -19,7 +19,7 @@ export function hasBusinessDetails(business: Pick<BusinessDto, 'email' | 'phone'
 
 export function gettingStartedChecklist(
   business: Pick<BusinessDto, 'email' | 'phone' | 'address'>,
-  dashboard: Pick<DashboardDto, 'quotes' | 'recentCustomers'>,
+  dashboard: Pick<DashboardDto, 'quotes' | 'customers'>,
   serviceCount: number,
 ): ChecklistItem[] {
   return [
@@ -45,7 +45,7 @@ export function gettingStartedChecklist(
       description: 'Keep contact details in one place for quotes and invoices.',
       to: paths.newCustomer,
       action: 'Add a customer',
-      done: dashboard.recentCustomers.length > 0,
+      done: dashboard.customers.total > 0,
     },
     {
       id: 'quote',

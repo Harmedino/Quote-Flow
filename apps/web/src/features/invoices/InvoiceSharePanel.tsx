@@ -34,19 +34,19 @@ export function InvoiceSharePanel({ invoice, businessName }: InvoiceSharePanelPr
       emphasis={canRecordPayment(invoice.status, invoice.balanceDue) ? 'secondary' : 'primary'}
     >
       {toWhatsAppPhone(invoice.customer.phone) === null && (
-        <p className="text-xs text-pretty text-stone-500">
+        <p className="text-[13px] text-pretty text-muted">
           Add the customer’s phone number with its country code to open their WhatsApp chat
           directly.
         </p>
       )}
       {isDraft && (
-        <p className="text-xs text-stone-500">
+        <p className="text-[13px] text-muted">
           Sent it another way?{' '}
           <button
             type="button"
             onClick={sharing.markAsSent}
             disabled={sharing.sending}
-            className="rounded-sm font-medium text-brand-700 hover:text-brand-800 hover:underline disabled:opacity-50"
+            className="rounded-sm font-[650] text-primary-ink underline-offset-[3px] hover:underline disabled:opacity-50"
           >
             Mark as sent
           </button>

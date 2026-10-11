@@ -63,7 +63,7 @@ export function ItemNameInput({
         aria-describedby={describedBy}
         autoComplete="off"
         placeholder={services.length > 0 ? 'Search or type an item' : 'Item name'}
-        className={cn(CONTROL_CLASSES, 'h-10')}
+        className={cn(CONTROL_CLASSES, 'h-10.5')}
         value={value}
         onChange={(event) => {
           onChange(event.target.value);
@@ -79,7 +79,7 @@ export function ItemNameInput({
         role="listbox"
         aria-label="Services"
         hidden={!expanded}
-        className="absolute top-full left-0 z-30 mt-1 max-h-72 w-max max-w-[min(26rem,calc(100vw-2rem))] min-w-full overflow-auto rounded-xl border border-stone-200 bg-surface p-1 shadow-[var(--shadow-elevated)]"
+        className="absolute top-full left-0 z-30 mt-1 max-h-72 w-max max-w-[min(26rem,calc(100vw-2rem))] min-w-full overflow-auto rounded-xl bg-surface p-1 shadow-(--shadow-elevated)"
       >
         {suggestions.map((service, index) => (
           <li
@@ -93,11 +93,11 @@ export function ItemNameInput({
             onMouseMove={() => listbox.setActiveIndex(index)}
             className={cn(
               'flex cursor-pointer items-baseline justify-between gap-3 rounded-lg px-2.5 py-2 text-sm',
-              index === listbox.activeIndex ? 'bg-brand-50 text-brand-800' : 'text-stone-900',
+              index === listbox.activeIndex ? 'bg-surface-muted text-ink' : 'text-ink',
             )}
           >
-            <span className="min-w-0 truncate font-medium">{service.name}</span>
-            <span className="shrink-0 text-stone-500 tabular-nums">
+            <span className="min-w-0 truncate font-semibold">{service.name}</span>
+            <span className="shrink-0 font-mono text-[12.5px] text-muted tabular-nums">
               {formatMoney(service.price, currency)}
               {service.unit ? ` / ${service.unit}` : ''}
             </span>

@@ -23,16 +23,16 @@ export function PricingFields({ values, currency, errors, onChange }: PricingFie
   return (
     <div className="grid gap-5 sm:grid-cols-2">
       <fieldset className="min-w-0 space-y-3">
-        <legend className="mb-1.5 text-sm font-medium text-stone-800">Discount</legend>
-        <div className="grid grid-cols-3 gap-1 rounded-xl bg-stone-100 p-1 sm:inline-grid">
+        <legend className="mb-1.5 text-sm font-semibold text-ink">Discount</legend>
+        <div className="grid grid-cols-3 gap-0.5 rounded-[9px] bg-surface-muted p-[3px] shadow-[inset_0_0_0_1px_var(--color-line)] sm:inline-grid">
           {DISCOUNT_MODES.map((mode) => (
             <label
               key={mode.value}
               className={cn(
-                'cursor-pointer rounded-lg px-3.5 py-1.5 text-center text-sm font-medium transition-colors has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-brand-500',
+                'cursor-pointer rounded-[7px] px-3.5 py-1.5 text-center text-[13.5px] font-semibold transition-colors has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-focus',
                 values.discountMode === mode.value
-                  ? 'bg-surface text-stone-900 shadow-sm'
-                  : 'text-stone-600 hover:text-stone-900',
+                  ? 'bg-surface text-ink shadow-[0_0_0_1px_var(--color-line-strong)]'
+                  : 'text-muted hover:text-ink',
               )}
             >
               <input

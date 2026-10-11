@@ -1,5 +1,7 @@
 import { CircleCheck } from 'lucide-react';
 import { useState } from 'react';
+import { cn } from '@/lib/cn';
+import { bottomBarClearance } from './bottom-bar-clearance';
 import { Button } from './ui/Button';
 
 export interface FormActionBarProps {
@@ -29,22 +31,33 @@ export function FormActionBar({ dirty, saving, saved, error, onDiscard }: FormAc
   }
 
   return (
-    <div className="sticky bottom-[calc(var(--spacing-tab-bar)+0.75rem)] z-20 mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-3 rounded-2xl border border-stone-200 bg-surface/95 px-4 py-3 shadow-[var(--shadow-elevated)] backdrop-blur-md sm:px-5 lg:bottom-4">
+    <div
+      ref={bottomBarClearance}
+      className="sticky bottom-[calc(var(--spacing-tab-bar)+0.75rem)] z-20 mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-3 overflow-hidden rounded-xl bg-surface py-3 pr-4 pl-5 shadow-(--shadow-elevated) sm:pr-5 sm:pl-6 lg:bottom-4"
+    >
+      {/* The hazard tape on the edge while there is something to save. */}
+      <span
+        aria-hidden="true"
+        className={cn(
+          'absolute inset-y-0 left-0 w-1.5 transition-opacity',
+          dirty ? 'hazard-tape' : 'opacity-0',
+        )}
+      />
       <div className="min-w-0 flex-1 text-sm">
         {error && (
-          <p role="alert" className="text-red-700">
+          <p role="alert" className="font-medium text-danger">
             {error}
           </p>
         )}
-        <p role="status" className="flex items-center gap-2 text-stone-600">
+        <p role="status" className="flex items-center gap-2 text-ink-2">
           {error ? null : dirty ? (
             <>
-              <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-amber-500" />
+              <span aria-hidden="true" className="size-2 shrink-0 rounded-[2px] bg-caution" />
               You have unsaved changes
             </>
           ) : saved ? (
             <>
-              <CircleCheck aria-hidden="true" className="size-4 shrink-0 text-emerald-700" />
+              <CircleCheck aria-hidden="true" className="size-4 shrink-0 text-success" />
               Changes saved
             </>
           ) : (

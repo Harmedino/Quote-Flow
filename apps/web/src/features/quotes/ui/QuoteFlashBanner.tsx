@@ -25,7 +25,7 @@ const MESSAGES: Record<
 export function QuoteFlashBanner({ flash, quote }: { flash: QuoteFlash; quote: QuoteDto }) {
   const { tone, text } = MESSAGES[flash](quote);
   return (
-    <Alert tone={tone} className="mb-6">
+    <Alert tone={tone} className="mb-5">
       {text}
     </Alert>
   );

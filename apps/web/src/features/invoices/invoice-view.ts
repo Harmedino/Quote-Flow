@@ -1,4 +1,5 @@
 import {
+  INVOICE_STATUS_LABELS,
   type InvoiceDto,
   buildInvoiceShareMessage,
   buildWhatsAppUrl,
@@ -8,7 +9,8 @@ import {
   canRecordPayment,
   canSendInvoice,
 } from '@quoteflow/shared';
-import { dueLabel } from '@/features/dashboard/dashboard-format';
+import type { DocumentStamp } from '@/components/documents/SalesDocument';
+import { daysBetween, dueLabel } from '@/features/dashboard/dashboard-format';
 import { formatCalendarDate, formatDate, formatMoney } from '@/lib/format';
 
 /** The customer-facing link; the token is the only credential it needs. */
@@ -121,5 +123,44 @@ export function invoiceOutlook(
         line: `${dueLabel(invoice.dueDate, today)} · ${due}`,
         paidShare,
       };
+  }
+}
+
+/**
+ * The stamp on the invoice's ticket: dashed "Draft" until it is sent, then "Overdue", "Paid" or
+ * "Cancelled" (which also strikes through the total). Invoices still within their due date have none.
+ */
+export function invoiceStamp(
+  invoice: Pick<InvoiceDto, 'status' | 'dueDate' | 'paidAt' | 'cancelledAt'>,
+  today: string,
+  timeZone: string,
+): DocumentStamp | undefined {
+  const label = INVOICE_STATUS_LABELS[invoice.status];
+  switch (invoice.status) {
+    case 'draft':
+      return { tone: 'draft', label };
+    case 'paid':
+      // The date of the payment that settled it, a calendar date like the payments themselves.
+      return {
+        tone: 'paid',
+        label,
+        detail: invoice.paidAt ? formatCalendarDate(invoice.paidAt.slice(0, 10)) : undefined,
+      };
+    case 'cancelled':
+      return {
+        tone: 'declined',
+        label,
+        detail: invoice.cancelledAt ? formatDate(invoice.cancelledAt, { timeZone }) : undefined,
+      };
+    case 'overdue': {
+      const days = -daysBetween(today, invoice.dueDate);
+      return {
+        tone: 'overdue',
+        label,
+        detail: days > 0 ? `${days} ${days === 1 ? 'day' : 'days'}` : undefined,
+      };
+    }
+    default:
+      return undefined;
   }
 }

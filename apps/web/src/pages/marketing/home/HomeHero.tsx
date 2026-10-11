@@ -1,29 +1,20 @@
+import { Check, HardHat, Play } from 'lucide-react';
 import { paths } from '@/app/paths';
-import { QuoteStatusBadge } from '@/components/StatusBadge';
-import { ArrowLink, StartFreeLink } from '@/components/marketing/MarketingLinks';
-import { Photo } from '@/components/marketing/Photo';
-import { Reveal } from '@/components/marketing/Reveal';
-import { ScreenFrame } from '@/components/marketing/ScreenFrame';
-import { PHOTOS } from '@/components/marketing/photos';
-import { SCREENS } from '@/components/marketing/screens';
+import { StartFreeLink } from '@/components/marketing/MarketingLinks';
+import { SITE_CONTAINER } from '@/components/marketing/site-container';
 import { useLiveDemo } from '@/components/marketing/use-demo-status';
-import { naira } from '../sample-money';
+import { ButtonLink } from '@/components/ui/ButtonLink';
+import { cn } from '@/lib/cn';
+import { HeroVisual } from './HeroVisual';
 
-/** A quote's status as the owner sees it in QuoteFlow, floating over the hero photo. */
-function AcceptedQuoteCard() {
+const PROOF = ['Free in early access', 'Naira ₦ or any currency', 'PDF with every quote'];
+
+/** "yes", on a tilted orange label with a navy edge. */
+function Yes() {
   return (
-    <div
-      aria-hidden="true"
-      className="absolute top-8 -right-3 hidden w-52 animate-float rounded-2xl border border-stone-200 bg-surface p-4 shadow-[var(--shadow-elevated)] sm:block lg:-right-6"
-    >
-      <p className="text-xs text-stone-500">Quote LHS-Q-0012 · Chioma Eze</p>
-      <p className="mt-1 font-display text-xl font-semibold tracking-tight text-stone-900 tabular-nums">
-        {naira(185_000)}
-      </p>
-      <div className="mt-2">
-        <QuoteStatusBadge status="accepted" />
-      </div>
-    </div>
+    <span className="relative z-0 mx-[0.02em] inline-block px-[0.14em] pb-[0.02em] text-on-primary before:absolute before:inset-x-0 before:top-[0.1em] before:bottom-[0.02em] before:-z-10 before:-rotate-[2.5deg] before:rounded-[10px] before:bg-primary before:shadow-[0_3px_0_var(--color-navy)]">
+      yes
+    </span>
   );
 }
 
@@ -31,47 +22,61 @@ export function HomeHero() {
   const liveDemo = useLiveDemo();
 
   return (
-    <section className="overflow-hidden bg-ink">
-      <div className="mx-auto grid max-w-6xl items-center gap-14 px-4 pt-12 pb-20 sm:px-6 sm:pt-16 lg:grid-cols-[1.1fr_0.9fr] lg:px-8 lg:pb-24">
-        <Reveal>
-          <h1 className="text-[2.5rem] leading-[1.04] font-semibold tracking-tight text-balance text-white sm:text-6xl">
-            Quotes your customers accept from their phone.
-          </h1>
-          <p className="mt-6 max-w-lg text-base leading-relaxed text-pretty text-white/70 sm:text-lg">
-            Price the job in a few taps and send it on WhatsApp. Your customer opens it and accepts,
-            no app or account needed. Then you turn it into an invoice and record what they pay.
+    <section aria-labelledby="hero-title" className="overflow-hidden">
+      <div
+        className={cn(
+          SITE_CONTAINER,
+          'grid items-center gap-12 pt-8 pb-16 sm:pt-10 sm:pb-20 xl:grid-cols-[1.06fr_1fr] xl:gap-10 xl:pt-9 xl:pb-18',
+        )}
+      >
+        <div className="animate-fade-in-up">
+          <p className="inline-flex min-h-8.5 flex-wrap items-center gap-x-2.5 gap-y-1 rounded-[9px] bg-surface py-1.5 pr-3.5 pl-2 font-mono text-xs font-medium tracking-[0.07em] whitespace-nowrap text-ink-2 uppercase shadow-[inset_0_0_0_1px_var(--color-line-strong)]">
+            <span className="inline-flex h-5.5 items-center gap-1.5 rounded-[5px] bg-ink px-2 font-semibold text-canvas">
+              <HardHat aria-hidden="true" className="size-[13px] text-primary" />
+              For the trades
+            </span>
+            <span>
+              Quotes · invoices<span className="max-sm:hidden"> · payments</span>
+            </span>
           </p>
-          <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center">
-            <StartFreeLink>Create your first quote</StartFreeLink>
+          <h1 id="hero-title" className="mt-6.5 heading-display text-ink">
+            {/* Spaces between the lines, so the heading's text reads as one sentence. */}
+            <span className="block">Price the job</span> <span className="block">on site.</span>{' '}
+            <span className="block">
+              Get the <Yes />
+            </span>{' '}
+            <span className="block">on WhatsApp.</span>
+          </h1>
+          <p className="mt-6.5 max-w-[35rem] text-[1.0625rem] leading-[1.55] text-pretty text-ink-2 sm:text-[1.1875rem]">
+            Build a clean, branded quote in a few taps and send the link on WhatsApp. Your customer
+            opens it on their phone and{' '}
+            <b className="font-[650] text-ink">accepts with one tap — no app, no account</b>. Then
+            the yes becomes an invoice, and you record every payment until it’s settled.
+          </p>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <StartFreeLink />
             {liveDemo ? (
-              <ArrowLink to={paths.demo} onInk>
-                View live demo
-              </ArrowLink>
+              <ButtonLink to={paths.demo} variant="outline" size="xl">
+                <Play aria-hidden="true" />
+                Try the live demo
+              </ButtonLink>
             ) : (
-              <ArrowLink to={paths.howItWorks} onInk>
+              <ButtonLink to={paths.howItWorks} variant="outline" size="xl">
                 How it works
-              </ArrowLink>
+              </ButtonLink>
             )}
           </div>
-          <p className="mt-6 text-sm text-white/60">
-            Free while we&apos;re in early access. Works in naira and any other currency.
-          </p>
-        </Reveal>
+          <ul className="mt-7 flex flex-wrap gap-x-5.5 gap-y-2 font-mono text-xs tracking-[0.06em] text-muted uppercase">
+            {PROOF.map((item) => (
+              <li key={item} className="inline-flex items-center gap-[7px]">
+                <Check aria-hidden="true" className="size-[15px] stroke-[2.6] text-accepted" />
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
 
-        <Reveal delay={150} className="relative">
-          {/* Cropped to 4:5 on desktop, so the image renders about 1.9x wider than its column. */}
-          <Photo
-            photo={PHOTOS.onSiteCall}
-            sizes="(min-width: 1152px) 880px, (min-width: 1024px) 75vw, 110vw"
-            className="aspect-[4/3] object-[62%_50%] lg:aspect-[4/5]"
-            eager
-          />
-          <AcceptedQuoteCard />
-          <ScreenFrame
-            screen={SCREENS.quoteMobile}
-            className="absolute -bottom-8 left-3 w-[32%] max-w-[13rem] sm:left-6 lg:-bottom-10 lg:-left-10 lg:w-[38%]"
-          />
-        </Reveal>
+        <HeroVisual />
       </div>
     </section>
   );

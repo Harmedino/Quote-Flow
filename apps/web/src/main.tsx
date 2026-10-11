@@ -1,6 +1,9 @@
-// Self-hosted variable fonts: no third-party request.
-import '@fontsource-variable/geist';
-import '@fontsource-variable/bricolage-grotesque';
+// Self-hosted fonts, no third-party request. Archivo's `wdth` build carries both the width and the
+// weight axis (the wide, heavy headings); IBM Plex Mono sets labels, numbers and amounts. Both have ₦.
+import '@fontsource-variable/archivo/wdth.css';
+import '@fontsource/ibm-plex-mono/400.css';
+import '@fontsource/ibm-plex-mono/500.css';
+import '@fontsource/ibm-plex-mono/600.css';
 import './styles/index.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';

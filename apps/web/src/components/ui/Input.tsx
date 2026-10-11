@@ -14,14 +14,20 @@ export interface InputProps extends ComponentProps<'input'> {
 export function Input({ className, suffix, ...props }: InputProps) {
   const controlProps = useFieldControlProps(props);
   if (!suffix) {
-    return <input className={cn(CONTROL_CLASSES, 'h-10', className)} {...controlProps} />;
+    return <input className={cn(CONTROL_CLASSES, 'h-10.5', className)} {...controlProps} />;
   }
+  // Room for the suffix: its inset, half a rem per mono character and a gap before the value.
+  const suffixRoom = `${1.5 + suffix.length * 0.5}rem`;
   return (
     <div className="relative">
-      <input className={cn(CONTROL_CLASSES, 'h-10 pr-14', className)} {...controlProps} />
+      <input
+        className={cn(CONTROL_CLASSES, 'h-10.5', className)}
+        {...controlProps}
+        style={{ ...controlProps.style, paddingRight: suffixRoom }}
+      />
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-stone-500"
+        className="pointer-events-none absolute inset-y-0 right-3 flex items-center font-mono text-[12.5px] font-medium text-muted"
       >
         {suffix}
       </span>

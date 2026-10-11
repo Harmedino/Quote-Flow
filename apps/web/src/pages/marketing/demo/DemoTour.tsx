@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { StepNumber } from '@/components/marketing/NumberedSteps';
 import { ScreenFrame } from '@/components/marketing/ScreenFrame';
 import { type AppScreen, SCREENS } from '@/components/marketing/screens';
 import { cn } from '@/lib/cn';
@@ -57,24 +58,21 @@ export function DemoTour({ liveDemo }: { liveDemo: boolean }) {
                 onClick={() => setCurrent(index)}
                 aria-pressed={active}
                 className={cn(
-                  'flex w-full gap-4 rounded-2xl border p-4 text-left transition-colors sm:p-5',
+                  'relative flex w-full gap-4 overflow-hidden rounded-xl p-4 text-left transition-[background-color,box-shadow] sm:gap-5 sm:p-5',
                   active
-                    ? 'border-stone-900 bg-surface dark:border-stone-500'
-                    : 'border-transparent hover:bg-surface',
+                    ? 'bg-surface shadow-[inset_0_0_0_1.5px_var(--color-ink)]'
+                    : 'hover:bg-surface hover:shadow-[inset_0_0_0_1px_var(--color-line)]',
                 )}
               >
-                <span
-                  aria-hidden="true"
-                  className={cn(
-                    'font-display text-2xl font-semibold',
-                    active ? 'text-stone-900' : 'text-stone-400',
-                  )}
-                >
-                  {index + 1}
-                </span>
+                {active && (
+                  <span aria-hidden="true" className="absolute inset-y-0 left-0 w-1 bg-primary" />
+                )}
+                <StepNumber index={index} className="w-12 shrink-0 sm:w-14" />
                 <span>
-                  <span className="block text-lg font-semibold text-stone-900">{entry.title}</span>
-                  <span className="mt-1 block text-[0.9375rem] leading-relaxed text-pretty text-stone-600">
+                  <span className="block text-lg font-[750] text-ink font-stretch-112%">
+                    {entry.title}
+                  </span>
+                  <span className="mt-1 block text-[0.9375rem] leading-relaxed text-pretty text-ink-2">
                     {entry.body}
                     {liveDemo && entry.demoNote && ` ${entry.demoNote}`}
                   </span>
@@ -83,7 +81,7 @@ export function DemoTour({ liveDemo }: { liveDemo: boolean }) {
               {active && (
                 <figure className="mx-auto mt-4 mb-6 w-full max-w-[13rem] animate-fade-in lg:hidden">
                   <ScreenFrame screen={entry.screen} />
-                  <figcaption className="mt-3 text-center text-xs text-stone-600">
+                  <figcaption className="mt-3 text-center font-mono text-xs text-muted">
                     {CAPTION}
                   </figcaption>
                 </figure>
@@ -93,12 +91,14 @@ export function DemoTour({ liveDemo }: { liveDemo: boolean }) {
         })}
       </ol>
       <div className="hidden lg:block">
-        <figure className="sticky top-24 mx-auto w-full max-w-[18rem]">
+        <figure className="sticky top-28 mx-auto w-full max-w-[18rem]">
           {/* Keyed so each new screenshot fades in. */}
           <div key={current} className="animate-fade-in">
             {screen && <ScreenFrame screen={screen} />}
           </div>
-          <figcaption className="mt-3 text-center text-xs text-stone-600">{CAPTION}</figcaption>
+          <figcaption className="mt-3 text-center font-mono text-xs text-muted">
+            {CAPTION}
+          </figcaption>
         </figure>
       </div>
     </div>

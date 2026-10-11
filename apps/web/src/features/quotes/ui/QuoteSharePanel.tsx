@@ -105,20 +105,20 @@ export function QuoteSharePanel({ quote, businessName }: QuoteSharePanelProps) {
       emphasis={quote.status === 'accepted' ? 'secondary' : 'primary'}
     >
       {!share.hasWhatsAppNumber && (
-        <p className="text-xs text-pretty text-stone-500">
+        <p className="text-[13px] text-pretty text-muted">
           {quote.customer.phone
             ? `${quote.customer.phone} has no country code, so WhatsApp will open without a chat. Pick ${quote.customer.name} there.`
             : `${quote.customer.name} has no phone number, so WhatsApp will open without a chat.`}
         </p>
       )}
       {isDraft && (
-        <p className="text-xs text-stone-500">
+        <p className="text-[13px] text-muted">
           Sent it another way?{' '}
           <button
             type="button"
             onClick={() => void markAsSent()}
             disabled={sendQuote.isPending}
-            className="rounded-sm font-medium text-brand-700 hover:text-brand-800 hover:underline disabled:opacity-50"
+            className="rounded-sm font-[650] text-primary-ink underline-offset-[3px] hover:underline disabled:opacity-50"
           >
             Mark as sent
           </button>

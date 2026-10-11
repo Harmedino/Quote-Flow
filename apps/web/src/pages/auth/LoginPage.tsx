@@ -52,7 +52,11 @@ export default function LoginPage() {
   return (
     <>
       <DocumentTitle title="Sign in" />
-      <PageHeader title="Welcome back" description="Sign in to your QuoteFlow account." />
+      <PageHeader
+        eyebrow="Sign in"
+        title="Welcome back"
+        description="Sign in to your QuoteFlow account."
+      />
 
       <form id={form.id} noValidate onSubmit={handleSubmit} className="space-y-4">
         {sessionExpired && (
@@ -89,7 +93,7 @@ export default function LoginPage() {
         </Button>
       </form>
 
-      <DemoLoginButton divider size="lg" className="w-full" />
+      <DemoLoginButton divider variant="outline" size="lg" className="w-full" />
 
       <AuthFooterLink
         prompt="New to QuoteFlow?"

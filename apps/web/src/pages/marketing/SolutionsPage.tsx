@@ -1,12 +1,13 @@
 import { DocumentTitle } from '@/components/DocumentTitle';
 import { CtaBand } from '@/components/marketing/CtaBand';
 import { PageHero } from '@/components/marketing/PageHero';
-import { Reveal } from '@/components/marketing/Reveal';
+import { SITE_CONTAINER } from '@/components/marketing/site-container';
 import { TRADES } from '@/components/marketing/trades';
 import { useLiveDemo } from '@/components/marketing/use-demo-status';
+import { cn } from '@/lib/cn';
 import { DayTimeline } from './solutions/DayTimeline';
 import { TRADE_DETAILS } from './solutions/trade-details';
-import { TradeCard } from './solutions/TradeCard';
+import { TradeRow } from './solutions/TradeRow';
 import { TradePhotos } from './solutions/TradePhotos';
 
 export default function SolutionsPage() {
@@ -16,19 +17,19 @@ export default function SolutionsPage() {
     <>
       <DocumentTitle title="Who it’s for" />
       <PageHero
-        grid
+        eyebrow="Solutions"
         title="Who it’s for"
         description="If you price a job before you do it, QuoteFlow fits. Here’s what quotes look like in different trades, with sample prices in naira."
       >
-        <nav aria-label="Trades" className="mt-10">
-          <ul className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 py-1 sm:mx-0 sm:flex-wrap sm:px-0">
+        <nav aria-label="Trades" className="mt-9">
+          <ul className="flex flex-wrap gap-2">
             {TRADES.map((trade) => (
-              <li key={trade.id} className="shrink-0">
+              <li key={trade.id}>
                 <a
                   href={`#${trade.id}`}
-                  className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white/85 transition-colors hover:bg-white/10 focus-visible:outline-highlight"
+                  className="inline-flex h-10 items-center gap-2 rounded-lg bg-surface px-3.5 text-sm font-semibold text-ink shadow-[inset_0_0_0_1px_var(--color-line-strong)] transition-colors hover:bg-surface-muted"
                 >
-                  <trade.icon aria-hidden="true" className="size-4 text-highlight" />
+                  <trade.icon aria-hidden="true" className="size-4 text-primary-ink" />
                   {trade.name}
                 </a>
               </li>
@@ -37,26 +38,20 @@ export default function SolutionsPage() {
         </nav>
       </PageHero>
 
-      <section
-        aria-label="Trades at work"
-        className="mx-auto max-w-6xl px-4 pt-16 sm:px-6 sm:pt-20 lg:px-8"
-      >
+      <section aria-label="Trades at work" className={cn(SITE_CONTAINER, 'pt-12 sm:pt-16')}>
         <TradePhotos />
       </section>
 
-      <section
-        aria-label="Sample quotes by trade"
-        className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8"
-      >
-        <ul className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {TRADES.map((trade, index) => (
-            <li key={trade.id}>
-              <Reveal delay={(index % 3) * 60} className="h-full">
-                <TradeCard trade={trade} details={TRADE_DETAILS[trade.id]} />
-              </Reveal>
-            </li>
-          ))}
-        </ul>
+      <section aria-label="Sample quotes by trade" className={cn(SITE_CONTAINER, 'py-20 sm:py-28')}>
+        {TRADES.map((trade, index) => (
+          <TradeRow
+            key={trade.id}
+            trade={trade}
+            details={TRADE_DETAILS[trade.id]}
+            index={index}
+            count={TRADES.length}
+          />
+        ))}
       </section>
 
       <DayTimeline />

@@ -34,34 +34,32 @@ export function InvoicePaymentsCard({ invoice }: { invoice: InvoiceDto }) {
         className={payments.length > 0 ? 'pb-1' : undefined}
       >
         {payments.length > 0 && (
-          <ul className="-mx-5 divide-y divide-stone-100 border-t border-stone-100">
+          <ul className="-mx-5 divide-y divide-dashed divide-line-strong border-t border-line">
             {payments.map((payment) => {
               const Icon = PAYMENT_METHOD_ICONS[payment.method];
               return (
                 <li key={payment.id} className="flex items-start gap-3 px-5 py-3.5">
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-green-50 text-green-700">
-                    <Icon aria-hidden="true" className="size-4" />
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-accepted-tint text-accepted">
+                    <Icon aria-hidden="true" className="size-4" strokeWidth={2.25} />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-stone-900 tabular-nums">
-                      {money(payment.amount)}
-                    </p>
-                    <p className="mt-0.5 text-xs text-stone-500">
+                    <p className="money text-[14px] text-ink">{money(payment.amount)}</p>
+                    <p className="mt-0.5 text-[12.5px] text-muted">
                       {formatCalendarDate(payment.paidAt)} · {PAYMENT_METHOD_LABELS[payment.method]}
                     </p>
                     {payment.reference && (
-                      <p className="mt-0.5 truncate text-xs text-stone-500">
-                        Ref. {payment.reference}
+                      <p className="mt-0.5 truncate text-[12.5px] text-muted">
+                        Ref. <span className="font-mono">{payment.reference}</span>
                       </p>
                     )}
                     {payment.note && (
-                      <p className="mt-1 text-xs text-pretty text-stone-600">{payment.note}</p>
+                      <p className="mt-1 text-[12.5px] text-pretty text-ink-2">{payment.note}</p>
                     )}
                   </div>
                   <button
                     type="button"
                     onClick={() => setPendingDelete(payment)}
-                    className="-mr-2 inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-stone-500 transition-colors hover:bg-red-50 hover:text-red-700"
+                    className="-mr-2 inline-flex size-9 shrink-0 items-center justify-center rounded-[9px] text-muted transition-colors hover:bg-danger-tint hover:text-danger"
                   >
                     <Trash2 aria-hidden="true" className="size-4" />
                     <span className="sr-only">

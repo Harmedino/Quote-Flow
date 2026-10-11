@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { FaqSection } from './Faq';
 import { Reveal } from './Reveal';
 import { ScreenFrame } from './ScreenFrame';
-import { SCREENS } from './screens';
+import { SCREENS, showsDarkCapture } from './screens';
 
 describe('Reveal', () => {
   it('renders its content visible until the browser arms it', () => {
@@ -37,6 +37,20 @@ describe('ScreenFrame', () => {
     expect(html).toContain('width="1440" height="900"');
     expect(html).toContain(`alt="${SCREENS.dashboard.alt}"`);
     expect(html).toContain('quoteflow · dashboard');
+  });
+
+  it('shows a desktop screen’s phone version in its place on phones', () => {
+    const html = renderToStaticMarkup(<ScreenFrame screen={SCREENS.dashboard} />);
+
+    expect(html).toMatch(/class="[^"]*sm:hidden[^"]*">.*src="\/screens\/dashboard-mobile\.webp"/);
+    expect(html).toMatch(/class="[^"]*hidden sm:block[^"]*">.*src="\/screens\/dashboard\.webp"/);
+  });
+
+  it('picks the dark capture in dark mode, and keeps a customer’s page light', () => {
+    expect(showsDarkCapture(SCREENS.dashboard, 'dark')).toBe(true);
+    expect(showsDarkCapture(SCREENS.dashboard, 'light')).toBe(false);
+    expect(showsDarkCapture(SCREENS.quoteMobile, 'dark')).toBe(false);
+    expect(SCREENS.dashboard.srcDark).toBe('/screens/dashboard-dark.webp');
   });
 
   it('frames a phone screenshot at the phone size', () => {

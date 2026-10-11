@@ -1,6 +1,7 @@
-import { type CurrencyCode, fromMinorUnits, getCurrencyMinorUnits } from '@quoteflow/shared';
+import type { CurrencyCode } from '@quoteflow/shared';
 import { useState } from 'react';
-import { parseMoneyInput } from '@/lib/money-input';
+import { cn } from '@/lib/cn';
+import { currencySymbol, formatMoneyInput, parseMoneyInput } from '@/lib/money-input';
 import { Input, type InputProps } from './Input';
 
 export interface MoneyInputProps extends Omit<InputProps, 'value' | 'onChange' | 'type'> {
@@ -10,19 +11,22 @@ export interface MoneyInputProps extends Omit<InputProps, 'value' | 'onChange' |
   currency: CurrencyCode;
 }
 
-function formatForEditing(value: number | null, currency: CurrencyCode): string {
-  if (value === null) return '';
-  return fromMinorUnits(value, currency).toFixed(getCurrencyMinorUnits(currency));
-}
-
 /**
  * A decimal amount field that reports integer minor units. While focused it
- * keeps the text exactly as typed; on blur it normalises the display.
+ * keeps the text exactly as typed; on blur it shows the amount grouped
+ * (12,500,000.00) so long figures read correctly at a glance.
  */
-export function MoneyInput({ value, onChange, currency, onBlur, ...props }: MoneyInputProps) {
-  const [text, setText] = useState(() => formatForEditing(value, currency));
+export function MoneyInput({
+  value,
+  onChange,
+  currency,
+  onBlur,
+  className,
+  ...props
+}: MoneyInputProps) {
+  const [text, setText] = useState(() => formatMoneyInput(value, currency, { grouped: false }));
   const [editing, setEditing] = useState(false);
-  const shown = editing ? text : formatForEditing(value, currency);
+  const shown = editing ? text : formatMoneyInput(value, currency, { grouped: true });
 
   return (
     <Input
@@ -30,10 +34,12 @@ export function MoneyInput({ value, onChange, currency, onBlur, ...props }: Mone
       type="text"
       inputMode="decimal"
       autoComplete="off"
-      suffix={currency}
+      suffix={currencySymbol(currency)}
+      // Amounts are set like a till slip, so digits line up while typing.
+      className={cn('font-mono tabular-nums', className)}
       value={shown}
       onFocus={() => {
-        setText(formatForEditing(value, currency));
+        setText(formatMoneyInput(value, currency, { grouped: false }));
         setEditing(true);
       }}
       onChange={(event) => {

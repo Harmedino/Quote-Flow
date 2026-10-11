@@ -21,7 +21,7 @@ export function InvoiceActionsCard({ invoice }: { invoice: InvoiceDto }) {
   const navigate = useNavigate();
   const actions = getInvoiceActions(invoice);
   const cancel = useCancelInvoice(invoice.id);
-  const remove = useDeleteInvoice(invoice.id);
+  const remove = useDeleteInvoice(invoice.id, () => navigate(paths.invoices, { replace: true }));
   const [confirmation, setConfirmation] = useState<Confirmation>(null);
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<unknown>(null);
@@ -100,11 +100,7 @@ export function InvoiceActionsCard({ invoice }: { invoice: InvoiceDto }) {
         pending={remove.isPending}
         error={remove.error ? getErrorMessage(remove.error) : null}
         onCancel={closeConfirmation}
-        onConfirm={() =>
-          remove.mutate(undefined, {
-            onSuccess: () => void navigate(paths.invoices, { replace: true }),
-          })
-        }
+        onConfirm={() => remove.mutate()}
       />
       <ConfirmDialog
         open={confirmation === 'cancel'}

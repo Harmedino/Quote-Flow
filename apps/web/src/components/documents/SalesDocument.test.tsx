@@ -107,4 +107,14 @@ describe('SalesDocument', () => {
     expect(html).toContain('src="https://cdn.example/logo.png"');
     expect(html).not.toContain('javascript:');
   });
+
+  it('can leave the sender to the printout, for a page that already shows it', () => {
+    const shown = renderToStaticMarkup(<SalesDocument {...props} />);
+    const printOnly = renderToStaticMarkup(<SalesDocument {...props} sender="print-only" />);
+
+    expect(shown).toContain('aria-label="From and to"');
+    expect(printOnly).toContain('aria-label="Prepared for"');
+    expect(printOnly).toMatch(/class="[^"]*hidden print:block[^"]*"><h3[^>]*>From</);
+    expect(printOnly).toContain('Sparkle Cleaning Co.');
+  });
 });

@@ -3,10 +3,11 @@ import { cn } from '@/lib/cn';
 import { useTheme } from '@/lib/theme';
 
 const TONES = {
-  /** On ink: the sidebar, the mobile top bar and the marketing header. */
-  ink: 'border-white/10 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white focus-visible:outline-highlight',
-  /** On the page or a card. */
-  default: 'border-stone-200 bg-surface text-stone-600 hover:bg-stone-100 hover:text-stone-900',
+  /** On a navy band. */
+  ink: 'text-on-navy/85 shadow-[inset_0_0_0_1px_rgb(245_241_232/0.25)] hover:bg-white/10 hover:text-on-navy',
+  /** On the page, a card or the top bar. */
+  default:
+    'bg-surface text-ink-2 shadow-[inset_0_0_0_1px_var(--color-line)] hover:bg-surface-muted hover:text-ink',
 } as const;
 
 export interface ThemeToggleProps {
@@ -25,7 +26,7 @@ export function ThemeToggle({ tone = 'default', className }: ThemeToggleProps) {
       aria-pressed={dark}
       title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
       className={cn(
-        'inline-flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border transition-colors',
+        'inline-flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-[9px] transition-colors',
         TONES[tone],
         className,
       )}
@@ -33,9 +34,9 @@ export function ThemeToggle({ tone = 'default', className }: ThemeToggleProps) {
       {/* Keyed so the new icon spins in on every switch. */}
       <span key={theme} className="animate-spin-in">
         {dark ? (
-          <Sun aria-hidden="true" className="size-4" />
+          <Sun aria-hidden="true" className="size-[18px]" />
         ) : (
-          <Moon aria-hidden="true" className="size-4" />
+          <Moon aria-hidden="true" className="size-[18px]" />
         )}
       </span>
       <span className="sr-only">Dark mode</span>

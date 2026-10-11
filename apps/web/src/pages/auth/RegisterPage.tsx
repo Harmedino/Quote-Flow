@@ -59,6 +59,7 @@ export default function RegisterPage() {
     <>
       <DocumentTitle title="Create your account" />
       <PageHeader
+        eyebrow="Start free"
         title="Create your account"
         description="Set up your business and send your first quote today."
       />

@@ -1,7 +1,9 @@
 import { CURRENCY_CODES } from '@quoteflow/shared';
 import { Reveal } from '@/components/marketing/Reveal';
 import { SectionHeading } from '@/components/marketing/SectionHeading';
+import { SITE_CONTAINER } from '@/components/marketing/site-container';
 import { useLiveDemo } from '@/components/marketing/use-demo-status';
+import { cn } from '@/lib/cn';
 
 const DETAILS: { title: string; body: string; liveDemoOnly?: boolean }[] = [
   {
@@ -47,17 +49,25 @@ export function SmallerThings() {
   const liveDemo = useLiveDemo();
   const details = DETAILS.filter((item) => liveDemo || !item.liveDemoOnly);
   return (
-    <section id="details" aria-labelledby="details-title" className="border-t border-stone-200/70">
-      <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
-        <SectionHeading id="details-title" title="And the smaller things" />
-        <ul className="mt-12 grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+    <section
+      id="details"
+      aria-labelledby="details-title"
+      className="mb-14 border-y border-line bg-surface sm:mb-22"
+    >
+      <div className={cn(SITE_CONTAINER, 'py-20 sm:py-28')}>
+        <SectionHeading id="details-title" eyebrow="Also included" title="And the smaller things" />
+        <ul className="mt-12 grid gap-x-8 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
           {details.map((item, index) => (
             <li key={item.title}>
-              <Reveal delay={(index % 3) * 50} className="border-t border-stone-200 pt-4">
-                <h3 className="text-base font-semibold text-stone-900">{item.title}</h3>
-                <p className="mt-1 text-sm leading-relaxed text-pretty text-stone-600">
-                  {item.body}
-                </p>
+              <Reveal
+                delay={(index % 3) * 50}
+                className="h-full border-t-[1.5px] border-dashed border-line-strong pt-4"
+              >
+                <h3 className="flex items-center gap-2.5 text-base font-[750] text-ink font-stretch-112%">
+                  <span aria-hidden="true" className="size-[7px] shrink-0 rotate-45 bg-primary" />
+                  {item.title}
+                </h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-pretty text-ink-2">{item.body}</p>
               </Reveal>
             </li>
           ))}

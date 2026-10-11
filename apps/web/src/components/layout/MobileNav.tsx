@@ -1,17 +1,18 @@
+import { USER_ROLE_LABELS } from '@quoteflow/shared';
 import {
+  ChevronDown,
   ChevronRight,
   FileText,
   type LucideIcon,
-  MoreHorizontal,
   Plus,
-  Receipt,
+  ReceiptText,
   UserPlus,
   Wrench,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router';
 import { APP_NAME } from '@/app/constants';
 import { paths } from '@/app/paths';
-import { Avatar } from '@/components/ui/Avatar';
+import { CountChip } from '@/components/ui/CountChip';
 import { LogoMark } from '@/components/ui/Logo';
 import { Sheet } from '@/components/ui/Sheet';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
@@ -19,14 +20,16 @@ import { useAuthenticatedSession } from '@/features/auth/use-session';
 import { cn } from '@/lib/cn';
 import { MobileAccountPanel } from './MobileAccountPanel';
 import {
-  currentSectionLabel,
   hasOwnBottomBar,
   isNavItemActive,
   MOBILE_TAB_ITEMS,
+  type NavCount,
   type NavItem,
+  navCount,
 } from './nav-items';
+import { useNavCounts } from './use-nav-counts';
 
-export type MobileSheetName = 'create' | 'more';
+export type MobileSheetName = 'create' | 'account';
 
 /** Which phone sheet is open, shared by the top bar and the tab bar. */
 export interface MobileSheets {
@@ -35,101 +38,94 @@ export interface MobileSheets {
   close: () => void;
 }
 
-/** The ink bar on top of phone screens: the mark, the current section, the theme and the menu. */
+/**
+ * The phone's app bar on ticket stock: the mark, the business (which opens the account sheet
+ * with settings and sign out) and dark mode.
+ */
 export function MobileTopBar({ sheets }: { sheets: MobileSheets }) {
-  const { pathname } = useLocation();
-  const { business } = useAuthenticatedSession();
+  const { business, user } = useAuthenticatedSession();
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between gap-3 bg-ink px-4 lg:hidden dark:border-b dark:border-white/[0.06]">
-      <div className="flex min-w-0 items-center gap-2.5">
-        <Link to={paths.dashboard} className="shrink-0 rounded-lg focus-visible:outline-highlight">
-          <LogoMark className="size-8" onDark />
-          <span className="sr-only">{APP_NAME} dashboard</span>
-        </Link>
-        <p className="truncate font-display text-base font-bold text-white">
-          {currentSectionLabel(pathname) ?? APP_NAME}
-        </p>
-      </div>
-      <div className="flex shrink-0 items-center gap-2">
-        <ThemeToggle tone="ink" />
-        <button
-          type="button"
-          onClick={() => sheets.show('more')}
-          aria-haspopup="dialog"
-          aria-expanded={sheets.open === 'more'}
-          className="rounded-full focus-visible:outline-highlight"
-        >
-          <Avatar name={business.name} tone="highlight" size="sm" />
-          <span className="sr-only">Account and more</span>
-        </button>
-      </div>
-    </header>
+    <div className="flex h-14 items-center gap-2.5 border-b border-line bg-surface px-4 lg:hidden">
+      <Link to={paths.dashboard} className="shrink-0 rounded-lg">
+        <LogoMark className="size-[30px]" />
+        <span className="sr-only">{APP_NAME} dashboard</span>
+      </Link>
+      <button
+        type="button"
+        onClick={() => sheets.show('account')}
+        aria-haspopup="dialog"
+        aria-expanded={sheets.open === 'account'}
+        className="-my-1 flex min-w-0 flex-col rounded-lg py-1 text-left"
+      >
+        <span className="flex min-w-0 items-center gap-1 text-[15px] leading-tight font-[750] font-stretch-110% text-ink">
+          <span className="truncate">{business.name}</span>
+          <ChevronDown aria-hidden="true" className="size-[15px] shrink-0 text-muted" />
+        </span>
+        <span className="truncate text-xs leading-tight text-muted">
+          {user.name} · {USER_ROLE_LABELS[user.role]}
+        </span>
+        <span className="sr-only">, account and settings</span>
+      </button>
+      <ThemeToggle className="ml-auto size-[38px]" />
+    </div>
   );
 }
 
-/** The phone tab bar with the "+" create button, and the sheets it opens. */
+/** The phone tab bar with the orange ticket-shaped New key in the middle, and its sheets. */
 export function MobileNav({ sheets }: { sheets: MobileSheets }) {
   const { pathname } = useLocation();
-  const tabs = [...MOBILE_TAB_ITEMS.start, MOBILE_TAB_ITEMS.end];
-  const moreActive = !tabs.some((item) => isNavItemActive(pathname, item));
+  const counts = useNavCounts();
   const creating = sheets.open === 'create';
+  const tab = (item: NavItem) => (
+    <li key={item.to}>
+      <TabLink
+        item={item}
+        active={isNavItemActive(pathname, item)}
+        count={navCount(item, counts)}
+      />
+    </li>
+  );
 
   return (
     <>
       <nav
+        data-tab-bar
         hidden={hasOwnBottomBar(pathname)}
         aria-label="Main"
-        className="pb-safe fixed inset-x-0 bottom-0 z-30 border-t border-stone-200 bg-surface/95 backdrop-blur-xl lg:hidden"
+        className="pb-safe fixed inset-x-0 bottom-0 z-30 bg-surface shadow-[0_-1px_0_var(--color-line),0_-8px_24px_rgb(14_27_51/0.06)] lg:hidden"
       >
-        <ul className="grid grid-cols-5 items-end">
-          {MOBILE_TAB_ITEMS.start.map((item) => (
-            <li key={item.to}>
-              <TabLink item={item} active={isNavItemActive(pathname, item)} />
-            </li>
-          ))}
-          <li className="flex justify-center">
+        <ul className="grid h-[4.25rem] grid-cols-5 px-1.5">
+          {MOBILE_TAB_ITEMS.start.map(tab)}
+          <li>
             <button
               type="button"
               onClick={() => (creating ? sheets.close() : sheets.show('create'))}
               aria-haspopup="dialog"
               aria-expanded={creating}
-              className="-mt-5 flex size-14 items-center justify-center rounded-full bg-ink text-highlight shadow-[0_10px_24px_-8px_rgb(12_26_20/0.6)] ring-4 ring-surface transition active:scale-95 dark:bg-highlight dark:text-ink"
+              className={cn(TAB_CLASSES, 'text-ink')}
             >
-              <Plus
-                aria-hidden="true"
-                strokeWidth={2.25}
-                className={cn('size-6 transition-transform duration-200', creating && 'rotate-45')}
-              />
-              <span className="sr-only">Create</span>
+              <span className="-mt-[5px] flex h-[38px] w-[52px] items-center justify-center rounded-[9px] bg-primary text-on-primary transition-transform notch-mid [--notch:5px] active:scale-95">
+                <Plus
+                  aria-hidden="true"
+                  strokeWidth={2.6}
+                  className={cn(
+                    'size-[22px] transition-transform duration-200',
+                    creating && 'rotate-45',
+                  )}
+                />
+              </span>
+              New
             </button>
           </li>
-          <li>
-            <TabLink
-              item={MOBILE_TAB_ITEMS.end}
-              active={isNavItemActive(pathname, MOBILE_TAB_ITEMS.end)}
-            />
-          </li>
-          <li>
-            <button
-              type="button"
-              onClick={() => sheets.show('more')}
-              aria-haspopup="dialog"
-              aria-expanded={sheets.open === 'more'}
-              className={cn(TAB_CLASSES, moreActive ? 'text-stone-900' : 'text-stone-500')}
-            >
-              {moreActive && <ActiveMarker />}
-              <MoreHorizontal aria-hidden="true" className="size-[22px]" />
-              More
-            </button>
-          </li>
+          {MOBILE_TAB_ITEMS.end.map(tab)}
         </ul>
       </nav>
 
       <Sheet open={creating} onClose={sheets.close} label="Create">
         <CreateMenu />
       </Sheet>
-      <Sheet open={sheets.open === 'more'} onClose={sheets.close} label="Account and more">
+      <Sheet open={sheets.open === 'account'} onClose={sheets.close} label="Account and settings">
         <MobileAccountPanel />
       </Sheet>
     </>
@@ -137,23 +133,42 @@ export function MobileNav({ sheets }: { sheets: MobileSheets }) {
 }
 
 const TAB_CLASSES =
-  'relative flex w-full flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors focus-visible:outline-offset-[-2px]';
+  'relative flex h-full w-full flex-col items-center gap-1 text-[11.5px] font-semibold transition-colors focus-visible:outline-offset-[-2px]';
 
-function ActiveMarker() {
-  return <span aria-hidden="true" className="absolute top-0 h-0.5 w-8 rounded-full bg-stone-900" />;
-}
-
-function TabLink({ item, active }: { item: NavItem; active: boolean }) {
+function TabLink({
+  item,
+  active,
+  count,
+}: {
+  item: NavItem;
+  active: boolean;
+  count: NavCount | null;
+}) {
   const Icon = item.icon;
   return (
     <Link
       to={item.to}
       aria-current={active ? 'page' : undefined}
-      className={cn(TAB_CLASSES, active ? 'text-stone-900' : 'text-stone-500')}
+      className={cn(TAB_CLASSES, 'pt-[11px]', active ? 'text-ink' : 'text-muted')}
     >
-      {active && <ActiveMarker />}
-      <Icon aria-hidden="true" className="size-[22px]" strokeWidth={active ? 2.2 : 1.8} />
+      {active && (
+        <span
+          aria-hidden="true"
+          className="absolute inset-x-[22%] top-0 h-1 animate-marker-in rounded-b-[3px] bg-primary"
+        />
+      )}
+      <Icon aria-hidden="true" className="size-[22px]" strokeWidth={2} />
       {item.shortLabel ?? item.label}
+      {count?.tone === 'alert' && (
+        <CountChip
+          tone="alert"
+          size="sm"
+          label={count.label}
+          className="absolute top-[7px] left-[calc(50%+6px)] ring-2 ring-surface"
+        >
+          {count.value}
+        </CountChip>
+      )}
     </Link>
   );
 }
@@ -170,38 +185,34 @@ const MORE_ACTIONS: readonly CreateAction[] = [
     label: 'New invoice',
     note: 'Bill a job without a quote',
     to: paths.newInvoice,
-    icon: Receipt,
+    icon: ReceiptText,
   },
   {
-    label: 'Add a customer',
+    label: 'Add customer',
     note: 'Save a name and number',
     to: paths.newCustomer,
     icon: UserPlus,
   },
-  { label: 'Add a service', note: 'Name, price and unit', to: paths.newService, icon: Wrench },
+  { label: 'Add service', note: 'Name, price and unit', to: paths.newService, icon: Wrench },
 ];
 
-/** What the "+" button opens: a new quote first, then the other ways to get started. */
+/** What the New key opens: a new quote first, then the other ways to get started. */
 function CreateMenu() {
   return (
     <div>
-      <p className="section-label px-1">Create</p>
+      <p className="px-1 label-mono text-muted">Create</p>
       <Link
         to={paths.newQuote}
-        className="mt-3 flex items-center gap-4 rounded-2xl bg-ink px-4 py-4 text-white transition active:scale-[0.99] dark:bg-ink-700"
+        className="mt-3 flex items-center gap-4 rounded-xl bg-primary px-4 py-4 text-on-primary shadow-[inset_0_-2px_0_rgb(14_27_51/0.22)] transition active:scale-[0.99]"
       >
-        <FileText
-          aria-hidden="true"
-          className="size-6 shrink-0 text-highlight"
-          strokeWidth={1.75}
-        />
+        <FileText aria-hidden="true" className="size-6 shrink-0" strokeWidth={2} />
         <span className="min-w-0 flex-1">
-          <span className="block text-base font-semibold">New quote</span>
-          <span className="block text-sm text-white/65">
+          <span className="block text-base font-[750] font-stretch-110%">New quote</span>
+          <span className="block text-sm font-medium">
             Items, discount and tax, ready to share on WhatsApp
           </span>
         </span>
-        <ChevronRight aria-hidden="true" className="size-5 text-white/45" />
+        <ChevronRight aria-hidden="true" className="size-5 shrink-0" />
       </Link>
       <ul className="mt-2.5 grid grid-cols-2 gap-2.5">
         {MORE_ACTIONS.map((action, index) => {
@@ -217,12 +228,12 @@ function CreateMenu() {
             >
               <Link
                 to={action.to}
-                className="flex h-full flex-col items-start gap-3 rounded-2xl border border-stone-200 p-3.5 transition-colors active:bg-stone-50"
+                className="flex h-full flex-col items-start gap-3 rounded-xl bg-surface p-3.5 shadow-(--shadow-card) transition-colors active:bg-surface-muted"
               >
-                <Icon aria-hidden="true" className="size-5 text-stone-800" strokeWidth={1.75} />
+                <Icon aria-hidden="true" className="size-5 text-primary-ink" strokeWidth={2} />
                 <span>
-                  <span className="block text-sm font-semibold text-stone-900">{action.label}</span>
-                  <span className="block text-xs text-stone-500">{action.note}</span>
+                  <span className="block text-sm font-bold text-ink">{action.label}</span>
+                  <span className="block text-xs text-muted">{action.note}</span>
                 </span>
               </Link>
             </li>

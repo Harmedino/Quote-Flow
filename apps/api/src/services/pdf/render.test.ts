@@ -14,7 +14,7 @@ export function sampleModel(overrides: Partial<PdfDocumentModel> = {}): PdfDocum
   return {
     title: 'Quotation',
     number: 'QUO-0042',
-    status: { label: 'Accepted', tone: 'success' },
+    status: { label: 'Accepted', tone: 'accepted' },
     currency: 'NGN',
     business: {
       name: 'Adébáyọ̀ Home Services',
@@ -86,7 +86,7 @@ describe('renderDocumentPdf', () => {
       sampleModel({
         title: 'Invoice',
         number: 'INV-0007',
-        status: { label: 'Overdue', tone: 'danger' },
+        status: { label: 'Overdue', tone: 'overdue' },
         currency: 'USD',
         deadline: { label: 'Due date', date: '2026-10-01' },
         items: sampleModel().items.slice(1, 3),

@@ -7,7 +7,10 @@ import {
   buildWhatsAppUrl,
   toWhatsAppPhone,
 } from '@quoteflow/shared';
-import type { BadgeTone } from '@/components/ui/Badge';
+import type { DocumentStamp } from '@/components/documents/SalesDocument';
+import type { HangTagTone } from '@/components/ui/HangTag';
+import { daysBetween, dueLabel } from '@/features/dashboard/dashboard-format';
+import { stampMoment } from '@/features/documents/document-stamp';
 import { formatCalendarDate, formatDate } from '@/lib/format';
 
 /** What customers read about a document's state: plain words, no internal jargon. */
@@ -26,23 +29,104 @@ export interface FormatOptions {
   timeZone?: string;
 }
 
-export const CUSTOMER_QUOTE_STATUS: Record<QuoteStatus, { label: string; tone: BadgeTone }> = {
-  draft: { label: 'Draft', tone: 'neutral' },
-  sent: { label: 'Awaiting your response', tone: 'info' },
-  viewed: { label: 'Awaiting your response', tone: 'info' },
-  accepted: { label: 'Accepted', tone: 'success' },
-  rejected: { label: 'Declined', tone: 'neutral' },
-  expired: { label: 'Expired', tone: 'warning' },
+export interface CustomerStatus {
+  label: string;
+  tone: HangTagTone;
+}
+
+export const CUSTOMER_QUOTE_STATUS: Record<QuoteStatus, CustomerStatus> = {
+  draft: { label: 'Draft', tone: 'draft' },
+  sent: { label: 'Waiting for you', tone: 'viewed' },
+  viewed: { label: 'Waiting for you', tone: 'viewed' },
+  accepted: { label: 'Accepted', tone: 'accepted' },
+  rejected: { label: 'Declined', tone: 'declined' },
+  expired: { label: 'Expired', tone: 'expired' },
 };
 
-export const CUSTOMER_INVOICE_STATUS: Record<InvoiceStatus, { label: string; tone: BadgeTone }> = {
-  draft: { label: 'Draft', tone: 'neutral' },
-  sent: { label: 'Awaiting payment', tone: 'info' },
-  partially_paid: { label: 'Partially paid', tone: 'warning' },
-  paid: { label: 'Paid', tone: 'success' },
-  overdue: { label: 'Overdue', tone: 'danger' },
-  cancelled: { label: 'Cancelled', tone: 'neutral' },
+export const CUSTOMER_INVOICE_STATUS: Record<InvoiceStatus, CustomerStatus> = {
+  draft: { label: 'Draft', tone: 'draft' },
+  sent: { label: 'Awaiting payment', tone: 'sent' },
+  partially_paid: { label: 'Part paid', tone: 'partial' },
+  paid: { label: 'Paid', tone: 'paid' },
+  overdue: { label: 'Overdue', tone: 'overdue' },
+  cancelled: { label: 'Cancelled', tone: 'declined' },
 };
+
+type PublicQuote = PublicQuoteDto['quote'];
+type PublicInvoice = PublicInvoiceDto['invoice'];
+
+/**
+ * The stamp on the customer's ticket once the quote is settled, with the moment of the answer in
+ * the viewer's own `timeZone`. While the quote waits for an answer it has none: its tag says so.
+ */
+export function quoteStamp(
+  quote: Pick<PublicQuote, 'status' | 'expiryDate' | 'acceptedAt' | 'rejectedAt'>,
+  timeZone: string,
+): DocumentStamp | undefined {
+  const { label } = CUSTOMER_QUOTE_STATUS[quote.status];
+  const at = (iso: string | null) => (iso ? stampMoment(iso, timeZone) : undefined);
+  switch (quote.status) {
+    case 'accepted':
+      return { tone: 'accepted', label, detail: at(quote.acceptedAt) };
+    case 'rejected':
+      return { tone: 'declined', label, detail: at(quote.rejectedAt) };
+    case 'expired':
+      return { tone: 'expired', label, detail: formatCalendarDate(quote.expiryDate) };
+    default:
+      return undefined;
+  }
+}
+
+/** "Paid", "Overdue · 4 days" or "Cancelled" across the invoice's ticket; `today` is 'YYYY-MM-DD'. */
+export function invoiceStamp(
+  invoice: Pick<PublicInvoice, 'status' | 'dueDate' | 'paidAt'>,
+  today: string,
+): DocumentStamp | undefined {
+  const { label } = CUSTOMER_INVOICE_STATUS[invoice.status];
+  switch (invoice.status) {
+    case 'paid':
+      // paidAt is the calendar date of the settling payment, like the other document dates.
+      return {
+        tone: 'paid',
+        label,
+        detail: invoice.paidAt ? formatCalendarDate(invoice.paidAt.slice(0, 10)) : undefined,
+      };
+    case 'overdue': {
+      const days = -daysBetween(today, invoice.dueDate);
+      return {
+        tone: 'overdue',
+        label,
+        detail: days > 0 ? `${days} ${days === 1 ? 'day' : 'days'}` : undefined,
+      };
+    }
+    case 'cancelled':
+      return { tone: 'declined', label };
+    default:
+      return undefined;
+  }
+}
+
+/** How long a quote waiting for an answer is still valid, e.g. "9 days left"; `today` is 'YYYY-MM-DD'. */
+export function validityNote(
+  quote: Pick<PublicQuote, 'status' | 'expiryDate'>,
+  today: string,
+): string | undefined {
+  if (quote.status !== 'sent' && quote.status !== 'viewed') return undefined;
+  const days = daysBetween(today, quote.expiryDate);
+  if (days < 0) return undefined;
+  if (days === 0) return 'Last day today';
+  return `${days} ${days === 1 ? 'day' : 'days'} left`;
+}
+
+/** When an unpaid invoice is due, e.g. "Due in 3 days"; overdue invoices carry a stamp instead. */
+export function dueNote(
+  invoice: Pick<PublicInvoice, 'status' | 'dueDate'>,
+  today: string,
+): string | undefined {
+  return invoice.status === 'sent' || invoice.status === 'partially_paid'
+    ? dueLabel(invoice.dueDate, today)
+    : undefined;
+}
 
 function answeredOn(timestamp: string | null, options: FormatOptions): string {
   return timestamp
@@ -129,7 +213,10 @@ export function invoiceStatusBanner(
 
 export interface ContactLink {
   kind: 'phone' | 'whatsapp' | 'email';
+  /** A word for the button, e.g. "Call". */
   label: string;
+  /** The rest of its accessible name, e.g. the number to call. */
+  detail: string;
   href: string;
 }
 
@@ -142,13 +229,15 @@ export function businessContactLinks(
   if (business.phone) {
     links.push({
       kind: 'phone',
-      label: `Call ${business.phone}`,
+      label: 'Call',
+      detail: business.phone,
       href: `tel:${business.phone.replace(/[^\d+]/g, '')}`,
     });
     if (toWhatsAppPhone(business.phone)) {
       links.push({
         kind: 'whatsapp',
         label: 'WhatsApp',
+        detail: business.name,
         href: buildWhatsAppUrl(
           `Hi ${business.name}, I have a question about ${documentLabel}.`,
           business.phone,
@@ -160,6 +249,7 @@ export function businessContactLinks(
     links.push({
       kind: 'email',
       label: 'Email',
+      detail: business.email,
       href: `mailto:${business.email}?subject=${encodeURIComponent(documentLabel)}`,
     });
   }

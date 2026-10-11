@@ -2,11 +2,12 @@ import { describe, expect, it } from 'vitest';
 import {
   daysBetween,
   dueLabel,
-  formatLongToday,
+  formatMoneyAxis,
   formatMoneyShort,
+  formatPlace,
   formatShortDate,
+  formatToday,
   greeting,
-  percentChange,
   plural,
 } from './dashboard-format';
 
@@ -25,11 +26,19 @@ describe('greeting', () => {
   });
 });
 
-describe('formatLongToday', () => {
+describe('formatToday', () => {
   it('names the day in the business time zone', () => {
     const now = new Date('2026-10-09T09:30:00Z');
-    expect(formatLongToday(now, 'Africa/Lagos', 'en-US')).toBe('Friday, October 9');
-    expect(formatLongToday(now, 'Pacific/Honolulu', 'en-US')).toBe('Thursday, October 8');
+    expect(formatToday(now, 'Africa/Lagos', 'en-GB')).toBe('Friday · 9 Oct 2026');
+    expect(formatToday(now, 'Pacific/Honolulu', 'en-US')).toBe('Thursday · Oct 8, 2026');
+  });
+});
+
+describe('formatPlace', () => {
+  it('joins the city and state that are filled in', () => {
+    expect(formatPlace({ city: 'Victoria Island', state: 'Lagos' })).toBe('Victoria Island, Lagos');
+    expect(formatPlace({ city: ' ', state: 'Lagos' })).toBe('Lagos');
+    expect(formatPlace({})).toBeNull();
   });
 });
 
@@ -50,12 +59,11 @@ describe('formatMoneyShort', () => {
   });
 });
 
-describe('percentChange', () => {
-  it('rounds to whole percents', () => {
-    expect(percentChange(150, 100)).toBe(50);
-    expect(percentChange(50, 150)).toBe(-67);
-    expect(percentChange(0, 0)).toBeNull();
-    expect(percentChange(10, 0)).toBeNull();
+describe('formatMoneyAxis', () => {
+  it('always uses compact notation', () => {
+    expect(formatMoneyAxis(0, 'NGN', 'en-US')).toBe('₦0');
+    expect(formatMoneyAxis(10_000_000, 'NGN', 'en-US')).toBe('₦100K');
+    expect(formatMoneyAxis(150_000_000, 'NGN', 'en-US')).toBe('₦1.5M');
   });
 });
 

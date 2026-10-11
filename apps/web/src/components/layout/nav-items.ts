@@ -2,7 +2,7 @@ import {
   FileText,
   LayoutDashboard,
   type LucideIcon,
-  Receipt,
+  ReceiptText,
   Settings,
   Users,
   Wrench,
@@ -25,10 +25,11 @@ const DASHBOARD: NavItem = {
   icon: LayoutDashboard,
 };
 const QUOTES: NavItem = { label: 'Quotes', to: paths.quotes, icon: FileText };
-const INVOICES: NavItem = { label: 'Invoices', to: paths.invoices, icon: Receipt };
+const INVOICES: NavItem = { label: 'Invoices', to: paths.invoices, icon: ReceiptText };
 const CUSTOMERS: NavItem = { label: 'Customers', to: paths.customers, icon: Users };
 const SERVICES: NavItem = { label: 'Services', to: paths.services, icon: Wrench };
 
+/** The desktop top bar's tabs. */
 export const PRIMARY_NAV_ITEMS: readonly NavItem[] = [
   DASHBOARD,
   QUOTES,
@@ -39,20 +40,44 @@ export const PRIMARY_NAV_ITEMS: readonly NavItem[] = [
 
 export const SETTINGS_NAV_ITEM: NavItem = { label: 'Settings', to: paths.settings, icon: Settings };
 
-/** The phone tab bar: the screens used every day. The "+" button sits between them. */
-export const MOBILE_TAB_ITEMS = { start: [DASHBOARD, QUOTES], end: INVOICES } as const;
+/** The phone tab bar: the screens used every day, either side of the New key. */
+export const MOBILE_TAB_ITEMS = {
+  start: [DASHBOARD, QUOTES],
+  end: [INVOICES, CUSTOMERS],
+} as const;
 
-/** Everything else, in the phone "More" sheet. */
-export const MOBILE_MORE_ITEMS: readonly NavItem[] = [CUSTOMERS, SERVICES, SETTINGS_NAV_ITEM];
+/** The rest, in the phone's account sheet (opened from the business name). */
+export const MOBILE_MORE_ITEMS: readonly NavItem[] = [SERVICES, SETTINGS_NAV_ITEM];
 
 export function isNavItemActive(pathname: string, item: NavItem): boolean {
   return pathname === item.to || pathname.startsWith(`${item.to}/`);
 }
 
-/** The label of the section the user is in, for the phone top bar. */
-export function currentSectionLabel(pathname: string): string | undefined {
-  return [...PRIMARY_NAV_ITEMS, SETTINGS_NAV_ITEM].find((item) => isNavItemActive(pathname, item))
-    ?.label;
+/** What the tabs count, from the dashboard figures. */
+export interface NavCounts {
+  /** Quotes sent or viewed and not answered yet. */
+  awaitingQuotes: number;
+  overdueInvoices: number;
+}
+
+export interface NavCount {
+  value: number;
+  /** `alert` (solid red) for counts that need action. */
+  tone: 'neutral' | 'alert';
+  /** What is counted, for screen readers. */
+  label: string;
+}
+
+/** The count chip beside a tab, if it has one and it isn't zero. */
+export function navCount(item: NavItem, counts: NavCounts | undefined): NavCount | null {
+  if (!counts) return null;
+  if (item === QUOTES && counts.awaitingQuotes > 0) {
+    return { value: counts.awaitingQuotes, tone: 'neutral', label: 'awaiting an answer' };
+  }
+  if (item === INVOICES && counts.overdueInvoices > 0) {
+    return { value: counts.overdueInvoices, tone: 'alert', label: 'overdue' };
+  }
+  return null;
 }
 
 /**

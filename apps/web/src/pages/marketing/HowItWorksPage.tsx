@@ -2,10 +2,16 @@ import { paths } from '@/app/paths';
 import { DocumentTitle } from '@/components/DocumentTitle';
 import { CtaBand } from '@/components/marketing/CtaBand';
 import { FaqSection } from '@/components/marketing/Faq';
-import { UnderlineLink } from '@/components/marketing/MarketingLinks';
+import { ArrowLink } from '@/components/marketing/MarketingLinks';
 import { NumberedSteps, type Step } from '@/components/marketing/NumberedSteps';
 import { PageHero } from '@/components/marketing/PageHero';
+import { Photo } from '@/components/marketing/Photo';
+import { Reveal } from '@/components/marketing/Reveal';
+import { SectionHeading } from '@/components/marketing/SectionHeading';
+import { PHOTOS } from '@/components/marketing/photos';
+import { SITE_CONTAINER } from '@/components/marketing/site-container';
 import { useLiveDemo } from '@/components/marketing/use-demo-status';
+import { cn } from '@/lib/cn';
 import { HOW_IT_WORKS_FAQ } from './faq-entries';
 
 const OWNER_STEPS: Step[] = [
@@ -54,6 +60,35 @@ const CUSTOMER_STEPS: Step[] = [
   },
 ];
 
+/** "What it costs" as a ticket: the explanation, and the price on the stub. */
+function CostTicket() {
+  return (
+    <Reveal>
+      <div className="lift max-sm:ticket-col sm:ticket-row">
+        <div className="p-6 sm:grow-[2.4] sm:p-10">
+          <h2
+            id="cost-title"
+            className="text-[1.5rem] leading-tight font-[780] tracking-[-0.015em] text-ink font-stretch-112% sm:text-[1.75rem]"
+          >
+            What it costs
+          </h2>
+          <p className="mt-3 max-w-2xl text-[1.0625rem] leading-relaxed text-pretty text-ink-2">
+            Nothing while QuoteFlow is in early access. Every account gets every feature, with no
+            card needed to sign up.
+          </p>
+          <ArrowLink to={paths.pricing} className="mt-5 inline-block">
+            About pricing
+          </ArrowLink>
+        </div>
+        <div className="flex flex-col items-center justify-center bg-primary-tint p-6 text-center sm:p-10">
+          <p className="figure text-[3rem] text-ink">Free</p>
+          <p className="mt-2 label-mono text-ink-2">In early access</p>
+        </div>
+      </div>
+    </Reveal>
+  );
+}
+
 export default function HowItWorksPage() {
   const liveDemo = useLiveDemo();
 
@@ -61,60 +96,51 @@ export default function HowItWorksPage() {
     <>
       <DocumentTitle title="How it works" />
       <PageHero
-        title="How it works"
-        description="From signing up to your first paid invoice, and what your customer sees on the other side."
+        eyebrow="How it works"
+        title="From sign-up to the first payment."
+        description="Six steps on your side and four on your customer’s: what you do in QuoteFlow, and what they see when your link arrives."
       />
 
       <section
         aria-labelledby="for-you-title"
-        className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8"
+        className={cn(
+          SITE_CONTAINER,
+          'grid gap-12 py-20 sm:py-24 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16',
+        )}
       >
-        <h2
-          id="for-you-title"
-          className="text-3xl font-semibold tracking-tight text-stone-900 sm:text-4xl"
-        >
-          For you
-        </h2>
+        <div>
+          <SectionHeading id="for-you-title" eyebrow="Your side" title="For you" />
+          <Reveal className="mt-10 hidden lg:block">
+            {/* A 3:2 photo in a 4:5 box renders about 1.9x wider than its column. */}
+            <Photo
+              photo={PHOTOS.onSiteCall}
+              sizes="(min-width: 1024px) 800px, 100vw"
+              className="aspect-[4/5] object-[62%_50%]"
+            />
+          </Reveal>
+        </div>
         <NumberedSteps steps={OWNER_STEPS} />
       </section>
 
-      <section aria-labelledby="for-customers-title" className="bg-surface">
-        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
-          <h2
+      <section aria-labelledby="for-customers-title" className="border-y border-line bg-surface">
+        <div className={cn(SITE_CONTAINER, 'py-20 sm:py-24')}>
+          <SectionHeading
             id="for-customers-title"
-            className="text-3xl font-semibold tracking-tight text-stone-900 sm:text-4xl"
-          >
-            For your customers
-          </h2>
+            eyebrow="Your customer’s side"
+            title="For your customers"
+          />
           <NumberedSteps steps={CUSTOMER_STEPS} />
           {liveDemo && (
-            <p className="mt-6 text-sm text-stone-600">
+            <p className="mt-8 text-[0.9375rem] text-ink-2">
               Want to see it from their side?{' '}
-              <UnderlineLink to={paths.demo}>Open a demo quote</UnderlineLink>
+              <ArrowLink to={paths.demo}>Open a demo quote</ArrowLink>
             </p>
           )}
         </div>
       </section>
 
-      <section
-        aria-labelledby="cost-title"
-        className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8"
-      >
-        <div className="rounded-3xl border border-stone-200 bg-surface p-6 sm:p-10">
-          <h2
-            id="cost-title"
-            className="text-2xl font-semibold tracking-tight text-stone-900 sm:text-3xl"
-          >
-            What it costs
-          </h2>
-          <p className="mt-3 max-w-2xl text-base leading-relaxed text-pretty text-stone-600 sm:text-lg">
-            Nothing while QuoteFlow is in early access. Every account gets every feature, with no
-            card needed to sign up.
-          </p>
-          <div className="mt-5">
-            <UnderlineLink to={paths.pricing}>About pricing</UnderlineLink>
-          </div>
-        </div>
+      <section aria-labelledby="cost-title" className={cn(SITE_CONTAINER, 'pt-20 sm:pt-24')}>
+        <CostTicket />
       </section>
 
       <FaqSection entries={HOW_IT_WORKS_FAQ} />

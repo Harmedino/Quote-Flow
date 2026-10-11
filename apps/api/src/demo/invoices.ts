@@ -34,8 +34,11 @@ interface InvoiceJob {
   quote?: QuoteDocument;
 }
 
-/** Conversion copies everything billed on the quote, so the invoice matches what was accepted. */
-function contentFromQuote(quote: QuoteDocument): InvoiceContent {
+/**
+ * Conversion copies everything billed on the quote, so the invoice matches what was accepted.
+ * Notes and terms come from the business's invoice defaults first, as in a real conversion.
+ */
+function contentFromQuote(quote: QuoteDocument, { business }: DemoTenant): InvoiceContent {
   return {
     quoteId: quote._id,
     customerId: quote.customerId,
@@ -44,8 +47,8 @@ function contentFromQuote(quote: QuoteDocument): InvoiceContent {
     items: quote.items,
     discount: quote.discount,
     taxRate: quote.taxRate,
-    notes: quote.notes,
-    terms: quote.terms,
+    notes: business.defaultInvoiceNotes || quote.notes,
+    terms: business.defaultInvoiceTerms || quote.terms,
     createdBy: quote.createdBy,
   };
 }
@@ -147,7 +150,7 @@ export async function createInvoices(
   const conversions = quotes.flatMap(({ plan, quote }): InvoiceJob[] => {
     if (!plan.invoice) return [];
     const issueDate = conversionDate(quote, clock);
-    return [{ plan: plan.invoice, quote, issueDate, content: contentFromQuote(quote) }];
+    return [{ plan: plan.invoice, quote, issueDate, content: contentFromQuote(quote, tenant) }];
   });
   const standalone = STANDALONE_INVOICE_PLANS.map((plan): InvoiceJob => ({
     plan,

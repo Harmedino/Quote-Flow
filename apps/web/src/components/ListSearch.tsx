@@ -70,7 +70,7 @@ export function ListSearch({ value, onSearch, label, placeholder, className }: L
     <div role="search" className={cn('relative', className)}>
       <Search
         aria-hidden="true"
-        className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-stone-500"
+        className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted"
       />
       <input
         ref={inputRef}
@@ -86,7 +86,7 @@ export function ListSearch({ value, onSearch, label, placeholder, className }: L
         spellCheck={false}
         className={cn(
           CONTROL_CLASSES,
-          'h-10 pr-10 pl-9 [&::-webkit-search-cancel-button]:appearance-none',
+          'h-10.5 pr-10 pl-9 [&::-webkit-search-cancel-button]:appearance-none',
         )}
       />
       {text && (
@@ -97,7 +97,7 @@ export function ListSearch({ value, onSearch, label, placeholder, className }: L
             applyNow('');
             inputRef.current?.focus();
           }}
-          className="absolute top-1/2 right-1.5 inline-flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-900"
+          className="absolute top-1/2 right-1.5 inline-flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-muted transition-colors hover:bg-surface-muted hover:text-ink"
         >
           <X aria-hidden="true" className="size-4" />
           <span className="sr-only">Clear search</span>

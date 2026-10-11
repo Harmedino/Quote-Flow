@@ -7,40 +7,28 @@ export type AlertVariant = 'panel' | 'banner';
 
 interface ToneStyle {
   icon: LucideIcon;
-  panel: string;
-  iconColor: string;
-  title: string;
-  banner: string;
+  /** Background wash. */
+  tint: string;
+  /** Icon and title colour. */
+  text: string;
+  /** The banner's left edge: danger gets the red hazard tape. */
+  edge: string;
 }
 
 const TONES: Record<AlertTone, ToneStyle> = {
-  info: {
-    icon: Info,
-    panel: 'bg-blue-50 ring-blue-600/20',
-    iconColor: 'text-blue-600',
-    title: 'text-blue-800',
-    banner: 'border-blue-400 bg-blue-50/70',
-  },
-  success: {
-    icon: CircleCheck,
-    panel: 'bg-emerald-50 ring-emerald-600/20',
-    iconColor: 'text-emerald-600',
-    title: 'text-emerald-800',
-    banner: 'border-brand-400 bg-brand-50/70',
-  },
+  info: { icon: Info, tint: 'bg-info-tint', text: 'text-info', edge: 'bg-info' },
+  success: { icon: CircleCheck, tint: 'bg-success-tint', text: 'text-success', edge: 'bg-success' },
   warning: {
     icon: TriangleAlert,
-    panel: 'bg-amber-50 ring-amber-600/25',
-    iconColor: 'text-amber-600',
-    title: 'text-amber-800',
-    banner: 'border-amber-400 bg-amber-50/70',
+    tint: 'bg-warning-tint',
+    text: 'text-warning',
+    edge: 'bg-warning',
   },
   danger: {
     icon: CircleAlert,
-    panel: 'bg-red-50 ring-red-600/20',
-    iconColor: 'text-red-600',
-    title: 'text-red-800',
-    banner: 'border-red-400 bg-red-50/70',
+    tint: 'bg-danger-tint',
+    text: 'text-danger',
+    edge: 'hazard-tape-overdue',
   },
 };
 
@@ -75,16 +63,17 @@ export function Alert({
       <div
         role={role}
         className={cn(
-          'flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 rounded-r-lg border-l-2 px-4 py-2.5 text-sm text-stone-700',
-          style.banner,
+          'relative flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 overflow-hidden rounded-[10px] py-2.5 pr-4 pl-5 text-sm text-ink-2',
+          style.tint,
           className,
         )}
       >
+        <span aria-hidden="true" className={cn('absolute inset-y-0 left-0 w-1', style.edge)} />
         <div className="min-w-0">
-          {title && <span className="font-semibold text-stone-900">{title} </span>}
+          {title && <span className="font-bold text-ink">{title} </span>}
           {children}
         </div>
-        {action && <div className="shrink-0 font-medium">{action}</div>}
+        {action && <div className="shrink-0 font-semibold">{action}</div>}
       </div>
     );
   }
@@ -93,17 +82,13 @@ export function Alert({
   return (
     <div
       role={role}
-      className={cn(
-        'flex gap-3 rounded-xl p-4 text-sm text-stone-700 ring-1 ring-inset',
-        style.panel,
-        className,
-      )}
+      className={cn('flex gap-3 rounded-xl p-4 text-sm text-ink-2', style.tint, className)}
     >
-      <Icon aria-hidden="true" className={cn('size-5 shrink-0', style.iconColor)} />
+      <Icon aria-hidden="true" className={cn('size-5 shrink-0', style.text)} />
       <div className="min-w-0 flex-1 space-y-1">
-        {title && <p className={cn('font-semibold', style.title)}>{title}</p>}
+        {title && <p className={cn('font-bold', style.text)}>{title}</p>}
         {children && <div>{children}</div>}
-        {action && <div className="pt-1 font-medium">{action}</div>}
+        {action && <div className="pt-1 font-semibold">{action}</div>}
       </div>
     </div>
   );

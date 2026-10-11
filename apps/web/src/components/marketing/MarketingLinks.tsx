@@ -1,24 +1,25 @@
 import { ArrowRight } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { Link, type To } from 'react-router';
+import type { To } from 'react-router';
 import { paths } from '@/app/paths';
 import { ButtonLink } from '@/components/ui/ButtonLink';
+import { TextLink } from '@/components/ui/TextLink';
 import { cn } from '@/lib/cn';
 
 const arrow = (
-  <ArrowRight
-    aria-hidden="true"
-    className="size-4 transition-transform group-hover:translate-x-0.5"
-  />
+  <ArrowRight aria-hidden="true" className="transition-transform group-hover:translate-x-0.5" />
 );
 
-/** The lime "Start free" pill, the one main action of an ink section. */
+/**
+ * The website's big orange "Start free", the one main action of a section. It stands on a navy
+ * edge, like the concept's hero button, so it reads as the thing to press.
+ */
 export function StartFreeLink({
   to = paths.register,
   children = 'Start free',
   className,
 }: {
-  /** Another destination for the same pill, e.g. the demo on a page about trying it first. */
+  /** Another destination for the same button, e.g. the demo on a page about trying it first. */
   to?: To;
   children?: ReactNode;
   className?: string;
@@ -26,10 +27,12 @@ export function StartFreeLink({
   return (
     <ButtonLink
       to={to}
-      variant="highlight"
+      variant="primary"
       size="xl"
-      shape="pill"
-      className={cn('group w-full sm:w-auto', className)}
+      className={cn(
+        'group w-full shadow-[inset_0_-3px_0_rgb(14_27_51/0.22),0_3px_0_var(--color-navy)] sm:w-auto dark:shadow-[inset_0_-3px_0_rgb(0_0_0/0.25)]',
+        className,
+      )}
     >
       {children}
       {arrow}
@@ -37,41 +40,20 @@ export function StartFreeLink({
   );
 }
 
-/** A plain text link with a nudging arrow, e.g. "View live demo →" next to a pill. */
+/** An orange text link with a nudging arrow, e.g. "See how it works →" under a block of copy. */
 export function ArrowLink({
   to,
   children,
-  onInk = false,
   className,
 }: {
   to: To;
   children: ReactNode;
-  onInk?: boolean;
   className?: string;
 }) {
   return (
-    <Link
-      to={to}
-      className={cn(
-        'group inline-flex items-center justify-center gap-1.5 rounded-md text-[0.9375rem] font-medium',
-        onInk ? 'text-white focus-visible:outline-highlight' : 'text-stone-900',
-        className,
-      )}
-    >
+    <TextLink to={to} className={cn('group text-base', className)}>
       {children}
       {arrow}
-    </Link>
-  );
-}
-
-/** An underlined link under a block of marketing copy, e.g. "See how quotes work". */
-export function UnderlineLink({ to, children }: { to: To; children: ReactNode }) {
-  return (
-    <Link
-      to={to}
-      className="inline-flex rounded-sm text-sm font-semibold text-stone-900 underline decoration-stone-300 underline-offset-4 transition-colors hover:decoration-stone-900"
-    >
-      {children}
-    </Link>
+    </TextLink>
   );
 }

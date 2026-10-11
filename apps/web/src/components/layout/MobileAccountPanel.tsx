@@ -1,7 +1,6 @@
 import { LogOut, Moon, Sun } from 'lucide-react';
 import { Link, useLocation } from 'react-router';
 import { Alert } from '@/components/ui/Alert';
-import { Spinner } from '@/components/ui/Spinner';
 import { useSignOut } from '@/features/auth/use-sign-out';
 import { useAuthenticatedSession } from '@/features/auth/use-session';
 import { getErrorMessage } from '@/lib/api-error';
@@ -11,11 +10,11 @@ import { AccountSummary } from './AccountSummary';
 import { isNavItemActive, MOBILE_MORE_ITEMS } from './nav-items';
 
 const ROW_CLASSES =
-  'flex w-full items-center gap-3 px-4 py-3.5 text-left text-sm font-medium transition-colors focus-visible:outline-offset-[-2px] active:bg-stone-50 [&_svg]:size-5 [&_svg]:shrink-0';
+  'flex w-full items-center gap-3 px-4 py-3.5 text-left text-sm font-semibold transition-colors focus-visible:outline-offset-[-2px] active:bg-surface-muted [&_svg]:size-5 [&_svg]:shrink-0';
 
 /**
- * The phone "More" sheet: who is signed in, the screens that are not in the tab bar, the theme
- * switch and sign out.
+ * The phone's account sheet, opened from the business name: who is signed in, the screens that
+ * are not in the tab bar, the theme switch and sign out.
  */
 export function MobileAccountPanel() {
   const session = useAuthenticatedSession();
@@ -30,7 +29,7 @@ export function MobileAccountPanel() {
         <AccountSummary session={session} />
       </div>
 
-      <ul className="grid grid-cols-3 gap-2">
+      <ul className="grid grid-cols-2 gap-2.5">
         {MOBILE_MORE_ITEMS.map((item) => {
           const Icon = item.icon;
           const active = isNavItemActive(pathname, item);
@@ -40,45 +39,43 @@ export function MobileAccountPanel() {
                 to={item.to}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'flex flex-col items-center gap-2 rounded-2xl border px-2 py-4 text-center transition-colors',
-                  active
-                    ? 'border-stone-900 bg-stone-50 dark:border-stone-500'
-                    : 'border-stone-200 active:bg-stone-50',
+                  'relative flex items-center gap-3 overflow-hidden rounded-xl bg-surface px-4 py-3.5 transition-colors active:bg-surface-muted',
+                  active ? 'shadow-[inset_0_0_0_1.5px_var(--color-ink)]' : 'shadow-(--shadow-card)',
                 )}
               >
-                <Icon aria-hidden="true" className="size-5 text-stone-800" strokeWidth={1.75} />
-                <span className="text-[13px] font-medium text-stone-800">{item.label}</span>
+                <Icon aria-hidden="true" className="size-5 text-primary-ink" strokeWidth={2} />
+                <span className="text-sm font-bold text-ink">{item.label}</span>
               </Link>
             </li>
           );
         })}
       </ul>
 
-      <div className="divide-y divide-stone-200 overflow-hidden rounded-2xl border border-stone-200">
+      <div className="divide-y divide-line overflow-hidden rounded-xl bg-surface shadow-(--shadow-card)">
         <button
           type="button"
           role="switch"
           aria-checked={dark}
           onClick={toggleTheme}
-          className={cn(ROW_CLASSES, 'text-stone-800')}
+          className={cn(ROW_CLASSES, 'text-ink')}
         >
           {dark ? (
-            <Sun aria-hidden="true" className="text-stone-600" strokeWidth={1.75} />
+            <Sun aria-hidden="true" className="text-ink-2" strokeWidth={2} />
           ) : (
-            <Moon aria-hidden="true" className="text-stone-600" strokeWidth={1.75} />
+            <Moon aria-hidden="true" className="text-ink-2" strokeWidth={2} />
           )}
           <span className="flex-1">Dark mode</span>
           <span
             aria-hidden="true"
             className={cn(
               'relative h-6 w-10 rounded-full transition-colors',
-              dark ? 'bg-brand-600' : 'bg-stone-300',
+              dark ? 'bg-primary' : 'bg-line-strong',
             )}
           >
             <span
               className={cn(
-                'absolute top-0.5 size-5 rounded-full bg-white shadow-sm transition-transform',
-                dark ? 'translate-x-[18px]' : 'translate-x-0.5',
+                'absolute top-0.5 size-5 rounded-full shadow-sm transition-transform',
+                dark ? 'translate-x-[18px] bg-on-primary' : 'translate-x-0.5 bg-surface',
               )}
             />
           </span>
@@ -89,13 +86,9 @@ export function MobileAccountPanel() {
           onClick={() => {
             if (!signOut.isPending) signOut.mutate();
           }}
-          className={cn(ROW_CLASSES, 'text-red-700 aria-disabled:cursor-wait')}
+          className={cn(ROW_CLASSES, 'text-danger aria-disabled:cursor-wait')}
         >
-          {signOut.isPending ? (
-            <Spinner className="size-5" />
-          ) : (
-            <LogOut aria-hidden="true" strokeWidth={1.75} />
-          )}
+          <LogOut aria-hidden="true" strokeWidth={2} />
           {signOut.isPending ? 'Signing out…' : 'Sign out'}
         </button>
       </div>

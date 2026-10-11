@@ -3,7 +3,7 @@ import { Reveal } from '@/components/marketing/Reveal';
 import { PHOTOS, type StockPhoto } from '@/components/marketing/photos';
 
 // Each tile is 4:5, so a 3:2 photo renders about 1.9x wider than its column.
-const TILE_SIZES = '(min-width: 1024px) 520px, (min-width: 640px) 48vw, 95vw';
+const TILE_SIZES = '(min-width: 1024px) 560px, (min-width: 640px) 48vw, 95vw';
 
 const TILES: { photo: StockPhoto; caption: string; crop: string }[] = [
   { photo: PHOTOS.windowCleaning, caption: 'Cleaning', crop: 'object-[72%_45%]' },
@@ -12,10 +12,10 @@ const TILES: { photo: StockPhoto; caption: string; crop: string }[] = [
   { photo: PHOTOS.photographer, caption: 'Photography', crop: 'object-[50%_40%]' },
 ];
 
-/** A row of the trades at work, between the page's hero and the trade cards. */
+/** A row of the trades at work, between the page's hero and the trades. */
 export function TradePhotos() {
   return (
-    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-5">
       {TILES.map((tile, index) => (
         <li key={tile.caption}>
           <Reveal delay={index * 60}>
@@ -25,7 +25,8 @@ export function TradePhotos() {
                 sizes={TILE_SIZES}
                 className={`aspect-[4/5] ${tile.crop}`}
               />
-              <figcaption className="mt-2 text-sm font-medium text-stone-700">
+              <figcaption className="mt-2.5 flex items-center gap-2 label-mono text-ink-2">
+                <span aria-hidden="true" className="size-[7px] rotate-45 bg-primary" />
                 {tile.caption}
               </figcaption>
             </figure>

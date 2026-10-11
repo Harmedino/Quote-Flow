@@ -71,6 +71,8 @@ export default function ServicesPage() {
   useSearchFlag(NEW_PARAM, () => openCreate());
   const closeDialog = () => setDialog({ mode: 'closed' });
   const filtered = Boolean(params.search) || params.status !== 'all';
+  // With no services yet, the empty state holds the only call to action and there is nothing to filter.
+  const empty = services.data?.meta.total === 0 && !filtered;
 
   function renderContent() {
     if (services.isPending) return <ServiceListSkeleton />;
@@ -132,24 +134,30 @@ export default function ServicesPage() {
         title="Services"
         description="Your price list of services, ready to add to any quote."
         actions={
-          <Button onClick={() => openCreate()}>
-            <Plus aria-hidden="true" />
-            Add service
-          </Button>
+          !empty && (
+            <Button onClick={() => openCreate()}>
+              <Plus aria-hidden="true" />
+              Add service
+            </Button>
+          )
         }
       />
 
       <div className="space-y-4">
-        <StatusFilter value={params.status} onChange={(status) => update({ status })} />
-        <ListToolbar>
-          <ListSearch
-            value={params.search}
-            onSearch={(search) => update({ search }, true)}
-            label="Search services"
-            placeholder="Search name or description"
-            className="w-full sm:max-w-xs"
-          />
-        </ListToolbar>
+        {!empty && (
+          <>
+            <StatusFilter value={params.status} onChange={(status) => update({ status })} />
+            <ListToolbar>
+              <ListSearch
+                value={params.search}
+                onSearch={(search) => update({ search }, true)}
+                label="Search services"
+                placeholder="Search name or description"
+                className="w-full sm:max-w-xs"
+              />
+            </ListToolbar>
+          </>
+        )}
         <p className="sr-only" aria-live="polite">
           {services.data && !services.isPlaceholderData
             ? `${services.data.meta.total} ${services.data.meta.total === 1 ? 'service' : 'services'}`

@@ -2,15 +2,16 @@ import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 
-const COLUMNS = {
-  2: '',
-  3: 'sm:grid-cols-3',
-  4: 'lg:grid-cols-4',
+const LAYOUTS = {
+  2: 'ticket-row',
+  3: 'ticket-row',
+  // Phones: the first figure on its own, the other three side by side under it.
+  4: 'max-lg:ticket-split lg:ticket-row',
 } as const;
 
 export interface StatStripProps {
-  /** Columns from `sm`/`lg` up; phones always show two. */
-  columns?: keyof typeof COLUMNS;
+  /** How many figures. Four become one plus three on phones and tablets. */
+  columns?: keyof typeof LAYOUTS;
   /** Names the group for assistive technology, e.g. "Quotes this month". */
   label?: string;
   className?: string;
@@ -19,22 +20,12 @@ export interface StatStripProps {
 }
 
 /**
- * A row of figures joined into one bordered panel, divided by hairlines. On phones it wraps to
- * two columns; an odd last figure spans the full row so no empty cell shows.
+ * Key figures as one perforated receipt strip: ticket parts joined by dashed seams, with
+ * notches where the seams meet the edge.
  */
 export function StatStrip({ columns = 4, label, className, children }: StatStripProps) {
   return (
-    <dl
-      aria-label={label}
-      className={cn(
-        'grid animate-fade-in-up grid-cols-2 gap-px overflow-hidden rounded-2xl border border-stone-200 bg-stone-200',
-        '[&>*:last-child:nth-child(odd)]:col-span-2',
-        columns === 3 && 'sm:[&>*:last-child:nth-child(odd)]:col-span-1',
-        columns === 4 && 'lg:[&>*:last-child:nth-child(odd)]:col-span-1',
-        COLUMNS[columns],
-        className,
-      )}
-    >
+    <dl aria-label={label} className={cn('lift animate-fade-in-up', LAYOUTS[columns], className)}>
       {children}
     </dl>
   );
@@ -43,16 +34,21 @@ export function StatStrip({ columns = 4, label, className, children }: StatStrip
 export type StatTone = 'neutral' | 'positive' | 'negative' | 'warning';
 
 const CAPTION_TONES: Record<StatTone, string> = {
-  neutral: 'text-stone-500',
-  positive: 'text-emerald-700',
-  negative: 'text-red-700',
-  warning: 'text-amber-700',
+  neutral: 'text-muted',
+  positive: 'text-success',
+  negative: 'font-semibold text-overdue',
+  warning: 'text-warning',
 };
 
 export interface StatCardProps {
   label: ReactNode;
   value: ReactNode;
-  /** A short line under the figure, e.g. "Awaiting a reply" or "+12% vs last month". */
+  /** Small text after the figure, e.g. "quotes" or "of ₦1M". */
+  unit?: ReactNode;
+  /**
+   * A short line under the figure, e.g. "3 sent · 1 viewed", a link, or a TapeMeasure with its
+   * percentage.
+   */
   caption?: ReactNode;
   /** Colours the caption: good news, bad news or something to act on. */
   tone?: StatTone;
@@ -62,10 +58,15 @@ export interface StatCardProps {
   className?: string;
 }
 
-/** One figure in a {@link StatStrip}: a label, a big number and an optional caption. */
+/**
+ * One part of a {@link StatStrip}: a mono label, a wide heavy figure and an optional caption.
+ * The figure scales with the part's width (a container query), so it fits three across a phone;
+ * there the icon steps aside and the unit wraps under the figure.
+ */
 export function StatCard({
   label,
   value,
+  unit,
   caption,
   tone = 'neutral',
   icon: Icon,
@@ -73,18 +74,27 @@ export function StatCard({
   className,
 }: StatCardProps) {
   return (
-    <div className={cn('min-w-0 bg-surface p-4 sm:p-5', className)}>
-      <dt className="flex items-start justify-between gap-2 text-[13px] text-stone-500">
-        {label}
-        {Icon && <Icon aria-hidden="true" className="size-4 shrink-0 text-stone-400" />}
+    <div className={cn('@container px-3.5 pt-3.5 pb-4 sm:px-5.5 sm:pt-4.5', className)}>
+      <dt className="flex items-center justify-between gap-2 label-mono text-muted max-sm:text-[10.5px] max-sm:tracking-[0.07em]">
+        <span className="min-w-0 truncate">{label}</span>
+        {Icon && <Icon aria-hidden="true" className="hidden size-[18px] shrink-0 @[12rem]:block" />}
       </dt>
       <dd
         title={valueTitle}
-        className="mt-1 truncate font-display text-2xl font-semibold tracking-tight text-stone-900 tabular-nums sm:text-[1.75rem]"
+        className="mt-2.5 flex min-w-0 flex-wrap items-baseline gap-x-1.5 gap-y-1 figure text-xl text-ink @[11rem]:text-[1.625rem] @[15rem]:text-[2rem]"
       >
-        {value}
+        <span className="truncate">{value}</span>
+        {unit && (
+          <span className="shrink-0 text-[13px] font-[650] tracking-normal font-stretch-100% text-muted @[15rem]:text-base">
+            {unit}
+          </span>
+        )}
       </dd>
-      {caption && <dd className={cn('mt-1 text-xs', CAPTION_TONES[tone])}>{caption}</dd>}
+      {caption && (
+        <dd className={cn('mt-2.5 text-xs leading-snug @[15rem]:text-[13px]', CAPTION_TONES[tone])}>
+          {caption}
+        </dd>
+      )}
     </div>
   );
 }

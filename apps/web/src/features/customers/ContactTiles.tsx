@@ -4,7 +4,7 @@ import { telHref } from '@/components/documents/document-format';
 import { cn } from '@/lib/cn';
 
 const TILE =
-  'flex flex-1 flex-col items-center gap-1 rounded-xl border border-stone-200 py-2.5 text-xs font-medium text-stone-700 transition-colors hover:border-stone-300 hover:bg-stone-50 hover:text-stone-900 [&_svg]:size-4';
+  'flex flex-1 flex-col items-center gap-1 rounded-[9px] bg-surface-muted py-2.5 text-[12.5px] font-semibold text-ink-2 shadow-[inset_0_0_0_1px_var(--color-line)] transition-colors hover:bg-canvas-deep hover:text-ink [&_svg]:size-4 [&_svg]:stroke-[2.25]';
 
 export interface ContactTilesProps {
   phone: string | null | undefined;

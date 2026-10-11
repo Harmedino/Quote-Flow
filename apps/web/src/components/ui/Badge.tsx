@@ -3,27 +3,30 @@ import { cn } from '@/lib/cn';
 
 export type BadgeTone = 'neutral' | 'brand' | 'success' | 'warning' | 'danger' | 'info' | 'accent';
 
-// Tinted washes whose text shades lighten in dark mode (see styles/index.css).
 const TONES: Record<BadgeTone, string> = {
-  neutral: 'bg-stone-100 text-stone-600',
-  brand: 'bg-brand-50 text-brand-700',
-  success: 'bg-green-50 text-green-700',
-  warning: 'bg-amber-50 text-amber-700',
-  danger: 'bg-red-50 text-red-700',
-  info: 'bg-blue-50 text-blue-700',
+  neutral: 'bg-draft-tint text-draft',
+  brand: 'bg-primary-tint text-primary-ink',
+  success: 'bg-success-tint text-success',
+  warning: 'bg-warning-tint text-warning',
+  danger: 'bg-danger-tint text-danger',
+  info: 'bg-info-tint text-info',
   /** A distinct colour for a state that is neither good nor bad news, e.g. a viewed quote. */
-  accent: 'bg-violet-50 text-violet-700',
+  accent: 'bg-viewed-tint text-viewed',
 };
 
 export interface BadgeProps extends ComponentProps<'span'> {
   tone?: BadgeTone;
 }
 
+/**
+ * A small mono label such as "Owner" or "Archived". Document statuses use the hang-tag chips in
+ * components/StatusBadge instead.
+ */
 export function Badge({ tone = 'neutral', className, ...props }: BadgeProps) {
   return (
     <span
       className={cn(
-        'inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap',
+        'inline-flex h-5.5 shrink-0 items-center gap-1 rounded-[5px] px-2 font-mono text-[10.5px] leading-none font-semibold tracking-[0.07em] whitespace-nowrap uppercase [&_svg]:size-3',
         TONES[tone],
         className,
       )}

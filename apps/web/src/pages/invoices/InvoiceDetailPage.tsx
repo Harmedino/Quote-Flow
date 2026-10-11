@@ -15,13 +15,15 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useAuthenticatedSession } from '@/features/auth/use-session';
+import { DESKTOP_QUERY, useMediaQuery } from '@/features/dashboard/use-media-query';
+import { DETAIL_ASIDE, DETAIL_GRID } from '@/features/documents/detail-layout';
 import { DocumentCustomerCard } from '@/features/documents/DocumentCustomerCard';
 import { toPublicBusiness } from '@/features/documents/public-business';
 import { InvoiceActionsCard } from '@/features/invoices/InvoiceActionsCard';
 import { InvoiceHero } from '@/features/invoices/InvoiceHero';
 import { InvoicePaymentsCard } from '@/features/invoices/InvoicePaymentsCard';
 import { InvoiceSharePanel } from '@/features/invoices/InvoiceSharePanel';
-import { getInvoiceActions } from '@/features/invoices/invoice-view';
+import { getInvoiceActions, invoiceStamp } from '@/features/invoices/invoice-view';
 import { RecordPaymentDialog } from '@/features/invoices/RecordPaymentDialog';
 import { useInvoiceQuery } from '@/features/invoices/use-invoices';
 import { isMissingRecordError } from '@/lib/api-client';
@@ -31,10 +33,10 @@ const BACK = { to: paths.invoices, label: 'Invoices' };
 
 function DetailSkeleton() {
   return (
-    <div aria-hidden="true" className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-      <div className="space-y-6">
-        <Skeleton className="h-48 rounded-2xl" />
-        <Skeleton className="h-[32rem] rounded-2xl" />
+    <div aria-hidden="true" className={DETAIL_GRID}>
+      <div className="space-y-5">
+        <Skeleton className="h-36 rounded-xl" />
+        <Skeleton className="h-[32rem] rounded-xl" />
       </div>
       <div className="space-y-4">
         <Skeleton className="h-64 rounded-xl" />
@@ -85,11 +87,20 @@ function InvoiceView({ invoice }: { invoice: InvoiceDto }) {
   const { business } = useAuthenticatedSession();
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [recorded, setRecorded] = useState<string | null>(null);
+  // The stamp thumps down only when the status changes while the page is open (e.g. paid in full).
+  const [statusOnArrival] = useState(invoice.status);
   const today = todayInTimeZone(business.timezone);
   const actions = getInvoiceActions(invoice);
   const cancelled = invoice.status === 'cancelled';
   const title = `Invoice ${invoice.invoiceNumber}`;
   const money = (amount: number) => formatMoney(amount, invoice.currency);
+  const stamp = invoiceStamp(invoice, today, business.timezone);
+  // Phones show the ticket straight after sharing, before the side cards; desktop keeps sharing
+  // at the top of the side column.
+  const desktop = useMediaQuery(DESKTOP_QUERY);
+  const share = actions.share && (
+    <InvoiceSharePanel invoice={invoice} businessName={business.name} />
+  );
 
   return (
     <>
@@ -122,29 +133,19 @@ function InvoiceView({ invoice }: { invoice: InvoiceDto }) {
         }
       />
       {recorded && (
-        <Alert tone="success" className="mb-6">
+        <Alert tone="success" className="mb-5">
           {recorded}
         </Alert>
       )}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:grid-rows-[auto_1fr] lg:items-start">
+      <div className={DETAIL_GRID}>
         <InvoiceHero
           invoice={invoice}
           today={today}
           timeZone={business.timezone}
           className="lg:col-start-1 lg:row-start-1"
         />
-        <aside
-          aria-label="Invoice actions"
-          className="space-y-4 lg:sticky lg:top-8 lg:col-start-2 lg:row-span-2 lg:row-start-1"
-        >
-          {actions.share && <InvoiceSharePanel invoice={invoice} businessName={business.name} />}
-          <DocumentCustomerCard customerId={invoice.customerId} customer={invoice.customer} />
-          {(invoice.payments.length > 0 || (invoice.status !== 'draft' && !cancelled)) && (
-            <InvoicePaymentsCard invoice={invoice} />
-          )}
-          <InvoiceActionsCard invoice={invoice} />
-        </aside>
+        {!desktop && share}
         <div className="min-w-0 lg:col-start-1 lg:row-start-2">
           <SalesDocument
             kind="invoice"
@@ -163,9 +164,19 @@ function InvoiceView({ invoice }: { invoice: InvoiceDto }) {
             balanceDue={cancelled ? undefined : invoice.balanceDue}
             notes={invoice.notes}
             terms={invoice.terms}
-            status={<InvoiceStatusBadge status={invoice.status} />}
+            // A stamp says it when there is one; otherwise the tag does.
+            status={stamp ? undefined : <InvoiceStatusBadge status={invoice.status} />}
+            stamp={stamp && { ...stamp, animate: invoice.status !== statusOnArrival }}
           />
         </div>
+        <aside aria-label="Invoice actions" className={DETAIL_ASIDE}>
+          {desktop && share}
+          <DocumentCustomerCard customerId={invoice.customerId} customer={invoice.customer} />
+          {(invoice.payments.length > 0 || (invoice.status !== 'draft' && !cancelled)) && (
+            <InvoicePaymentsCard invoice={invoice} />
+          )}
+          <InvoiceActionsCard invoice={invoice} />
+        </aside>
       </div>
 
       <RecordPaymentDialog

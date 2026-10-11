@@ -8,7 +8,9 @@ import {
 } from 'react';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
-import { BRAND_FILL, NEUTRAL_FILL } from './fills';
+import { DIALOG_CLASSES } from '@/components/ui/dialog-styles';
+import { cn } from '@/lib/cn';
+import { BRAND_FILL, FILL_FEEDBACK, NEUTRAL_FILL } from './fills';
 
 export interface ResponseDialogProps {
   open: boolean;
@@ -25,8 +27,8 @@ export interface ResponseDialogProps {
 }
 
 /**
- * Confirms a customer's answer: a bottom sheet on phones, a centered panel
- * from `sm` up. A modal <dialog>, so the page behind is inert, Escape cancels
+ * Confirms a customer's answer: a bottom sheet on phones, a centred panel
+ * from `sm` up (the app's dialog look). A modal <dialog>, so the page behind is inert, Escape cancels
  * and focus returns to the opener. Cancel is focused first so Enter never answers by accident.
  */
 export function ResponseDialog({
@@ -86,13 +88,13 @@ export function ResponseDialog({
       aria-describedby={descriptionId}
       onCancel={handleCancel}
       onClick={handleBackdropClick}
-      className="mx-0 mt-auto mb-0 max-h-[calc(100dvh-2rem)] w-full max-w-none overflow-y-auto rounded-t-3xl border-0 bg-surface p-0 text-stone-900 shadow-[var(--shadow-elevated)] backdrop:bg-black/50 open:animate-fade-in-up sm:m-auto sm:w-[calc(100%-2rem)] sm:max-w-md sm:rounded-2xl sm:border sm:border-stone-200"
+      className={cn(DIALOG_CLASSES, 'sm:max-w-md')}
     >
       <div className="px-5 pt-6 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:p-6">
-        <h2 id={titleId} className="text-xl font-semibold text-stone-900">
+        <h2 id={titleId} className="text-xl leading-tight font-[800] font-stretch-115%">
           {title}
         </h2>
-        <div id={descriptionId} className="mt-2 text-sm/6 text-pretty text-stone-600">
+        <div id={descriptionId} className="mt-2 text-[14.5px] text-pretty text-ink-2">
           {description}
         </div>
         {children && <div className="mt-5">{children}</div>}
@@ -101,7 +103,7 @@ export function ResponseDialog({
             {error}
           </Alert>
         )}
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:flex sm:justify-end">
+        <div className="mt-6 grid grid-cols-[1fr_1.4fr] gap-2.5 sm:flex sm:justify-end">
           <Button
             ref={cancelRef}
             variant="secondary"
@@ -114,7 +116,7 @@ export function ResponseDialog({
           <Button
             size="lg"
             style={confirmFill === 'brand' ? BRAND_FILL : NEUTRAL_FILL}
-            className="font-semibold hover:brightness-95 active:brightness-90 dark:ring-1 dark:ring-white/20 dark:ring-inset"
+            className={FILL_FEEDBACK}
             onClick={onConfirm}
             loading={pending}
           >

@@ -1,4 +1,5 @@
-import { Check } from 'lucide-react';
+import { Check, HardHat } from 'lucide-react';
+import type { CSSProperties } from 'react';
 import { Link, Outlet, useLocation } from 'react-router';
 import { paths } from '@/app/paths';
 import { PHOTOS } from '@/components/marketing/photos';
@@ -25,36 +26,28 @@ const PANEL_COPY = {
   },
 };
 
-/** The ink panel beside the auth forms on large screens, with a photo tucked into its corner. */
-function AuthBrandPanel({ pathname }: { pathname: string }) {
+/** A tape-measure blade standing on the photo's edge: navy ticks every 4px, longer every 20 and 40. */
+const TAPE_BLADE = {
+  background: [
+    'repeating-linear-gradient(to bottom, var(--color-navy) 0 1.5px, transparent 1.5px 40px) 0 0 / 17px 100% no-repeat',
+    'repeating-linear-gradient(to bottom, var(--color-navy) 0 1px, transparent 1px 20px) 0 0 / 11px 100% no-repeat',
+    'repeating-linear-gradient(to bottom, var(--color-navy) 0 1px, transparent 1px 4px) 0 0 / 6px 100% no-repeat',
+    'var(--color-primary)',
+  ].join(', '),
+} satisfies CSSProperties;
+
+/**
+ * The photo beside the auth forms on large screens: people on site, a strip of barrier tape
+ * across the top, a tape measure along the edge, and the pitch on a navy wash at the foot.
+ */
+function AuthPhotoPanel({ pathname }: { pathname: string }) {
   const { headline, description } =
     pathname === paths.register ? PANEL_COPY.register : PANEL_COPY.signIn;
   const photo = PHOTOS.wallCheck;
 
   return (
-    <div className="relative hidden overflow-hidden bg-ink-grid lg:flex lg:w-1/2 lg:flex-col lg:p-10 xl:p-14">
-      <Link to={paths.home} className="flex w-fit rounded-lg">
-        <Logo tone="light" />
-      </Link>
-
-      <div className="mt-14 max-w-md">
-        <p className="font-display text-4xl leading-[1.1] font-semibold tracking-tight text-balance text-white xl:text-[2.75rem]">
-          {headline}
-        </p>
-        <p className="mt-4 text-base text-pretty text-white/65">{description}</p>
-        <ul className="mt-8 space-y-3">
-          {POINTS.map((point) => (
-            <li key={point} className="flex items-start gap-3 text-sm text-white/80">
-              <span className="mt-px flex size-5 shrink-0 items-center justify-center rounded-full bg-highlight text-ink">
-                <Check aria-hidden="true" className="size-3" strokeWidth={3} />
-              </span>
-              {point}
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <div className="relative mt-auto -mr-10 -mb-10 pt-12 xl:-mr-14 xl:-mb-14">
+    <div className="sticky top-0 hidden h-dvh p-4 pl-0 lg:block">
+      <div className="relative isolate flex h-full flex-col justify-end overflow-hidden rounded-[18px] bg-navy text-on-navy">
         <img
           src={photo.src}
           srcSet={photo.srcSet}
@@ -66,8 +59,39 @@ function AuthBrandPanel({ pathname }: { pathname: string }) {
           loading="lazy"
           decoding="async"
           // The hard hats touch the photo's top edge, so any crop keeps the top.
-          className="block aspect-[3/2] w-full rounded-tl-2xl object-cover object-top"
+          className="absolute inset-0 -z-10 size-full object-cover object-[44%_0%]"
         />
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 -z-10 bg-linear-to-t from-navy from-25% via-navy/70 via-55% to-transparent to-80%"
+        />
+        <div aria-hidden="true" className="absolute inset-x-0 top-0 h-3 hazard-tape" />
+        <div
+          aria-hidden="true"
+          style={TAPE_BLADE}
+          className="absolute top-20 right-6 bottom-[55%] w-9.5 rounded-[4px] shadow-[0_6px_18px_rgb(14_27_51/0.25),inset_0_0_0_1px_rgb(14_27_51/0.12)]"
+        />
+
+        <div className="max-w-xl p-10 xl:p-14">
+          <p className="inline-flex h-6 items-center gap-1.5 rounded-[5px] bg-on-navy px-2 font-mono text-[11.5px] font-semibold tracking-[0.07em] text-navy uppercase">
+            <HardHat aria-hidden="true" className="size-3.5" strokeWidth={2.25} />
+            For the trades
+          </p>
+          <p className="mt-5 text-[40px] leading-[1.02] font-[840] tracking-[-0.03em] text-balance font-stretch-120% xl:text-[46px]">
+            {headline}
+          </p>
+          <p className="mt-4 max-w-md text-base text-pretty text-on-navy/80">{description}</p>
+          <ul className="mt-7 space-y-3">
+            {POINTS.map((point) => (
+              <li key={point} className="flex items-start gap-3 text-[14.5px] text-on-navy/90">
+                <span className="mt-px flex size-5 shrink-0 items-center justify-center rounded-[5px] bg-primary text-on-primary">
+                  <Check aria-hidden="true" className="size-3.5" strokeWidth={3} />
+                </span>
+                {point}
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </div>
   );
@@ -76,28 +100,31 @@ function AuthBrandPanel({ pathname }: { pathname: string }) {
 export default function AuthLayout() {
   const { pathname } = useLocation();
   return (
-    <div className="flex min-h-dvh bg-surface">
+    <div className="min-h-dvh bg-canvas">
       <SkipLink />
-      <AuthBrandPanel pathname={pathname} />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-16 items-center justify-between gap-4 px-4 sm:px-8 lg:justify-end">
-          <Link to={paths.home} className="flex rounded-lg lg:hidden">
-            <Logo />
-          </Link>
-          <ThemeToggle />
-        </header>
-        <main
-          id={MAIN_CONTENT_ID}
-          tabIndex={-1}
-          className="flex flex-1 items-center justify-center px-4 py-10 focus:outline-none sm:py-16"
-        >
-          <div key={pathname} className="w-full max-w-sm animate-fade-in-up">
-            <Outlet />
-          </div>
-        </main>
-        <footer className="px-4 pb-6 text-center">
-          <Copyright />
-        </footer>
+      <div aria-hidden="true" className="sticky top-0 z-10 h-1 hazard-tape" />
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
+        <div className="flex min-h-[calc(100dvh-0.25rem)] min-w-0 flex-col">
+          <header className="flex h-16 items-center justify-between gap-4 px-4 sm:px-8 lg:h-20 lg:px-12">
+            <Link to={paths.home} className="flex rounded-lg">
+              <Logo />
+            </Link>
+            <ThemeToggle />
+          </header>
+          <main
+            id={MAIN_CONTENT_ID}
+            tabIndex={-1}
+            className="flex flex-1 items-start justify-center px-4 pt-6 pb-10 focus:outline-none sm:items-center sm:py-14"
+          >
+            <div key={pathname} className="w-full max-w-[25rem] animate-fade-in-up">
+              <Outlet />
+            </div>
+          </main>
+          <footer className="px-4 pb-6 text-center lg:px-12 lg:text-left">
+            <Copyright />
+          </footer>
+        </div>
+        <AuthPhotoPanel pathname={pathname} />
       </div>
     </div>
   );

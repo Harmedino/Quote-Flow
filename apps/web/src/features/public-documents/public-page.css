@@ -1,0 +1,13 @@
+/* A customer's page is light in both themes, like the paper it stands for, and its brand colours
+   are checked against paper. `scheme-light` on the page puts back the light colours; these are
+   the light shadows from index.css's :root, which dark mode also changes. */
+.public-page {
+  --shadow-card: 0 0 0 1px var(--color-line), 0 1px 2px rgb(14 27 51 / 0.04);
+  --shadow-elevated: 0 0 0 1px rgb(14 27 51 / 0.06), 0 12px 32px -8px rgb(14 27 51 / 0.22);
+  --lift: drop-shadow(0 0 0.5px rgb(14 27 51 / 0.45)) drop-shadow(0 1px 1px rgb(14 27 51 / 0.05))
+    drop-shadow(0 10px 24px rgb(14 27 51 / 0.07));
+  --lift-high: drop-shadow(0 0 0.5px rgb(14 27 51 / 0.5))
+    drop-shadow(0 2px 3px rgb(14 27 51 / 0.08)) drop-shadow(0 24px 48px rgb(14 27 51 / 0.16));
+  --tape-tick: rgb(14 27 51 / 0.55);
+  --tape-tick-minor: rgb(14 27 51 / 0.28);
+}

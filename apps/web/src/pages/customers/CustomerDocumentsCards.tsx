@@ -13,6 +13,7 @@ import {
 } from '@/components/StatusBadge';
 import { ButtonLink } from '@/components/ui/ButtonLink';
 import { Card, CardHeader } from '@/components/ui/Card';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StatCard, StatStrip } from '@/components/ui/StatStrip';
 import {
@@ -55,7 +56,7 @@ function DocumentsCard<T>({ title, noun, query, empty, renderRow }: DocumentsCar
       </div>
     );
   } else if (query.data.data.length === 0) {
-    content = <div className="px-5 py-10 text-center text-sm text-stone-500 sm:px-6">{empty}</div>;
+    content = empty;
   } else {
     content = <ul className="px-2 py-1.5 sm:px-3">{query.data.data.map(renderRow)}</ul>;
   }
@@ -93,39 +94,31 @@ function DocumentRow({
   amountNote?: string;
 }) {
   return (
-    <li className="flex gap-2.5 border-t border-stone-100 py-1 first:border-t-0">
+    <li className="flex gap-2.5 border-t border-line py-1 first:border-t-0">
       {accent}
       <Link
         to={to}
-        className="group flex min-w-0 flex-1 items-center justify-between gap-4 rounded-lg px-3 py-2.5 transition-colors hover:bg-stone-50 focus-visible:outline-offset-[-2px]"
+        className="group flex min-w-0 flex-1 items-center justify-between gap-4 rounded-lg px-3 py-2.5 transition-colors hover:bg-surface-muted focus-visible:outline-offset-[-2px]"
       >
         <div className="min-w-0">
-          <p className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-semibold text-stone-900">{number}</span>
+          <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+            <span className="font-mono text-[13.5px] font-semibold text-ink">{number}</span>
             {badge}
           </p>
-          <p className="mt-0.5 text-xs text-stone-500">{meta}</p>
+          <p className="mt-1 text-[12.5px] text-muted">{meta}</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <div className="text-right">
-            <p className="text-sm font-semibold text-stone-900 tabular-nums">{amount}</p>
-            {amountNote && <p className="mt-0.5 text-xs text-stone-500">{amountNote}</p>}
+            <p className="money text-[14px] text-ink">{amount}</p>
+            {amountNote && <p className="mt-0.5 text-[12.5px] text-ink-2">{amountNote}</p>}
           </div>
           <ChevronRight
             aria-hidden="true"
-            className="size-4 text-stone-400 transition-transform group-hover:translate-x-0.5"
+            className="size-4 text-muted transition-transform group-hover:translate-x-0.5"
           />
         </div>
       </Link>
     </li>
-  );
-}
-
-function EmptyIcon({ icon: Icon }: { icon: typeof FileText }) {
-  return (
-    <span className="mx-auto mb-3 flex size-10 items-center justify-center rounded-full bg-stone-100 text-stone-500">
-      <Icon aria-hidden="true" className="size-5" strokeWidth={1.75} />
-    </span>
   );
 }
 
@@ -137,20 +130,24 @@ export function CustomerQuotesCard({ customer }: { customer: CustomerDto }) {
       noun="quotes"
       query={quotes}
       empty={
-        <>
-          <EmptyIcon icon={FileText} />
-          <p>No quotes for this customer yet.</p>
-          {!customer.archivedAt && (
-            <ButtonLink
-              to={`${paths.newQuote}?customerId=${encodeURIComponent(customer.id)}`}
-              variant="secondary"
-              size="sm"
-              className="mt-4"
-            >
-              Create a quote
-            </ButtonLink>
-          )}
-        </>
+        <EmptyState
+          icon={FileText}
+          titleAs="h3"
+          title="No quotes yet"
+          description="Price a job for this customer and send it on WhatsApp."
+          action={
+            !customer.archivedAt && (
+              <ButtonLink
+                to={`${paths.newQuote}?customerId=${encodeURIComponent(customer.id)}`}
+                variant="secondary"
+                size="sm"
+              >
+                Create a quote
+              </ButtonLink>
+            )
+          }
+          className="py-10 sm:py-10"
+        />
       }
       renderRow={(quote) => (
         <DocumentRow
@@ -175,10 +172,13 @@ export function CustomerInvoicesCard({ customer }: { customer: CustomerDto }) {
       noun="invoices"
       query={invoices}
       empty={
-        <>
-          <EmptyIcon icon={Receipt} />
-          <p>No invoices for this customer yet. Accepted quotes can be turned into invoices.</p>
-        </>
+        <EmptyState
+          icon={Receipt}
+          titleAs="h3"
+          title="No invoices yet"
+          description="Accepted quotes can be turned into invoices."
+          className="py-10 sm:py-10"
+        />
       }
       renderRow={(invoice) => (
         <DocumentRow

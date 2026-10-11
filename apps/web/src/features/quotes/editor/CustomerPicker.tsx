@@ -6,7 +6,6 @@ import { formatAddressLines } from '@/components/documents/document-format';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { CONTROL_CLASSES } from '@/components/ui/control-styles';
-import { Spinner } from '@/components/ui/Spinner';
 import { CustomerFormDialog } from '@/features/customers/CustomerFormDialog';
 import { listCustomers } from '@/features/customers/customers-api';
 import { customerKeys } from '@/features/customers/use-customers';
@@ -33,7 +32,7 @@ export interface CustomerPickerProps {
 
 function PickerError({ id, message }: { id: string; message: string }) {
   return (
-    <p id={id} className="mt-2 flex items-center gap-1.5 text-sm text-red-700">
+    <p id={id} className="mt-2 flex items-center gap-1.5 text-[13px] font-medium text-danger">
       <CircleAlert aria-hidden="true" className="size-4 shrink-0" />
       {message}
     </p>
@@ -67,13 +66,13 @@ function SelectedCustomerCard({
     <div>
       <div
         {...(lockedHint && error ? { tabIndex: -1, ...invalid } : {})}
-        className="rounded-xl border border-brand-600 bg-brand-50 p-4 ring-1 ring-brand-600"
+        className="rounded-xl bg-surface-muted p-4 shadow-[inset_0_0_0_1px_var(--color-line)]"
       >
         <div className="flex items-center gap-3">
           <Avatar name={customer.name} />
           <div className="min-w-0 flex-1 text-sm">
-            <p className="truncate font-semibold text-stone-900">{customer.name}</p>
-            {customer.company && <p className="truncate text-stone-600">{customer.company}</p>}
+            <p className="truncate text-[15px] font-bold text-ink">{customer.name}</p>
+            {customer.company && <p className="truncate text-ink-2">{customer.company}</p>}
           </div>
           {!lockedHint && (
             <Button ref={changeButtonRef} variant="ghost" size="sm" onClick={onChange} {...invalid}>
@@ -82,17 +81,17 @@ function SelectedCustomerCard({
           )}
         </div>
         {details.length > 0 && (
-          <ul className="mt-3 flex flex-col gap-1.5 text-sm text-stone-600 sm:flex-row sm:flex-wrap sm:gap-x-5 sm:pl-13">
+          <ul className="mt-3 flex flex-col gap-1.5 text-[13.5px] text-ink-2 sm:flex-row sm:flex-wrap sm:gap-x-5 sm:pl-12">
             {details.map(({ icon: Icon, text }) => (
               <li key={text} className="flex min-w-0 items-start gap-2">
-                <Icon aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-stone-500" />
+                <Icon aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-muted" />
                 <span className="wrap-anywhere">{text}</span>
               </li>
             ))}
           </ul>
         )}
       </div>
-      {lockedHint && <p className="mt-2 text-sm text-stone-500">{lockedHint}</p>}
+      {lockedHint && <p className="mt-2 text-[13px] text-muted">{lockedHint}</p>}
       {error && <PickerError id={errorId} message={error} />}
     </div>
   );
@@ -177,7 +176,7 @@ export function CustomerPicker({
           </label>
           <Search
             aria-hidden="true"
-            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-stone-500"
+            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted"
           />
           <input
             ref={inputRef}
@@ -194,7 +193,7 @@ export function CustomerPicker({
             aria-describedby={error ? errorId : undefined}
             autoComplete="off"
             placeholder="Search by name, email or phone"
-            className={cn(CONTROL_CLASSES, 'h-11 pl-9')}
+            className={cn(CONTROL_CLASSES, 'h-10.5 pl-9')}
             value={text}
             onChange={(event) => {
               setText(event.target.value);
@@ -205,12 +204,9 @@ export function CustomerPicker({
             onBlur={() => setOpen(false)}
             onKeyDown={listbox.onKeyDown}
           />
-          {results.isFetching && (
-            <Spinner className="absolute top-1/2 right-3 size-4 -translate-y-1/2 text-stone-500" />
-          )}
           <div
             hidden={!expanded}
-            className="absolute inset-x-0 top-full z-30 mt-1 overflow-hidden rounded-xl border border-stone-200 bg-surface shadow-[var(--shadow-elevated)]"
+            className="absolute inset-x-0 top-full z-30 mt-1 overflow-hidden rounded-xl bg-surface shadow-(--shadow-elevated)"
           >
             <ul
               id={listboxId}
@@ -229,15 +225,15 @@ export function CustomerPicker({
                   onMouseMove={() => listbox.setActiveIndex(index)}
                   className={cn(
                     'flex cursor-pointer items-center gap-3 rounded-lg px-2.5 py-2',
-                    index === listbox.activeIndex && 'bg-brand-50',
+                    index === listbox.activeIndex && 'bg-surface-muted',
                   )}
                 >
                   <Avatar name={option.name} size="sm" />
                   <span className="min-w-0">
-                    <span className="block truncate text-sm font-medium text-stone-900">
+                    <span className="block truncate text-sm font-semibold text-ink">
                       {option.name}
                     </span>
-                    <span className="block truncate text-xs text-stone-500">
+                    <span className="block truncate text-[12.5px] text-muted">
                       {customerSummaryLine(option) || 'No contact details'}
                     </span>
                   </span>
@@ -245,7 +241,7 @@ export function CustomerPicker({
               ))}
             </ul>
             {options.length === 0 && (
-              <p className="px-3 py-4 text-sm text-stone-600">
+              <p className="px-3 py-4 text-sm text-ink-2">
                 {results.isPending
                   ? 'Loading customers…'
                   : search
@@ -255,15 +251,15 @@ export function CustomerPicker({
             )}
           </div>
         </div>
-        <Button variant="secondary" className="h-11" onClick={() => setCreating(true)}>
+        <Button variant="secondary" onClick={() => setCreating(true)}>
           <UserPlus aria-hidden="true" />
-          New customer
+          Add customer
         </Button>
       </div>
       {customer && (
         <button
           type="button"
-          className="mt-2 text-sm font-medium text-brand-700 hover:text-brand-800"
+          className="mt-2 rounded-sm text-sm font-[650] text-primary-ink underline-offset-[3px] hover:underline"
           onClick={closeSearch}
         >
           Keep {customer.name}

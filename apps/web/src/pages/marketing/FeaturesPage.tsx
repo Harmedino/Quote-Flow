@@ -1,10 +1,12 @@
 import { paths } from '@/app/paths';
 import { DocumentTitle } from '@/components/DocumentTitle';
+import { BulletList } from '@/components/marketing/BulletList';
 import { CtaBand } from '@/components/marketing/CtaBand';
 import { PageHero } from '@/components/marketing/PageHero';
 import { Reveal } from '@/components/marketing/Reveal';
 import { PhonePair, ScreenFrame } from '@/components/marketing/ScreenFrame';
 import { SectionHeading } from '@/components/marketing/SectionHeading';
+import { SITE_CONTAINER } from '@/components/marketing/site-container';
 import { useLiveDemo } from '@/components/marketing/use-demo-status';
 import { cn } from '@/lib/cn';
 import { FeatureNav } from './features/FeatureNav';
@@ -26,19 +28,19 @@ export default function FeaturesPage() {
     <>
       <DocumentTitle title="Features" />
       <PageHero
-        grid
+        eyebrow="Features"
         title="What’s in QuoteFlow"
         description="A quote builder, quotes your customers answer from their phone, invoices and payment tracking, your customers and price list, and a dashboard that shows who still owes you. Here’s how each part works."
       />
       <FeatureNav sections={FEATURE_SECTIONS} active={active} />
 
-      <div className="mx-auto max-w-6xl space-y-24 px-4 py-20 sm:space-y-32 sm:px-6 sm:py-28 lg:px-8">
+      <div className={cn(SITE_CONTAINER, 'space-y-24 py-20 sm:space-y-32 sm:py-28')}>
         {FEATURE_SECTIONS.map((section, index) => (
           <section
             key={section.id}
             id={section.id}
             aria-labelledby={`${section.id}-title`}
-            className="grid scroll-mt-32 items-center gap-10 lg:grid-cols-[1fr_1.15fr] lg:gap-16"
+            className="grid scroll-mt-36 items-center gap-10 lg:grid-cols-[1fr_1.15fr] lg:gap-16 xl:scroll-mt-40"
           >
             <Reveal className={cn(index % 2 === 1 && 'lg:order-2')}>
               <SectionHeading
@@ -46,12 +48,9 @@ export default function FeaturesPage() {
                 eyebrow={section.eyebrow}
                 title={section.title}
                 description={section.body}
+                size="md"
               />
-              <ul className="mt-6 list-disc space-y-2 pl-5 text-[0.9375rem] text-stone-700 marker:text-stone-400">
-                {section.points.map((point) => (
-                  <li key={point}>{point}</li>
-                ))}
-              </ul>
+              <BulletList items={section.points} className="mt-7" />
             </Reveal>
             <Reveal delay={100} className={cn(index % 2 === 1 && 'lg:order-1')}>
               <FeatureVisual visual={section.visual} />

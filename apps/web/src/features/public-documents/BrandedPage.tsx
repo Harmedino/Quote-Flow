@@ -1,12 +1,10 @@
-import { DEFAULT_BRAND_COLOR } from '@quoteflow/shared';
-import type { ReactNode } from 'react';
-import { brandColorVars, normalizeBrandColor } from '@/components/documents/brand-color';
-import { DocumentBand } from './DocumentBand';
-import './fills.css';
+import { type ReactNode, useEffect } from 'react';
+import { setPageToolbarColor } from '@/lib/theme';
+import { brandFill, brandPageVars } from './fills';
 
 /**
- * A customer's page in the business's colour: the band across the top and the brand variables
- * for everything below (see fills.css), with the content stacked over the band.
+ * A customer's page in the business's colour: the brand variables for everything inside, and
+ * the phone browser's toolbar in the band's colour above it.
  */
 export function BrandedPage({
   brandColor,
@@ -15,15 +13,11 @@ export function BrandedPage({
   brandColor: string | null | undefined;
   children: ReactNode;
 }) {
-  const defaultBrand = normalizeBrandColor(brandColor) === DEFAULT_BRAND_COLOR;
-  return (
-    <div
-      style={brandColorVars(brandColor)}
-      className="doc-fills"
-      data-default-brand={defaultBrand || undefined}
-    >
-      <DocumentBand branded />
-      <div className="space-y-5">{children}</div>
-    </div>
-  );
+  const { fill } = brandFill(brandColor);
+  useEffect(() => {
+    setPageToolbarColor(fill);
+    return () => setPageToolbarColor(null);
+  }, [fill]);
+
+  return <div style={brandPageVars(brandColor)}>{children}</div>;
 }

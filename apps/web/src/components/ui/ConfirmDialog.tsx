@@ -7,8 +7,10 @@ import {
   useId,
   useRef,
 } from 'react';
+import { cn } from '@/lib/cn';
 import { Alert } from './Alert';
 import { Button } from './Button';
+import { DIALOG_CLASSES } from './dialog-styles';
 
 export interface ConfirmDialogProps {
   open: boolean;
@@ -24,9 +26,10 @@ export interface ConfirmDialogProps {
 }
 
 /**
- * Asks before a consequential action. Built on a modal <dialog>: the page
- * behind it is inert, Escape cancels, and the browser returns focus to the
- * element that opened it. Cancel is focused first, so Enter never confirms by accident.
+ * Asks before a consequential action: a bottom sheet on phones, a centred panel from `sm` up.
+ * Built on a modal <dialog>: the page behind it is inert, Escape cancels, and the browser
+ * returns focus to the element that opened it. Cancel is focused first, so Enter never
+ * confirms by accident.
  */
 export function ConfirmDialog({
   open,
@@ -82,18 +85,18 @@ export function ConfirmDialog({
       aria-describedby={descriptionId}
       onCancel={handleCancel}
       onClick={handleBackdropClick}
-      className="m-auto w-[calc(100%-2rem)] max-w-md rounded-2xl border border-stone-200 bg-surface p-0 text-stone-900 shadow-[var(--shadow-elevated)] backdrop:bg-black/50 open:animate-fade-in-up"
+      className={cn(DIALOG_CLASSES, 'sm:max-w-md')}
     >
-      <div className="p-6">
+      <div className="p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:p-6">
         <div className="flex gap-4">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-[9px] bg-danger-fill text-white">
             <TriangleAlert aria-hidden="true" className="size-5" />
           </div>
-          <div className="min-w-0 pt-1">
-            <h2 id={titleId} className="text-lg font-semibold text-stone-900">
+          <div className="min-w-0 pt-1.5">
+            <h2 id={titleId} className="heading-card text-ink">
               {title}
             </h2>
-            <div id={descriptionId} className="mt-1.5 text-sm text-pretty text-stone-600">
+            <div id={descriptionId} className="mt-1.5 text-sm text-pretty text-ink-2">
               {description}
             </div>
           </div>

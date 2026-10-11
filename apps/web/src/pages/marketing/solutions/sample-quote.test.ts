@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { TRADES } from '@/components/marketing/trades';
+import { SAMPLE_QUOTE } from '../home/sample-job';
 import { formatKobo } from '../sample-money';
 import { priceSampleQuote } from './sample-quote';
 import { TRADE_DETAILS } from './trade-details';
@@ -43,5 +44,15 @@ describe('priceSampleQuote', () => {
       expect(totals.total, trade.id).toBe(totals.subtotal - totals.discount + totals.tax);
       expect(totals.total, trade.id).toBeGreaterThan(0);
     }
+  });
+});
+
+describe('the home page’s sample job', () => {
+  it('totals the hero quote as its ticket shows it', () => {
+    const { lines, totals } = priceSampleQuote(SAMPLE_QUOTE);
+
+    expect(lines.map((line) => formatKobo(line.amount))).toEqual(['₦18,000.00', '₦25,000.00']);
+    expect(formatKobo(totals.tax)).toBe('₦3,225.00');
+    expect(formatKobo(totals.total)).toBe('₦46,225.00');
   });
 });

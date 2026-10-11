@@ -24,7 +24,10 @@ export function Photo({ photo, sizes, className = 'aspect-[4/3]', eager = false 
       loading={eager ? 'eager' : 'lazy'}
       fetchPriority={eager ? 'high' : undefined}
       decoding="async"
-      className={cn('block w-full rounded-2xl bg-stone-200 object-cover sm:rounded-3xl', className)}
+      className={cn(
+        'block w-full rounded-xl bg-surface-muted object-cover sm:rounded-[1.125rem]',
+        className,
+      )}
     />
   );
 }

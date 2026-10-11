@@ -2,6 +2,7 @@ import type { ServiceInput } from '@quoteflow/shared';
 import { Paintbrush, Plus, Snowflake, Sparkles, Wrench } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 interface ExampleService {
   icon: LucideIcon;
@@ -43,39 +44,39 @@ export function ServicesEmptyState({
   onAdd: (initialValues?: Partial<ServiceInput>) => void;
 }) {
   return (
-    <div className="flex animate-fade-in-up flex-col items-center rounded-xl border border-dashed border-stone-300 bg-surface px-6 py-12 text-center sm:py-14">
-      <div className="flex size-11 items-center justify-center rounded-full bg-stone-100 text-stone-500">
-        <Wrench aria-hidden="true" className="size-5" strokeWidth={1.75} />
-      </div>
-      <h2 className="mt-4 text-base font-semibold text-stone-900">Build your price list</h2>
-      <p className="mt-1.5 max-w-md text-sm text-pretty text-stone-500">
-        Save the services you offer with their prices and units, then add them to any quote in one
-        click. Start from scratch or from an example.
-      </p>
-      <Button className="mt-5" onClick={() => onAdd()}>
-        <Plus aria-hidden="true" />
-        Add your first service
-      </Button>
-      <div className="mt-10 w-full max-w-2xl">
-        <p className="section-label">Or start from an example</p>
-        <ul className="mt-3 grid gap-3 sm:grid-cols-3">
-          {EXAMPLES.map(({ icon: Icon, values }) => (
-            <li key={values.name}>
-              <button
-                type="button"
-                onClick={() => onAdd(values)}
-                className="flex h-full w-full flex-col items-start gap-2 rounded-xl border border-stone-200 bg-surface p-4 text-left transition-colors hover:border-stone-300 hover:bg-stone-50"
-              >
-                <span className="flex size-8 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
-                  <Icon aria-hidden="true" className="size-4" />
-                </span>
-                <span className="text-sm font-medium text-stone-900">{values.name}</span>
-                <span className="text-xs text-stone-500">Per {values.unit}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
+    <EmptyState
+      variant="dashed"
+      icon={Wrench}
+      title="Build your price list"
+      description="Save the services you offer with their prices and units, then add them to any quote in one click. Start from scratch or from an example."
+      action={
+        <>
+          <Button onClick={() => onAdd()}>
+            <Plus aria-hidden="true" />
+            Add your first service
+          </Button>
+          <div className="mt-5 w-full max-w-2xl">
+            <p className="label-mono text-muted">Or start from an example</p>
+            <ul className="mt-3 grid gap-3 sm:grid-cols-3">
+              {EXAMPLES.map(({ icon: Icon, values }) => (
+                <li key={values.name}>
+                  <button
+                    type="button"
+                    onClick={() => onAdd(values)}
+                    className="flex h-full w-full flex-col items-start gap-2 rounded-xl bg-surface p-4 text-left shadow-(--shadow-card) transition-colors hover:bg-surface-muted"
+                  >
+                    <span className="flex size-8 items-center justify-center rounded-lg bg-primary-tint text-primary-ink">
+                      <Icon aria-hidden="true" className="size-4" />
+                    </span>
+                    <span className="text-[14.5px] font-bold text-ink">{values.name}</span>
+                    <span className="font-mono text-xs text-muted">Per {values.unit}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </>
+      }
+    />
   );
 }

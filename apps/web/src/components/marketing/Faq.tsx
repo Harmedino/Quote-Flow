@@ -1,6 +1,9 @@
 import { Plus } from 'lucide-react';
 import { useId, useState } from 'react';
+import { Card } from '@/components/ui/Card';
 import { cn } from '@/lib/cn';
+import { Eyebrow } from './SectionHeading';
+import { SITE_CONTAINER } from './site-container';
 
 export interface FaqEntry {
   question: string;
@@ -14,7 +17,7 @@ function FaqItem({ question, answer }: FaqEntry) {
   const panelId = `${id}-answer`;
 
   return (
-    <div className="border-b border-stone-200">
+    <div className="border-b-[1.5px] border-dashed border-line-strong last:border-b-0">
       <h3>
         <button
           id={buttonId}
@@ -22,17 +25,19 @@ function FaqItem({ question, answer }: FaqEntry) {
           onClick={() => setOpen((value) => !value)}
           aria-expanded={open}
           aria-controls={panelId}
-          className="flex w-full items-center justify-between gap-6 rounded-md py-5 text-left"
+          className="group flex w-full items-center justify-between gap-6 rounded-md py-5 text-left"
         >
-          <span className="text-base font-semibold text-stone-900 sm:text-lg">{question}</span>
+          <span className="text-base font-[650] text-ink sm:text-[1.0625rem]">{question}</span>
           <span
             aria-hidden="true"
             className={cn(
-              'flex size-8 shrink-0 items-center justify-center rounded-full border border-stone-300 text-stone-600 transition-transform duration-200',
-              open && 'rotate-45',
+              'flex size-8 shrink-0 items-center justify-center rounded-[9px] transition-[rotate,background-color,color] duration-200',
+              open
+                ? 'rotate-45 bg-primary text-on-primary'
+                : 'text-ink-2 shadow-[inset_0_0_0_1px_var(--color-line-strong)] group-hover:bg-surface-muted',
             )}
           >
-            <Plus className="size-4" />
+            <Plus className="size-4 stroke-[2.4]" />
           </span>
         </button>
       </h3>
@@ -48,7 +53,7 @@ function FaqItem({ question, answer }: FaqEntry) {
         )}
       >
         <div className="overflow-hidden">
-          <p className="max-w-2xl pb-5 text-[0.9375rem] leading-relaxed text-pretty text-stone-600">
+          <p className="max-w-2xl pb-5 text-[0.9375rem] leading-relaxed text-pretty text-ink-2">
             {answer}
           </p>
         </div>
@@ -57,7 +62,7 @@ function FaqItem({ question, answer }: FaqEntry) {
   );
 }
 
-/** The questions section: the title on the left, questions that open to their answer on the right. */
+/** The questions section: the title on the left, a receipt of questions that open to their answer. */
 export function FaqSection({
   title = 'Questions',
   description,
@@ -68,30 +73,24 @@ export function FaqSection({
   entries: readonly FaqEntry[];
 }) {
   return (
-    <section
-      id="faq"
-      aria-labelledby="faq-title"
-      className="scroll-mt-20 border-t border-stone-200/70"
-    >
-      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[0.8fr_1.2fr] lg:px-8">
+    <section id="faq" aria-labelledby="faq-title" className="scroll-mt-24 xl:scroll-mt-28">
+      <div className={cn(SITE_CONTAINER, 'grid gap-10 py-16 sm:py-24 lg:grid-cols-[0.8fr_1.2fr]')}>
         <div>
-          <h2
-            id="faq-title"
-            className="text-3xl font-semibold tracking-tight text-stone-900 sm:text-4xl"
-          >
+          <Eyebrow>FAQ</Eyebrow>
+          <h2 id="faq-title" className="mt-3.5 heading-section text-balance text-ink">
             {title}
           </h2>
           {description && (
-            <p className="mt-4 max-w-sm text-base leading-relaxed text-pretty text-stone-600">
+            <p className="mt-5 max-w-sm text-[1.0625rem] leading-relaxed text-pretty text-ink-2">
               {description}
             </p>
           )}
         </div>
-        <div className="border-t border-stone-200">
+        <Card className="px-5 sm:px-7">
           {entries.map((entry) => (
             <FaqItem key={entry.question} {...entry} />
           ))}
-        </div>
+        </Card>
       </div>
     </section>
   );

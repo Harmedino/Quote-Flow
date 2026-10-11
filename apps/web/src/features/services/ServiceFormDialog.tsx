@@ -44,7 +44,7 @@ export function ServiceFormDialog({
   return (
     <FormDialog
       open={open}
-      title={service ? 'Edit service' : 'New service'}
+      title={service ? 'Edit service' : 'Add service'}
       description={service ? undefined : 'Saved services can be added to any quote in one click.'}
       pending={pending}
       onClose={onClose}
@@ -134,10 +134,10 @@ function ServiceForm({
             <Input {...bind('unit')} autoComplete="off" />
           </Field>
         </div>
-        <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-stone-200 p-4">
+        <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl bg-surface-muted p-4 shadow-[inset_0_0_0_1px_var(--color-line)]">
           <span className="text-sm">
-            <span className="block font-medium text-stone-900">Active</span>
-            <span className="mt-0.5 block text-stone-600">
+            <span className="block font-semibold text-ink">Active</span>
+            <span className="mt-0.5 block text-ink-2">
               Inactive services stay on existing quotes but aren’t offered for new ones.
             </span>
           </span>
@@ -151,7 +151,7 @@ function ServiceForm({
           />
           <span
             aria-hidden="true"
-            className="relative h-6 w-11 shrink-0 rounded-full bg-stone-300 transition-colors peer-checked:bg-brand-600 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-brand-500 after:absolute after:top-0.5 after:left-0.5 after:size-5 after:rounded-full after:bg-white after:shadow-sm after:transition-transform peer-checked:after:translate-x-5"
+            className="relative h-6 w-11 shrink-0 rounded-full bg-edge transition-colors peer-checked:bg-primary peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus after:absolute after:top-0.5 after:left-0.5 after:size-5 after:rounded-full after:bg-white after:shadow-[0_1px_2px_rgb(14_27_51/0.3)] after:transition-transform peer-checked:after:translate-x-5 peer-checked:after:bg-on-primary"
           />
         </label>
       </FormDialogBody>

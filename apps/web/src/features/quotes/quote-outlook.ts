@@ -1,5 +1,7 @@
 import { QUOTE_STATUS_LABELS, type QuoteDto } from '@quoteflow/shared';
+import type { DocumentStamp } from '@/components/documents/SalesDocument';
 import { daysBetween } from '@/features/dashboard/dashboard-format';
+import { stampMoment } from '@/features/documents/document-stamp';
 import { formatCalendarDate, formatDate } from '@/lib/format';
 
 type QuoteDates = Pick<QuoteDto, 'status' | 'expiryDate' | 'acceptedAt' | 'rejectedAt'>;
@@ -14,7 +16,7 @@ export function quoteOutlook(quote: QuoteDates, today: string, timeZone: string)
     return `Accepted on ${formatDate(quote.acceptedAt, { timeZone })}`;
   }
   if (quote.status === 'rejected' && quote.rejectedAt) {
-    return `Rejected on ${formatDate(quote.rejectedAt, { timeZone })}`;
+    return `Declined on ${formatDate(quote.rejectedAt, { timeZone })}`;
   }
   if (quote.status === 'expired') return `Expired after ${expiry}`;
 
@@ -47,4 +49,27 @@ export function quoteSteps(quote: QuoteProgress): QuoteStep[] {
     { label: 'Accepted', state: quote.status === 'accepted' ? 'done' : 'todo' },
     { label: 'Invoiced', state: quote.invoiceId ? 'done' : 'todo' },
   ];
+}
+
+type QuoteOutcome = Pick<QuoteDto, 'status' | 'expiryDate' | 'acceptedAt' | 'rejectedAt'>;
+
+/**
+ * The stamp on the quote's ticket: dashed "Draft" until it is sent, then the customer's answer
+ * (or its expiry) once there is one. Sent and viewed quotes are still waiting, so they have none.
+ */
+export function quoteStamp(quote: QuoteOutcome, timeZone: string): DocumentStamp | undefined {
+  const label = QUOTE_STATUS_LABELS[quote.status];
+  const at = (iso: string | null) => (iso ? stampMoment(iso, timeZone) : undefined);
+  switch (quote.status) {
+    case 'draft':
+      return { tone: 'draft', label };
+    case 'accepted':
+      return { tone: 'accepted', label, detail: at(quote.acceptedAt) };
+    case 'rejected':
+      return { tone: 'declined', label, detail: at(quote.rejectedAt) };
+    case 'expired':
+      return { tone: 'expired', label, detail: formatCalendarDate(quote.expiryDate) };
+    default:
+      return undefined;
+  }
 }

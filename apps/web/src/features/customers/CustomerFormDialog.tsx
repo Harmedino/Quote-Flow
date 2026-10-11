@@ -34,7 +34,7 @@ export function CustomerFormDialog({ open, onClose, onSaved, customer }: Custome
   return (
     <FormDialog
       open={open}
-      title={customer ? 'Edit customer' : 'New customer'}
+      title={customer ? 'Edit customer' : 'Add customer'}
       description={customer ? undefined : 'Only a name is required. You can add the rest any time.'}
       pending={pending}
       onClose={onClose}
@@ -114,9 +114,9 @@ function CustomerForm({ customer, pending, onCancel, onSubmit, onSaved }: Custom
           </Field>
         </div>
 
-        <fieldset className="mt-6 rounded-2xl border border-stone-200 p-4 sm:p-5">
-          <legend className="px-1.5 text-sm font-semibold text-stone-900">
-            Address <span className="font-normal text-stone-500">· optional</span>
+        <fieldset className="mt-6 rounded-xl border-[1.5px] border-dashed border-line-strong p-4 sm:p-5">
+          <legend className="px-1.5 label-mono text-ink-2">
+            Address <span className="text-muted">· optional</span>
           </legend>
           <div className="grid gap-5 sm:grid-cols-2">
             <Field label="Address line 1" error={errors['address.line1']} className="sm:col-span-2">

@@ -1,0 +1,45 @@
+[
+  { "name": "Inter-Regular", "source": "inter-ui/Inter (web)/Inter-Regular.woff" },
+  { "name": "Inter-Medium", "source": "inter-ui/Inter (web)/Inter-Medium.woff" },
+  { "name": "Inter-SemiBold", "source": "inter-ui/Inter (web)/Inter-SemiBold.woff" },
+  {
+    "name": "IBMPlexMono-Medium-latin",
+    "source": "@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-500-normal.woff"
+  },
+  {
+    "name": "IBMPlexMono-Medium-latin-ext",
+    "source": "@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-ext-500-normal.woff"
+  },
+  {
+    "name": "IBMPlexMono-SemiBold-latin",
+    "source": "@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-600-normal.woff"
+  },
+  {
+    "name": "IBMPlexMono-SemiBold-latin-ext",
+    "source": "@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-ext-600-normal.woff"
+  },
+  {
+    "name": "Archivo-Bold-latin",
+    "source": "@fontsource/archivo/files/archivo-latin-700-normal.woff"
+  },
+  {
+    "name": "Archivo-Bold-latin-ext",
+    "source": "@fontsource/archivo/files/archivo-latin-ext-700-normal.woff"
+  },
+  {
+    "name": "Archivo-Bold-vietnamese",
+    "source": "@fontsource/archivo/files/archivo-vietnamese-700-normal.woff"
+  },
+  {
+    "name": "Archivo-ExtraBold-latin",
+    "source": "@fontsource/archivo/files/archivo-latin-800-normal.woff"
+  },
+  {
+    "name": "Archivo-ExtraBold-latin-ext",
+    "source": "@fontsource/archivo/files/archivo-latin-ext-800-normal.woff"
+  },
+  {
+    "name": "Archivo-ExtraBold-vietnamese",
+    "source": "@fontsource/archivo/files/archivo-vietnamese-800-normal.woff"
+  }
+]

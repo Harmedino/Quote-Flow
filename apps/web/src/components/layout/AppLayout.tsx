@@ -1,17 +1,15 @@
 import { type RefObject, useEffect, useRef, useState } from 'react';
-import { Link, Navigate, Outlet, useLocation, useMatches } from 'react-router';
+import { Navigate, Outlet, useLocation, useMatches } from 'react-router';
 import { paths } from '@/app/paths';
 import { PageLoader } from '@/components/PageLoader';
-import { Logo } from '@/components/ui/Logo';
-import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { SESSION_EXPIRED_STATE, signInPathFor } from '@/features/auth/redirect';
 import { useSession } from '@/features/auth/use-session';
-import { AccountMenu } from './AccountMenu';
-import { AppNavigation, CreateCard } from './AppNavigation';
+import { AppTopBar } from './AppNavigation';
+import { HazardTape } from './HazardTape';
 import { type MobileSheetName, type MobileSheets, MobileNav, MobileTopBar } from './MobileNav';
 import { MAIN_CONTENT_ID, SkipLink } from './SkipLink';
 
-/** Matches Tailwind's `lg` breakpoint, where the sidebar replaces the phone navigation. */
+/** Matches Tailwind's `lg` breakpoint, where the top bar's tabs replace the phone navigation. */
 const DESKTOP_QUERY = '(min-width: 64rem)';
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 
@@ -41,32 +39,23 @@ export default function AppLayout() {
   }
 
   return (
-    <div className="flex min-h-dvh bg-stone-50">
+    <div data-app-shell className="flex min-h-dvh flex-col bg-canvas">
       <SkipLink />
 
-      <aside className="sticky top-0 z-40 hidden h-dvh w-64 shrink-0 flex-col bg-ink lg:flex dark:border-r dark:border-white/[0.06]">
-        <div className="flex h-16 shrink-0 items-center justify-between gap-3 px-5">
-          <Link to={paths.dashboard} className="flex rounded-lg focus-visible:outline-highlight">
-            <Logo tone="light" />
-          </Link>
-          <ThemeToggle tone="ink" />
-        </div>
-        <AppNavigation />
-        <CreateCard />
-        <AccountMenu />
-      </aside>
-
-      <div className="flex min-w-0 flex-1 flex-col">
+      <header className="sticky top-0 z-30">
+        <HazardTape />
+        <AppTopBar />
         <MobileTopBar sheets={sheets} />
-        <main
-          ref={mainRef}
-          id={MAIN_CONTENT_ID}
-          tabIndex={-1}
-          className="mx-auto w-full max-w-6xl flex-1 px-4 pt-5 pb-28 focus:outline-none sm:px-6 lg:px-8 lg:py-8"
-        >
-          <Outlet />
-        </main>
-      </div>
+      </header>
+
+      <main
+        ref={mainRef}
+        id={MAIN_CONTENT_ID}
+        tabIndex={-1}
+        className="mx-auto w-full max-w-[83rem] flex-1 px-4 pt-5 pb-[calc(var(--spacing-tab-bar)+2rem)] focus:outline-none sm:px-6 lg:px-6 lg:pt-6 lg:pb-12 xl:px-12"
+      >
+        <Outlet />
+      </main>
 
       <MobileNav sheets={sheets} />
     </div>

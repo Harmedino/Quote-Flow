@@ -10,19 +10,23 @@ import type { Types } from 'mongoose';
 import { InvoiceModel, QuoteModel } from '../models';
 
 type Activity = DashboardDto['activity'];
+type Series = keyof Activity['previous'];
 
-interface PaymentDates {
+interface InvoicePayments {
+  customer: { name: string };
   payments: { amount: number; paidAt: Date }[];
 }
 
 interface QuoteDay {
+  customer: { name: string };
   issueDate: Date;
   totals: { total: number };
 }
 
 /**
- * Money received and value quoted per day over the last DASHBOARD_ACTIVITY_DAYS days, and the
- * same sums for the period before, in the business currency.
+ * Money received and value quoted per day over the last DASHBOARD_ACTIVITY_DAYS days, each
+ * payment and quote behind them, and the same sums for the period before, in the business
+ * currency.
  *
  * Payment and issue dates are calendar dates in the business's time zone stored as UTC midnight,
  * so a record's day is its UTC date. The rows are read with a tenant-scoped, date-bounded query
@@ -40,10 +44,10 @@ export async function dashboardActivity(
 
   const [invoices, quotes] = await Promise.all([
     InvoiceModel.find({ businessId, currency, 'payments.paidAt': { $gte: since } })
-      .select('payments.amount payments.paidAt')
-      .lean<PaymentDates[]>(),
+      .select('customer.name payments.amount payments.paidAt')
+      .lean<InvoicePayments[]>(),
     QuoteModel.find({ businessId, currency, status: { $ne: 'draft' }, issueDate: { $gte: since } })
-      .select('issueDate totals.total')
+      .select('customer.name issueDate totals.total')
       .lean<QuoteDay[]>(),
   ]);
 
@@ -54,18 +58,29 @@ export async function dashboardActivity(
   }));
   const byDate = new Map(days.map((day) => [day.date, day]));
   const previous = { paid: 0, quoted: 0 };
+  const entries: Activity['entries'] = { paid: [], quoted: [] };
 
-  function add(date: Date, field: 'paid' | 'quoted', amount: number) {
+  function add(date: Date, series: Series, amount: number, customerName: string) {
     const key = utcDateToIsoDate(date);
     const day = byDate.get(key);
-    if (day) day[field] += amount;
-    else if (key >= previousFirst && key < first) previous[field] += amount;
+    if (day) {
+      day[series] += amount;
+      entries[series].push({ date: key, amount, customerName });
+    } else if (key >= previousFirst && key < first) {
+      previous[series] += amount;
+    }
   }
 
   for (const invoice of invoices) {
-    for (const payment of invoice.payments) add(payment.paidAt, 'paid', payment.amount);
+    for (const payment of invoice.payments) {
+      add(payment.paidAt, 'paid', payment.amount, invoice.customer.name);
+    }
   }
-  for (const quote of quotes) add(quote.issueDate, 'quoted', quote.totals.total);
+  for (const quote of quotes) {
+    add(quote.issueDate, 'quoted', quote.totals.total, quote.customer.name);
+  }
 
-  return { days, previous };
+  // ISO dates sort as text; the sort is stable, so a day's entries keep the order they were read.
+  for (const list of Object.values(entries)) list.sort((a, b) => a.date.localeCompare(b.date));
+  return { days, previous, entries };
 }

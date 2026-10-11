@@ -6,6 +6,7 @@ import { MoneyInput } from '@/components/ui/MoneyInput';
 import { cn } from '@/lib/cn';
 import { formatMoney } from '@/lib/format';
 import { ItemNameInput } from './ItemNameInput';
+import { LINE_ITEM_COLUMNS } from './line-item-columns';
 import { applyServiceToDraft, draftLineAmount, type LineItemDraft } from './line-items';
 import { QuantityInput } from './QuantityInput';
 
@@ -24,7 +25,8 @@ export interface LineItemRowProps {
 }
 
 /** Column labels are visible on narrow (stacked) rows and read by screen readers on wide ones. */
-const CELL_LABEL = 'mb-1 block text-xs font-medium text-stone-600 @2xl:sr-only';
+const CELL_LABEL = 'mb-1 block text-[13px] font-semibold text-ink-2 @3xl:sr-only';
+const ERROR = 'mt-1 text-[12.5px] font-medium text-danger';
 
 function Cell({
   label,
@@ -48,7 +50,7 @@ function Cell({
       </label>
       {children}
       {error && (
-        <p id={errorId} className="mt-1 text-xs text-red-700">
+        <p id={errorId} className={ERROR}>
           {error}
         </p>
       )}
@@ -75,17 +77,19 @@ export function LineItemRow({
   const position = index + 1;
 
   const iconButton =
-    'flex size-9 items-center justify-center rounded-lg text-stone-500 transition-colors @2xl:size-8';
+    'flex size-9 items-center justify-center rounded-lg text-muted transition-colors @3xl:size-8';
 
   return (
-    <li className="animate-fade-in-up rounded-xl border border-stone-200 bg-surface-muted p-4 @2xl:rounded-none @2xl:border-0 @2xl:border-b @2xl:border-stone-100 @2xl:bg-transparent @2xl:px-0 @2xl:py-3">
-      <div className="grid grid-cols-4 gap-3 @2xl:grid-cols-[minmax(0,1fr)_4rem_4.5rem_9.5rem_7rem_4rem] @2xl:items-start @2xl:gap-x-2 @2xl:gap-y-2">
+    <li className="animate-fade-in-up rounded-xl bg-surface-muted p-4 shadow-[inset_0_0_0_1px_var(--color-line)] @3xl:rounded-none @3xl:border-b @3xl:border-dashed @3xl:border-line-strong @3xl:bg-transparent @3xl:px-0 @3xl:py-3 @3xl:shadow-none">
+      <div
+        className={cn('grid grid-cols-4 gap-3 @3xl:items-start @3xl:gap-y-2', LINE_ITEM_COLUMNS)}
+      >
         <Cell
           label={`Item ${position}`}
           htmlFor={id('name')}
           error={errors.name}
           errorId={errorId('name')}
-          className="col-span-4 @2xl:col-span-1"
+          className="col-span-4 @3xl:col-span-1"
         >
           <ItemNameInput
             id={id('name')}
@@ -103,7 +107,7 @@ export function LineItemRow({
         </Cell>
 
         {/* Under the name on narrow rows; a full-width second line on wide ones. */}
-        <div className="col-span-4 @2xl:order-last">
+        <div className="col-span-4 @3xl:order-last">
           <label htmlFor={id('description')} className="sr-only">
             Item {position} description (optional)
           </label>
@@ -121,7 +125,7 @@ export function LineItemRow({
             onChange={(event) => onChange({ ...item, description: event.target.value })}
           />
           {errors.description && (
-            <p id={errorId('description')} className="mt-1 text-xs text-red-700">
+            <p id={errorId('description')} className={ERROR}>
               {errors.description}
             </p>
           )}
@@ -132,6 +136,7 @@ export function LineItemRow({
           htmlFor={id('quantity')}
           error={errors.quantity}
           errorId={errorId('quantity')}
+          className="col-span-2 @3xl:col-span-1"
         >
           <QuantityInput
             id={id('quantity')}
@@ -142,7 +147,13 @@ export function LineItemRow({
           />
         </Cell>
 
-        <Cell label="Unit" htmlFor={id('unit')} error={errors.unit} errorId={errorId('unit')}>
+        <Cell
+          label="Unit"
+          htmlFor={id('unit')}
+          error={errors.unit}
+          errorId={errorId('unit')}
+          className="col-span-2 @3xl:col-span-1"
+        >
           <input
             id={id('unit')}
             type="text"
@@ -150,7 +161,7 @@ export function LineItemRow({
             autoComplete="off"
             aria-invalid={Boolean(errors.unit) || undefined}
             aria-describedby={describedBy('unit')}
-            className={cn(CONTROL_CLASSES, 'h-10')}
+            className={cn(CONTROL_CLASSES, 'h-10.5')}
             value={item.unit}
             onChange={(event) => onChange({ ...item, unit: event.target.value })}
           />
@@ -161,7 +172,8 @@ export function LineItemRow({
           htmlFor={id('unitPrice')}
           error={errors.unitPrice}
           errorId={errorId('unitPrice')}
-          className="col-span-2 @2xl:col-span-1"
+          // A row of its own on narrow rows: 8-digit naira prices need the width.
+          className="col-span-4 @3xl:col-span-1"
         >
           <MoneyInput
             id={id('unitPrice')}
@@ -175,24 +187,22 @@ export function LineItemRow({
           />
         </Cell>
 
-        <div className="col-span-4 flex items-center justify-between gap-3 border-t border-stone-200 pt-3 @2xl:contents">
-          <p className="text-sm text-stone-600 @2xl:flex @2xl:h-10 @2xl:items-center @2xl:justify-end">
-            <span className="@2xl:sr-only">Amount </span>
+        <div className="col-span-4 flex items-center justify-between gap-3 border-t-[1.5px] border-dashed border-line-strong pt-3 @3xl:contents">
+          <p className="text-sm text-ink-2 @3xl:flex @3xl:h-10.5 @3xl:items-center @3xl:justify-end">
+            <span className="@3xl:sr-only">Amount </span>
             {amount === null ? (
-              <span className="text-stone-500">—</span>
+              <span className="text-muted">—</span>
             ) : (
-              <span className="font-semibold text-stone-900 tabular-nums">
-                {formatMoney(amount, currency)}
-              </span>
+              <span className="money text-[14px] text-ink">{formatMoney(amount, currency)}</span>
             )}
           </p>
-          <div className="flex items-center justify-end gap-0.5 @2xl:h-10">
+          <div className="flex items-center justify-end gap-0.5 @3xl:h-10.5">
             <button
               type="button"
               onClick={onDuplicate}
               aria-label={`Duplicate item ${position}`}
               title="Duplicate"
-              className={cn(iconButton, 'hover:bg-stone-200/70 hover:text-stone-900')}
+              className={cn(iconButton, 'hover:bg-canvas-deep hover:text-ink')}
             >
               <Copy aria-hidden="true" className="size-4" />
             </button>
@@ -204,7 +214,7 @@ export function LineItemRow({
               title="Remove"
               className={cn(
                 iconButton,
-                'hover:bg-red-50 hover:text-red-700 disabled:pointer-events-none disabled:opacity-40',
+                'hover:bg-danger-tint hover:text-danger disabled:pointer-events-none disabled:opacity-40',
               )}
             >
               <Trash2 aria-hidden="true" className="size-4" />

@@ -85,7 +85,7 @@ export function ChangePasswordSection() {
             <PasswordInput {...form.bind('confirmPassword')} autoComplete="new-password" />
           </Field>
         </div>
-        <div className="flex justify-end border-t border-stone-100 pt-5">
+        <div className="-mx-5 flex justify-end border-t-[1.5px] border-dashed border-line-strong px-5 pt-5 sm:-mx-6 sm:px-6">
           <Button type="submit" loading={change.isPending}>
             Change password
           </Button>

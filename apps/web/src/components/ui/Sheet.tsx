@@ -98,9 +98,9 @@ export function Sheet({ open, onClose, label, children, className }: SheetProps)
       onCancel={handleCancel}
       onClick={handleBackdropClick}
       className={cn(
-        'm-0 mt-auto max-h-[88svh] w-full max-w-none overflow-y-auto overscroll-contain rounded-t-[1.75rem] border-0 bg-surface p-0 text-stone-900 shadow-[var(--shadow-elevated)]',
+        'm-0 mt-auto max-h-[88svh] w-full max-w-none overflow-y-auto overscroll-contain rounded-t-[1.25rem] border-0 bg-surface p-0 text-ink shadow-(--shadow-elevated)',
         'translate-y-full transition-[translate,overlay,display] transition-discrete duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] open:translate-y-0 starting:open:translate-y-full',
-        'backdrop:bg-black/45 backdrop:transition-[background-color,overlay,display] backdrop:transition-discrete backdrop:duration-300 starting:open:backdrop:bg-black/0',
+        'backdrop:bg-navy/50 backdrop:transition-[background-color,overlay,display] backdrop:transition-discrete backdrop:duration-300 starting:open:backdrop:bg-navy/0',
       )}
     >
       <div className="pb-safe">
@@ -112,13 +112,13 @@ export function Sheet({ open, onClose, label, children, className }: SheetProps)
           onPointerCancel={handlePointerEnd}
           className="flex cursor-grab touch-none justify-center pt-2.5 pb-1 active:cursor-grabbing"
         >
-          <span className="h-1.5 w-10 rounded-full bg-stone-300" />
+          <span className="h-1.5 w-10 rounded-full bg-line-strong" />
         </div>
         <div className={cn('px-4 pt-2 pb-5', className)}>{children}</div>
         <button
           type="button"
           onClick={onClose}
-          className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:top-3 focus-visible:right-3 focus-visible:inline-flex focus-visible:size-9 focus-visible:items-center focus-visible:justify-center focus-visible:rounded-full focus-visible:bg-stone-100"
+          className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:top-3 focus-visible:right-3 focus-visible:inline-flex focus-visible:size-9 focus-visible:items-center focus-visible:justify-center focus-visible:rounded-[9px] focus-visible:bg-surface-muted"
         >
           <X aria-hidden="true" className="size-4" />
           <span className="sr-only">Close</span>

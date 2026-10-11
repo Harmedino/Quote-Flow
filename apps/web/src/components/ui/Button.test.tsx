@@ -16,7 +16,9 @@ describe('Button', () => {
     expect(html).toContain('aria-disabled="true"');
     // Native disabled would drop keyboard focus to <body>.
     expect(html).not.toContain('disabled=""');
-    expect(html).toContain('<svg');
+    // The hazard tape is the working indicator; there are no spinners.
+    expect(html).toContain('hazard-tape');
+    expect(html).not.toContain('<svg');
   });
 
   it('still honours an explicit disabled prop', () => {
@@ -33,7 +35,19 @@ describe('Button', () => {
   it('gives the quiet destructive variant red text with no neutral colour to override it', () => {
     const classes = buttonClasses({ variant: 'danger-ghost' });
 
-    expect(classes).toContain('text-red-700');
-    expect(classes).not.toMatch(/text-zinc-/);
+    expect(classes).toContain('text-danger');
+    expect(classes).not.toMatch(/text-(ink|stone|zinc)/);
+  });
+
+  it('puts navy text on the orange fill, never white', () => {
+    const classes = buttonClasses({ variant: 'primary' });
+
+    expect(classes).toContain('bg-primary text-on-primary');
+    expect(classes).not.toContain('text-white');
+  });
+
+  it('cuts side notches into a ticket-shaped button', () => {
+    expect(buttonClasses({ shape: 'ticket' })).toContain('notch-mid');
+    expect(buttonClasses({})).not.toContain('notch-mid');
   });
 });
